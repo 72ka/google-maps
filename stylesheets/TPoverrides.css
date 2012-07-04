@@ -1,0 +1,33 @@
+.pac-container {
+		width: 84%  !important;
+		//position: relative !important;
+		left: 25px !important;		
+}
+
+/* Touchpad needs this, otherwise the divider line will be not rendered properly with fixed lenght */
+.palm-divider.collapsible .line {
+  background: url(../images/palm-divider-collapse-left.png) left -1px repeat;
+} 
+
+/*
+#directionsScrim {
+
+	position: relative;
+	width: 320px;
+	//right: 0px;
+	float: right;
+	background: none;
+}
+
+.directions-container {
+		margin: -10px -10px -10px -10px;
+		
+	
+}
+
+#map_canvas {
+	position: absolute;
+
+ 	z-Index:10000;
+}
+*/

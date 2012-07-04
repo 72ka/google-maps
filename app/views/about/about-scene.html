@@ -1,0 +1,196 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"></head><body><div class="help">
+
+<div class="palm-page-header multi-line">
+	<div class="palm-page-header-wrapper">
+	    <div class="icon about-icon"></div>                         
+		<div class="title" id="AppTitleText">
+			</div>
+		<div class="subtitle" id="AppVersionText">
+		 </div>     
+	</div>
+</div>
+
+
+<div class="palm-group">
+    <div class="palm-group-title" x-mojo-loc='' id="DescriptionText">
+        Description
+    </div>
+    <div class="palm-body-text" id="AppDescription">
+	    This application is trying to be a replacement of unsupported Google Maps application for WebOS devices.
+	    The application is based on the Google Maps API V3.
+		Do you like this application? If do, you can support me in development. Thank you!
+		</div>
+   
+</div>
+<center>
+<form action="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=5CTRZJLKKUBS4&lc=CZ&item_name=Jan%20Herman&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHosted" target="_blank" href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=5CTRZJLKKUBS4&lc=CZ&item_name=Jan%20Herman&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHosted" method="post">
+				<input type="image" src="images/x-click-butcc-donate.gif" style="text-align: center" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+</form>
+</center>
+
+<div class="palm-group">
+    <div class="palm-group-title" x-mojo-loc='' id="ContributorsText">
+        Contributors
+    </div>
+    <div class="palm-body-text">
+	    bigdoby (Italian translation)
+		</div>
+   
+</div>
+
+<div class="palm-group">
+    <div class="palm-group-title" x-mojo-loc='' id="ChangelogText">
+        Changelog
+    </div>
+    <div class="palm-body-text">
+		
+	  0.1.9<br>
+	  <li>Pre3 map centering fix (hope temporary workaround, visible grey flash after map move)</li>
+	  <li>Map tiles caching improvement - faster app start to last map tiles</li>
+	  <li>Fixed bug - Fullscreen mode works again</li>
+	  <li>UI Localization to Czech, Italy, ...</li>
+	  <li>Removed obsolete magnifying glas search icon from main screen - more space in top bar</li>
+	  <li>Google forced to show the powered by Google logo in suggestions, fixed the multiplying logos</li>
+	  <li>Decreased sensitivity of street view pan</li><br><br>
+	  
+	  
+	  0.1.8<br>
+	  <li>New coordinates search support, supported are all 7 world most used formats of coordinates</li>
+	  <li>Here are the supported formats</li>
+	    40:26:46N, 79:56:55W<br>
+		40:26:46.302N 79:56:55.903W<br>
+		40°26′47″N 79°58′36″W<br>
+		40d26′47″N 79d58′36″W<br>
+		40.446195N 79.948862W<br>
+		40.446195, -79.948862<br>
+		40°26.7717, -79°56.93172<br>
+	  <li>New possibility to add a place to the Contacts</li>
+	  <li>The map remembers zoom and center and apply them on startup (then GPS fix overrides the zoom and center)</li>
+	  <li>New function: Tap and hold on the map drops the pin</li>
+	  <li>New Night map theme</li>
+	  <li>New bicycle layer</li>
+	  <li>New weather layer (automatically adjusts the zoom)</li>
+	  <li>New clouds layer (automatically adjusts the zoom)</li><br><br>
+		
+	  0.1.7<br>
+	  <li>New Google API override language option, you can manually set API language</li>
+	  <li>New swap button in directions (two arrows between text fields), you can swap origin/destination</li>
+	  <li>New shortcuts (Info icon) in markers list to place info scene</li>
+	  <li>New button in bottom right in place info scene, where you can share the place information via E-mail, SMS or just to copy to clipboard</li>
+	  <li>Added internet connectivity check at startup</li><br><br>
+	  
+	  0.1.6<br>
+	  <li>Traffic menu item moved to the top Layers popup menu - traffic is a layer, it is more logically</li>
+	  <li>New icons for map types in menu</li>
+	  <li>New scene "Markers" (accesible from bottom menu) - this scene contains all markers on map, you can sort them, tap to the marker centers the map to the marker</li>
+	  <li>Directions contains new button in text fields, the buttons launch Markers scene, where you can select any marker as origin or destination</li>
+	  <li>Fixed bug - My Location is now updated on every route request</li><br><br>
+	  
+	  0.1.5<br>
+	  <li><b>This version may contain more bugs, because is not deeply tested, but better than not working previous version caused by gAPI change from Google side</b></li>
+	  <li>Google disabled gAPI v3.6 previously used on WebOS 2.2 devices, this caused impossibility to marker tap in app version 0.1.4</li>
+	  <li>WebOS2.2 devices now use nightly build of gAPI</li>
+	  <li>Fixed the marker tap problem on WebOS 2.2 devices with gAPI nightly build</li>
+	  <li>Very basic (just look around), but usable and stable StreetView for WebOS 2.1 devices (better than nothing)</li>
+	  <li>New search for nearby places, read the hint bottom search bar.</li>
+	  <li>Nearby places has rating and distance from request position</li>
+	  <li>When suggestions doesn't exists, panel contains text "No results..." - it could make problems, it's a Google autocompleter hack</li>
+	  <li>Fixed when you paste an address to the search bar</li>
+	  <li>New icons for markers, for Pre3 in high resolution</li>
+	  <li>New HD app icon for Pre3 launcher</li>
+	  <li>Error dialog if the directions request is not complete</li>
+	  <li>Fixed the InfoBubble look for WebOS2.2 and newer devices (was missing background)</li>
+	  <li>Fixed the low velocity when following map is active</li>
+	  <li>Map rotating optimization for decreasing CPU usage</li><br><br>
+		
+	  0.1.4<br>
+	  <li>New Preferences scene</li>
+	  <li>You can enable Fullscreen mode (usefull on small screen devices like Veer and Pixi), exit fullscreen through bottom menu</li>
+	  <li>Override directions launch request as option</li>
+	  <li>Map rotate to GPS heading as experimental feature... it isn't supported by Google API, it's a workaround, it renders some artefacts, ToDo to make it better</li>
+	  <li>When Follow map function is active, the screen timeout and exhibition mode is blocked</li>
+	  <li>When Follow map function is active, the top bar shows actual velocity if is higher than 0.5m/s</li>
+	  <li>Fixed some not reported bugs</li>
+	  <li>Moved bottom menu 10px higher for map scale visibility</li>
+	  <li>New GPS blue dot - bigger than before</li>
+	  <li>Opacity of blue circle is reduced to usable minimum</li>
+	  <li>Improved (not revolutionary, but stable) pinch to zoom</li><br><br>
+		
+	  0.1.3<br>
+	  <li>"Just type" search - any key press opens the serch bar</li>
+	  <li>New Place Info scene (details, rating, homepage and button for make a call)</li>
+	  <li>Application remembers Map type and Traffic layers</li>
+	  <li>First attempt to speed optimization in moving the map</li><br><br>
+	  
+	  0.1.2<br>
+	  <li>Completely new search, included POI's (it needs to add the Powered by Google logo), the search result is preferred from actual map bounds, the first result is the nearest place from map center</li>
+	  <li>WebOS 2.2.x tap to marker toggles the bubble - fixed</li>
+	  <li>The latest search result is now displayed in top bar</li>
+	  <li>Some UI changes, wider directions panel</li>
+	  <li>Hope that the TP stop panning is fixed... let me know to the forum please</li><br>
+	  The switching to the Google autocompleter was a big change in code, it is possible that the app may contains new bugs. Still evolving...<br><br>
+	  
+	  0.1.1<br>
+	  <li>Fixed route rendering for WebOS 1.4.x</li>
+	  <li>Fixed TP orientation change (menu size, centering map)</li>
+	  <li>New direction instructions in bubbles with bottom menu arrows</li>
+	  <li>Compas icon activate "Map follows GPS" until the map is touched</li>
+	  <li>New A and B flags on route</li>
+	  <li>Clear map clears markers and route</li><br><br>
+	  
+	  0.1.0<br>
+	  <li>New fancy info bubbles on markers</li>
+	  <li>New actions on marker's bubble</li>
+	  <li>New function "Clear map" in menu - removes all markers on map</li>
+	  <li>New spinners when the app is busy</li>
+	  <li>Fixed search on WebOS 1.4.x</li>
+	  <li>Increased search field length</li>
+	  <li>Known issue: route is not rendered on WebOS 1.4.5</li><br><br>
+    
+	  0.0.9<br>
+      Completely replaced the Search and Directions functions. (Still in development, it is not perfect yet.)
+      <li>New Searching dialogs (I hope more comfortable UI).</li>
+      <li>The results are depending on your country</li>
+      <li>Highlithing the search terms in result list </li>
+      <li>New Directions dialog</li>
+      <li>You can show/hide the directions results anytime</li>
+      <li>Default Google infobubbles in your route - tap to the results panel row to show the bubble (horrible look, especially on TP... ToDo to make own bubbles)</li>
+      <li>The app can handle JustType search and Event directions from system in both states (launching app or to running app)</li>
+      <li>Default Google directions markers (sometimes wrong rendering on Pre3 - ToDo to make own markers)</li>
+      <li>Added scale to the bottom of map (more usable in landscape)</li>
+      <li>Fixed the spaces like "%20" from Just Type</li>
+      <li>Other things that I can't remember :)</li>
+	  <li>Added dozens of new bugs :) because the changes was huge...</li>
+      <br><br>
+ 
+      0.0.8<br>
+      Added Just type plugin, for this time is available only the Search places (maploc). Directions will be in the next versions, because I have to rewrite directions at all. Added "walking" controls in StreetView.<br><br>
+      
+    	0.0.7<br>
+			Fixed bugs: strange top bar button behavior, top bar size and map center (not for TP, because TP has a bug and can't handle orientation change event in MOJO) after orientation change<br>
+			New features: check streetview availability spinner, new bottom menu layout, swapped + and - zoom buttons, back button in Search places for Touchpad, checkmarks for map type and traffic <br><br>
+			
+			0.0.6<br>
+			Fixed UI size for Pre3, Added splash HD icon, some cleaning of code, Google API localization based on device country format, replaced default google marker<br><br>
+			  
+			0.0.5<br>
+			Enabled Location support for Touchpad, Added Back button in About for Touchpad, Added Google traffic for Google supported countries, Fixing map paning during streetview, Added StreetView availability check<br><br>
+			  
+			0.0.4<br>
+			Improved StreetView functionality, better Touchpad support<br><br>
+			 
+			0.0.3<br>
+			Fixed map panning on WebOS 2.2.x devices<br><br>
+			  
+			0.0.2<br>
+			Added basic Google Directions, some UI improvements<br><br>
+			
+			0.0.1<br>  
+			First release, tested only on the Palm Pre Plus WebOS 2.1.
+		</div>
+   
+</div>
+
+</div>
+</body></html>

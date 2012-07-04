@@ -1,0 +1,56 @@
+<div class="palm-page-header">
+    <div class="palm-page-header-wrapper">
+        <div class="icon news-mini-icon"></div>
+        <div class="title" id="MainTitleText">Preferences</div>             
+    </div>
+</div>
+
+<div class="palm-group">
+    <div class="palm-group-title"><span id="GeneralText">General</span></div>
+        <div class="palm-list">
+        	<div class="palm-row multi-line first">
+                       <div x-mojo-element="ToggleButton" id="FullscreenToggle"></div>
+                       <div class="title left" id="FullscreenModeText">Fullscreen Mode</div>
+					   <div class="palm-info-text" id="FullscreenModeInfoText">Change needs application restart. Remember, app menu will be available only in non-fullscreen.<br><br></div>
+			</div>
+			<div class="palm-row multi-line">
+				<table>
+					<tr>
+						<td class="left">
+							<div class="title left" id="APILangText">Google API language</div>
+						</td>
+						<td class="right">
+							<div class="title right" id="LangOverrideField">DEFAULT</div>
+						</td>
+					</tr>
+				</table>
+					   
+					   <div class="palm-info-text" id="APILangInfoText">Overrides Google API language, needs application restart.<br><br></div>
+					   
+						   <div id="LangDrawer"  x-mojo-element="Drawer">
+								
+									<div x-mojo-element="List" id="LangList" class="slave-list"></div>
+							
+						   </div>
+                       
+			</div>
+			<div class="palm-row multi-line last">
+                       <div x-mojo-element="ToggleButton" id="MaptoToggle"></div>
+                       <div class="title left" id="OverrideDirText">Override directions launch request</div>
+					   <div class="palm-info-text" id="OverrideDirInfoText">If enabled, the application interprets every launch with parameters as search for place.<br><br></div>
+			</div>
+        </div>
+    </div>
+</div>
+
+<div class="palm-group">
+    <div class="palm-group-title"><span id="ExperimentalTitleText">Experimental features (UNSTABLE)</span></div>
+           <div class="palm-list">
+				<div class="palm-row multi-line last">
+						   <div x-mojo-element="ToggleButton" id="RotateToggle"></div>
+						   <div class="title left" id="MapHeadingText">Map Heading</div>
+						   <div class="palm-info-text" id="MapHeadingInfoText">When enabled and following map is active, the map is rotated to the actual heading if the velocity is higher than 3km/h.<br><br></div>
+				</div>
+         	
+    </div>
+</div>

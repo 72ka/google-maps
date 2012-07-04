@@ -1,0 +1,34 @@
+.palm-menu {
+	position: absolute;
+	-webkit-transform: scale(1.5, 1.5);
+}
+
+.palm-menu.view-menu {
+  width: 100%;
+  margin-top: 15px;
+} 
+
+.palm-menu.command-menu {
+		
+		height: 75px;
+
+}
+
+.palm-scrim {
+	-webkit-transform: scale(1.5, 1.5);
+	-webkit-transform: translate(0px, 100px);
+}
+
+.palm-popup-container {
+	position: absolute;
+	-webkit-transform: scale(1.5, 1.5);
+}
+
+.palm-menu-panel {
+  -webkit-transform: scale(1.5, 1.5);
+} 
+
+.palm-scrim {
+		//position: absolute;
+	//	-webkit-transform: scale(1.5, 1.5);
+}

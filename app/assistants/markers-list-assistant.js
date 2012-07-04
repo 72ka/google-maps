@@ -1,0 +1,439 @@
+function MarkersListAssistant(Markers) {
+	// place is response from google place service
+	this.Markers = Markers;
+}
+
+MarkersListAssistant.prototype = {
+setup: function() {
+	
+//setup UI widgets
+
+
+//set localized text
+document.getElementById("TitleText").innerHTML = $L("Markers list");
+document.getElementById("LabelMyLocText").innerHTML = $L("My Location");
+document.getElementById("LabelNearbyText").innerHTML = $L("Nearby places");
+document.getElementById("LabelPlacesText").innerHTML = $L("Places");
+document.getElementById("SortedBy").innerHTML = $L("Relevance");
+
+//setup NearbyDrawer collapsible
+this.controller.setupWidget("NearbyDrawer",
+  this.attributes = {
+      modelProperty: 'open',
+      unstyled: true
+  },
+  this.NearbyDrawerModel = {
+      open: true
+  }
+); 
+
+//setup Nearby places collapsible arrow listener
+this.NearbyDrawerEventHandler = this.toggleNearbyDrawer.bindAsEventListener(this);
+this.NearbyDrawer = this.controller.get('NearbyButArrow');
+Mojo.Event.listen(this.NearbyDrawer, Mojo.Event.tap, this.NearbyDrawerEventHandler);
+
+//setup NearbyDrawer collapsible
+this.controller.setupWidget("MarkersDrawer",
+  this.attributes = {
+      modelProperty: 'open',
+      unstyled: true
+  },
+  this.MarkersDrawerModel = {
+      open: true
+  }
+); 
+
+//setup Places collapsible arrow listener
+this.MarkersDrawerEventHandler = this.toggleMarkersDrawer.bindAsEventListener(this);
+this.MarkersDrawer = this.controller.get('MarkersButArrow');
+Mojo.Event.listen(this.MarkersDrawer, Mojo.Event.tap, this.MarkersDrawerEventHandler);
+
+
+//setup Nearby places list widget
+this.controller.setupWidget("NearbyMarkersList",
+	{
+		itemTemplate: 'markers-list/listentry',
+		swipeToDelete: false,
+        reorderable: false
+	},
+       this.NearbyListModel = {
+		items : [    
+				]
+  }
+);
+
+// setup NearbyMarkersList tap listener
+this.NearbyMarkersListEventHandler = this.ListTap.bindAsEventListener(this);
+this.NearbyMarkersList = this.controller.get('NearbyMarkersList');
+Mojo.Event.listen(this.NearbyMarkersList, Mojo.Event.listTap, this.NearbyMarkersListEventHandler);
+
+//setup Places list widget
+this.controller.setupWidget("MarkersList",
+	{
+		itemTemplate: 'markers-list/listentry',
+		swipeToDelete: false,
+        reorderable: false
+		//dividerFunction : this.whatPosition
+	},
+       this.MarkersListModel = {
+		items : [    
+				]
+  }
+);
+
+//setup MarkersList tap listener
+this.MarkersListEventHandler = this.ListTap.bindAsEventListener(this);
+this.MarkersList = this.controller.get('MarkersList');
+Mojo.Event.listen(this.MarkersList, Mojo.Event.listTap, this.MarkersListEventHandler);
+
+//setup My Location list widget
+this.controller.setupWidget("MyLocationList",
+	{
+		itemTemplate: 'markers-list/listentry',
+		//listTemplate: 'home/listcontainer',
+		//addItemLabel: 'Add New',
+		swipeToDelete: false,
+        reorderable: false
+		//dividerFunction : this.whatPosition
+	},
+       this.MyLocationListModel = {
+		items : [ 
+				{name: $L("My Location"), address: $L("Unknown"), distance: $L("Loc: ") + this.Markers[2].place.geometry.location, place: this.Markers[2].place}
+				]
+  }
+);
+
+//setup MyLocation List tap listener
+this.MyLocationListEventHandler = this.ListTap.bindAsEventListener(this);
+this.MyLocationList = this.controller.get('MyLocationList');
+Mojo.Event.listen(this.MyLocationList, Mojo.Event.listTap, this.MyLocationListEventHandler);
+
+
+//Observe a Share button element in list
+//this.ShareHandler = this.Share.bindAsEventListener(this);
+//this.controller.get('ShareButton').observe(Mojo.Event.tap, this.ShareHandler);
+
+//setup sort button listener
+
+this.SortButtonEventHandler = this.SortButtonTap.bindAsEventListener(this);
+this.SortButton = this.controller.get('SortButton');
+Mojo.Event.listen(this.SortButton, Mojo.Event.tap, this.SortButtonEventHandler);
+
+this.SortedBy = "sort-relevance"; //default sort after scene launch
+
+//Geocode My Location to address
+this.GeocodeFromLatLng(this.Markers[2].place.geometry.location);	
+
+//Action is passed argument from main assistant, what to do
+this.Action = this.Markers.action;
+Mojo.Log.info("** ACTION *** %j", this.Markers.action);	
+
+//fill the lists
+this.UpdateList();
+
+//show containers, that contains markers
+if (this.Markers[0][0]) { $('NearbyContainer').show(); $('SortByContainer').show(); };
+if (this.Markers[1][0]) { $('PlacesContainer').show(); $('SortByContainer').show(); };
+  
+if(this.isTouchPad()){
+
+		var menuModel = {
+  visible: true,
+  items: [
+      {
+          items: [
+              { icon: "back", command: "goBack"},
+          ]
+      }
+  ]
+};
+this.controller.setupWidget(Mojo.Menu.commandMenu,
+         this.attributes = {
+             spacerHeight: 0,
+             menuClass: 'no-fade'
+         },
+         menuModel
+	);
+
+};
+
+		
+},
+	
+handleCommand: function(event) {
+                if (event.type === Mojo.Event.command) {
+                        if (event.command == 'goBack') {
+                        this.controller.stageController.popScene();
+                        }
+                }
+                
+
+},
+
+SortButtonTap: function(event) {
+		
+		this.controller.popupSubmenu({
+			onChoose:  this.handleSortBy,
+			manualPlacement	: true,
+			popupClass: "details-sort-selector-popup",
+			itemTemplate: 'markers-list/popupentry',
+			placeNear: event.target,
+			toggleCmd: this.SortedBy,
+			items: [
+				{label: $L('Sort by:'), command: '', id: "sort-item-first"},
+				{label: $L('Relevance'), command: 'sort-relevance'},
+				{label: $L('Distance'), command: 'sort-distance'},
+				{label: $L('Rating'), command: 'sort-rating'}
+			]
+		});
+
+},
+
+handleSortBy: function(SortBy) {
+	
+	
+	switch (SortBy) {
+
+        case 'sort-relevance':
+			this.Markers[0].sort(function(a, b){
+			 return a.place.relevance - b.place.relevance; //sort ascending
+			}.bind(this));
+			
+			this.Markers[1].sort(function(a, b){
+			 return a.place.relevance - b.place.relevance; //sort ascending
+			}.bind(this));  
+			 
+			this.NearbyListModel.items.clear();
+			this.MarkersListModel.items.clear();
+			this.UpdateList();
+			this.controller.get('SortedBy').update($L("Relevance"));
+			this.SortedBy = SortBy;
+            break;
+        case 'sort-distance':
+			this.Markers[0].sort(function(a, b){
+			 return a.place.distance - b.place.distance; //sort ascending
+			}.bind(this));
+			
+			this.Markers[1].sort(function(a, b){
+			 return a.place.distance - b.place.distance; //sort ascending
+			}.bind(this));
+			
+			this.NearbyListModel.items.clear();
+			this.MarkersListModel.items.clear();
+			this.UpdateList();
+			this.controller.get('SortedBy').update($L("Distance"));
+			this.SortedBy = SortBy;
+            break;
+        case 'sort-rating':
+			this.Markers[0].sort(function(a, b){
+					 var ratingA = a.place.rating, ratingB = b.place.rating;
+					 if (!a.place.rating) {ratingA = 0}; //unrated places will be bottom
+					 if (!b.place.rating) {ratingB = 0}; //unrated places will be bottom
+					 return ratingB - ratingA; //sort descending
+			}.bind(this));
+			
+			this.Markers[1].sort(function(a, b){
+					 var ratingA = a.place.rating, ratingB = b.place.rating;
+					 if (!a.place.rating) {ratingA = 0}; //unrated places will be bottom
+					 if (!b.place.rating) {ratingB = 0}; //unrated places will be bottom
+					 return ratingB - ratingA; //sort descending
+			}.bind(this));
+			
+			this.NearbyListModel.items.clear();
+			this.MarkersListModel.items.clear();
+			this.UpdateList();
+			this.controller.get('SortedBy').update($L("Rating"));
+			this.SortedBy = SortBy;
+            break;
+      }
+	
+},
+
+UpdateList: function() {
+	
+this.FillIndexList(0, this.NearbyListModel); //Index 0 means Nearby markers
+this.controller.modelChanged(this.NearbyListModel);
+this.FillIndexList(1, this.MarkersListModel); //Index 1 means Markers
+this.controller.modelChanged(this.MarkersListModel);	
+
+	
+	
+},
+
+FillIndexList: function(index, model) {
+	
+	for (var i = 0; i < this.Markers[index].length; i++) {
+		
+			var ratingElement = '';
+			var distanceElement = '';
+			
+			//Mojo.Log.info("** Marker image %j ***", this.Markers[index].place.formatted_phone_number);
+	
+			if (this.Markers[index][i].place.rating) {
+				ratingElement = '<div class="rating_bar"><div id="ratingstar" style="width: ' + this.Markers[index][i].place.rating*20 + '%;"></div></div>';
+			};
+			
+			if (this.Markers[index][i].place.distance) {
+				distanceElement = (this.Markers[index][i].place.distance/1000).toFixed(2) + " km ";
+			};
+				
+				model.items[i] = {name: this.Markers[index][i].place.name, address: this.Markers[index][i].place.vicinity, distance: distanceElement, rating: ratingElement, place: this.Markers[index][i].place };
+			
+	};
+	
+},
+
+toggleNearbyDrawer: function(){
+
+this.drawer = this.controller.get('NearbyDrawer');
+//this will toggle the drawers state
+this.drawer.mojo.setOpenState(!this.drawer.mojo.getOpenState());
+
+if (this.drawer.mojo.getOpenState() == true)
+	{
+		this.controller.get('NearbyButArrow').removeClassName('palm-arrow-closed').addClassName('palm-arrow-expanded');
+
+	} else {
+		
+		this.controller.get('NearbyButArrow').removeClassName('palm-arrow-expanded').addClassName('palm-arrow-closed');
+
+	};
+
+},
+
+toggleMarkersDrawer: function(){
+
+this.drawer = this.controller.get('MarkersDrawer');
+//this will toggle the drawers state
+this.drawer.mojo.setOpenState(!this.drawer.mojo.getOpenState());
+
+if (this.drawer.mojo.getOpenState() == true)
+	{
+		this.controller.get('MarkersButArrow').removeClassName('palm-arrow-closed').addClassName('palm-arrow-expanded');
+
+	} else {
+		
+		this.controller.get('MarkersButArrow').removeClassName('palm-arrow-expanded').addClassName('palm-arrow-closed');
+
+	};
+
+},
+
+GeocodeFromLatLng: function(latlng) {
+	
+	var geocoder = new google.maps.Geocoder();
+	
+    geocoder.geocode({'latLng': latlng}, function(results, status) {
+      if (status == google.maps.GeocoderStatus.OK) {
+        if (results[1]) {
+		    this.MyLocationListModel.items[0].address = results[1].formatted_address;
+		    //this.MyLocationListModel.items[0].reference = results[1].reference;
+		    if (this.WebOSVersion1()) {
+				var newlatlng = new google.maps.LatLng(latlng.lat, latlng.lng);
+				var LocationString = $L("Loc: ") + newlatlng;
+			} else {
+				var LocationString = $L("Loc: ") + latlng;
+			};
+			this.MyLocationListModel.items[0].place.formatted_address = results[1].formatted_address;
+			this.MyLocationListModel.items[0].place.geometry.location = latlng;
+		    this.MyLocationListModel.items[0].distance = LocationString;
+		    
+			this.controller.modelChanged(this.MyLocationListModel);
+          return results[1];
+        } else {
+          return false;
+        }
+      } else {
+        Mojo.Log.info("Geocoder failed due to: " + status);
+        return false;
+      }
+    }.bind(this));
+	
+},
+
+ListTap: function(event) {
+	
+	// Only respond to clicks on the img icon element, not the row
+        if(event.originalEvent.target.tagName == "IMG") {
+			this.PlaceToShare = event.item.place;
+			//Mojo.Log.info("** PLACE %j ***", event.item.place);
+			if (event.item.name == $L("My Location")) {
+				this.PlaceToShare.name = $L("My Location");
+				this.PlaceToShare.icon = "images/blue_dot.png";
+				this.controller.stageController.pushScene({'name': 'marker-info', transition: Mojo.Transition.none}, this.PlaceToShare);
+			} else {
+				this.PlaceInfo();
+			};
+			
+            
+        } else {
+			event.item.action = this.Action; //action passed from main and back
+			this.controller.stageController.popScene(event.item);
+		};
+},
+
+PlaceInfo: function () {
+	
+var marker = [];
+marker.place = this.PlaceToShare;
+this.controller.stageController.parentSceneAssistant(this).markerInfo(marker);
+
+},
+
+markerInfo: function (place) {
+
+	//var infostring = marker.subtitle + " | Loc: " + marker.marker.getPosition();
+	//Mojo.Log.info("** REFERENCE ***", place.reference);
+	var request = {
+		reference: place.reference
+	};
+
+	this.InfoService = new google.maps.places.PlacesService();
+	this.InfoService.getDetails(request, function(place, status) {
+			if (status == google.maps.places.PlacesServiceStatus.OK) {
+				//this.result = place;
+				//this.controller.stageController.pushScene({'name': 'marker-info', transition: Mojo.Transition.none}, place);
+				Mojo.Log.info("** ADRESA RESULT ***", place.formatted_address);
+			}
+		}.bind(this));
+
+},
+
+WebOSVersion1: function () {
+
+	if (Mojo.Environment.DeviceInfo.platformVersionMajor == "1") {
+		return true;
+	} else {return false};
+
+
+},
+  
+isTouchPad: function(){
+
+    if(Mojo.Environment.DeviceInfo.modelNameAscii.indexOf("ouch")>-1) {
+
+        return true;
+
+		}
+
+		if(Mojo.Environment.DeviceInfo.screenWidth==1024){ return true; }
+
+		if(Mojo.Environment.DeviceInfo.screenHeight==1024){ return true; }
+
+ 
+
+		return false;
+
+},
+	cleanup: function() {
+		
+		// Stop all listeners
+		Mojo.Event.stopListening(this.NearbyDrawer, Mojo.Event.tap, this.NearbyDrawerEventHandler);
+		Mojo.Event.stopListening(this.MarkersDrawer, Mojo.Event.tap, this.MarkersDrawerEventHandler);
+		Mojo.Event.stopListening(this.NearbyMarkersList, Mojo.Event.listTap, this.NearbyMarkersListEventHandler);
+		Mojo.Event.stopListening(this.MarkersList, Mojo.Event.listTap, this.MarkersListEventHandler);
+		Mojo.Event.stopListening(this.MyLocationList, Mojo.Event.listTap, this.MyLocationListEventHandler);
+		Mojo.Event.stopListening(this.SortButton, Mojo.Event.tap, this.SortButtonEventHandler);
+		
+	}
+};

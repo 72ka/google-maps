@@ -1,0 +1,100 @@
+	<div class="palm-scrim" id="searchScrim" style="display: none;">
+		<div class="boxtable">
+				<div id="search-header" class="search-button">
+					<div id="MainSearch" class="textfield">
+						<input id="MainSearchField" type="text" contenteditable="true">
+					</div>
+				</div>
+				<div id="NoResults" class="pac-container" style="display: none;">
+					<div id="NoResultsItem" class="pac-item"></div>			
+				</div>			
+					<div x-mojo-element="Button" id="TPBackButton" class="BackButton" style="display: none"></div>
+					<div class="hint" id="HintText"><b>Hint:</b> If you select place from suggestions, one marker will be placed.<br> If you are looking for nearby places, just type what you need and press Enter.<br>
+					Example 1: "<i>pizza</i>" find nearest pizza from map center within actual map bounds<br>
+					Example 2: "<i>hotel@5000</i>" find hotels within 5000m from map center</div>			
+		</div>
+	</div>
+
+	<div class="palm-scrim" id="directionsScrim" style="display: none;">
+		
+			<div class="directions-container">
+				
+				<div id="DirectionsInput">
+							<div class="smalltitle" id="OriginText"><img src="images/bubble/flagA.png" width="24" height="24" >Origin:</div>		
+							<table class="palm-divider">					
+								<tr>
+									<td>
+										<div id="origin-header" class="origin-bar">						
+											<div id="OriginSearch" class="textfield">
+												<input id="OriginSearchField" type="text" autoselect>
+											</div>
+										</div>
+									</td>
+									<td>
+										<div id="OriginMarkersButton" class="origin-button"></div>
+									</td>
+								</tr>
+							</table>	
+						<div id="SwapButton"></div>
+						<div class="smalltitle" id="DestinationText"><img src="images/bubble/flagB.png" width="24" height="24">Destination:</div>					
+						<table class="palm-divider">					
+								<tr>
+									<td>
+										<div id="destination-header" class="destination-bar">		
+												<div id="DestinationSearch" class="textfield">
+													<input id="DestinationSearchField" type="text" autoselect>
+												</div>
+										</div>
+									</td>
+								<td>
+									<div id="DestinationMarkersButton" class="origin-button"></div>
+								</td>
+							</tr>
+						</table>	
+						<div>
+						  <div x-mojo-element="RadioButton" id="DirectType" class="directtype-radiobutton" name="DirectType"></div>					  
+						</div>						
+				</div>
+				
+					<div class="boxtable">
+						<div x-mojo-element="Button" id="GetDirectionsButton" class=""></div>
+						<div x-mojo-element="Button" id="TPBackButtonD" class="BackButton" style="display: none"></div>
+					</div>
+					
+					<div id="DirectionsPanel" style="display: none;">	
+					
+						<div class="search-results-container">
+								<div x-mojo-element="Scroller" id="DirectionsPanelScroller" class="panel-results-wrapper" name="MainSearchScroller">
+									<div id="directions-panel" class="directions-panel"></div>
+								</div>
+						</div>
+					</div>
+				
+				
+			</div>
+		
+	</div>
+	
+
+<div id="trick_container">
+	<div id="map_canvas" class="maps" allowtouchdefault="1"></div>
+	<div id="map_trick_canvas"></div>
+</div>
+	
+<div class="palm-scrim" id="busy-overlay-scrim">
+	<div x-mojo-element="Spinner" id="LoadingSpinner" class="spinnerClass" />
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

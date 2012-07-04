@@ -1,0 +1,48 @@
+[
+    {
+        "source": "app/assistants/stage-assistant.js"
+    }, 
+    {
+        "source": "app/views/main/main-chrome.js", 
+        "scenes": "main"
+    }, 
+    {
+        "source": "app/assistants/main-assistant.js", 
+        "scenes": "main"
+    },  
+    {
+        "source": "app/assistants/street-assistant.js", 
+        "scenes": "street"
+    }, 
+    {
+        "source": "app/views/street/street-chrome.js", 
+        "scenes": "street"
+    }, 
+    {
+        "source": "app/assistants/about-assistant.js", 
+        "scenes": "about"
+    }, 
+    {
+        "source": "app/views/about/about-chrome.js", 
+        "scenes": "about"
+    },
+    {
+        "source": "app/assistants/license-assistant.js", 
+        "scenes": "license"
+    }, 
+    {
+        "source": "app/assistants/marker-info-assistant.js", 
+        "scenes": "marker-info"
+    },
+    {
+        "source": "app/assistants/markers-list-assistant.js", 
+        "scenes": "markers-list"
+    }, 
+    {
+        "source": "app/assistants/preferences-assistant.js", 
+        "scenes": "preferences"
+    }, 
+    {
+    	"source": "javascript/infobubble.js"
+    }
+]

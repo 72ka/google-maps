@@ -1,0 +1,112 @@
+<html><head>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+</head>
+<body>
+	
+<div class='palm-header left'>
+	<div id="SortByContainer" style="display: none;" class='header-cal-source'>
+		<div id="SortedBy" class='header-cal-selector'>Relevance</div>
+		<div id="SortButton" class="header-cal-source-hit-target"></div>
+	</div>
+	<div class='header-title truncating-text' id="TitleText">Markers list</div>
+</div>
+
+<div class="help" style="margin-top: 45px;">
+
+<table class="palm-divider collapsible" x-mojo-touch-feedback="delayed">
+    <tr>
+        <td class="left">
+			<div id="MyLocationListIcon"></div>
+        </td>
+        <td class="label" id="LabelMyLocText">
+            My Location
+        </td>
+        <td class="line" width="100%">
+        </td>
+        <td>
+          
+        </td>
+        <td class="right">
+        </td>
+    </tr>
+</table>
+
+<div class="palm-list" >
+	<div x-mojo-element="List" id="MyLocationList"></div>
+</div>
+
+<div id="NearbyContainer" style="display: none;">
+	<table class="palm-divider collapsible" id="NearbyMarkers" x-mojo-touch-feedback="delayed">
+		<tr>
+			<td class="left">
+				<div id="NearbyListIcon"></div>
+			</td>
+			<td class="label" id="LabelNearbyText">
+				Nearby places
+			</td>
+			<td class="line" width="100%">
+			</td>
+			<td>
+				<div id="NearbyButArrow" class="palm-arrow-expanded arrow_button">
+				</div>
+			</td>
+			<td class="right">
+			</td>
+		</tr>
+	</table>
+	<div id="NearbyDrawer"  x-mojo-element="Drawer">
+			<div class="palm-list" >
+				<div x-mojo-element="List" id="NearbyMarkersList"></div>
+			</div>
+	</div>
+</div>
+
+<div id="PlacesContainer" style="display: none;">
+	<table class="palm-divider collapsible" id="Markers" x-mojo-touch-feedback="delayed">
+		<tr>
+			<td class="left">
+				<div id="MarkersListIcon"></div>
+			</td>
+			<td class="label" id="LabelPlacesText">
+				Places
+			</td>
+			<td class="line" width="100%">
+			</td>
+			<td>
+				<div id="MarkersButArrow" class="palm-arrow-expanded arrow_button">
+				</div>
+			</td>
+			<td class="right">
+			</td>
+		</tr>
+	</table>
+	<div id="MarkersDrawer"  x-mojo-element="Drawer">
+			<div class="palm-list" >
+				<div x-mojo-element="List" id="MarkersList"></div>
+			</div>
+	</div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</div>
+</body>
+</html>

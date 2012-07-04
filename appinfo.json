@@ -1,0 +1,22 @@
+{
+	"id": "cz.72ka.googlemaps",
+	"version": "0.1.9",
+	"vendor": "72ka",
+	"type": "web",
+	"main": "index.html",
+	"title": "Google Maps",
+	"icon": "icon.png",
+	"splashicon": "icon-256x256.png",
+	"uiRevision": "2",
+	"mimeTypes": [	{"scheme": "mapto"},
+					{"scheme": "maploc"},
+					{"scheme": "telenav"}
+    ],	
+	"universalSearch":{
+			  	"search" :  {
+    				  "displayName":"Google Maps",
+    				  "url":"cz.72ka.googlemaps",
+    				  "launchParam":{"target":"maploc:#{searchTerms}"}
+  					}
+  			}
+}
