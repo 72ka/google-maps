@@ -18,7 +18,6 @@ var DefaultPreferences = {
 		Night: false,
 		LastLoc: {lat: 37.39281, lng: -122.04046199999999, zoom: 2},
 	};
-
 //Cookies.MapCookie.remove();
 //Cookies.TrafficCookie.remove();
 //Cookies.PrefsCookie.remove();
@@ -105,6 +104,20 @@ StageAssistant.prototype.setup = function() {
 // push the main scene
 this.controller.pushScene({name: "main", disableSceneScroller: true}, { Action: LaunchAction, maploc: maploc, mapto: mapto, Cookies: Cookies});
 this.controller.setWindowOrientation("free");
+};
+
+// Array Remove - By John Resig (MIT Licensed)
+Array.prototype.remove = function(from, to) {
+  var rest = this.slice((to || from) + 1 || this.length);
+  this.length = from < 0 ? this.length + from : from;
+  return this.push.apply(this, rest);
+};
+
+String.prototype.insert = function (index, string) {
+  if (index > 0)
+    return this.substring(0, index) + string + this.substring(index, this.length);
+  else
+    return string + this;
 };
 
 

@@ -2,7 +2,7 @@
 		<div class="boxtable">
 				<div id="search-header" class="search-button">
 					<div id="MainSearch" class="textfield">
-						<input id="MainSearchField" type="text" contenteditable="true">
+						<input id="MainSearchField" type="text" contenteditable="true" x-palm-disable-auto-replace="true" x-palm-disable-auto-cap="true" x-palm-enable-emoticons="false">
 					</div>
 				</div>
 				<div id="NoResults" class="pac-container" style="display: none;">
@@ -79,11 +79,17 @@
 <div id="trick_container">
 	<div id="map_canvas" class="maps" allowtouchdefault="1"></div>
 	<div id="map_trick_canvas"></div>
+	<div class="status-panel" id="status-panel">
+		<div x-mojo-element="Spinner" id="StatusPanelSpinner" style="float: left;"></div>
+		<div id="status-panel-text" style="float: left;"></div>
+	</div>
 </div>
 	
 <div class="palm-scrim" id="busy-overlay-scrim">
 	<div x-mojo-element="Spinner" id="LoadingSpinner" class="spinnerClass" />
 </div>
+
+
 
 
 

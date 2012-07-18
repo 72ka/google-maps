@@ -86,6 +86,25 @@ this.MarkersListEventHandler = this.ListTap.bindAsEventListener(this);
 this.MarkersList = this.controller.get('MarkersList');
 Mojo.Event.listen(this.MarkersList, Mojo.Event.listTap, this.MarkersListEventHandler);
 
+//setup Favorites list widget
+this.controller.setupWidget("FavoritesList",
+	{
+		itemTemplate: 'markers-list/listentry',
+		swipeToDelete: true,
+        reorderable: false
+		//dividerFunction : this.whatPosition
+	},
+       this.FavoritesListModel = {
+		items : [    
+				]
+  }
+);
+
+//setup MarkersList tap listener
+this.FavoritesListEventHandler = this.ListTap.bindAsEventListener(this);
+this.FavoritesList = this.controller.get('FavoritesList');
+Mojo.Event.listen(this.FavoritesList, Mojo.Event.listTap, this.FavoritesListEventHandler);
+
 //setup My Location list widget
 this.controller.setupWidget("MyLocationList",
 	{
@@ -120,6 +139,11 @@ this.SortButton = this.controller.get('SortButton');
 Mojo.Event.listen(this.SortButton, Mojo.Event.tap, this.SortButtonEventHandler);
 
 this.SortedBy = "sort-relevance"; //default sort after scene launch
+
+//define variables
+this.pop = [];
+this.pop.action = null;
+
 
 //Geocode My Location to address
 this.GeocodeFromLatLng(this.Markers[2].place.geometry.location);	
@@ -163,9 +187,14 @@ this.controller.setupWidget(Mojo.Menu.commandMenu,
 handleCommand: function(event) {
                 if (event.type === Mojo.Event.command) {
                         if (event.command == 'goBack') {
-                        this.controller.stageController.popScene();
+                        this.controller.stageController.popScene(this.pop);
                         }
-                }
+                };
+                
+                //handle Back swipe event   
+				if (event.type == Mojo.Event.back) {
+					this.controller.stageController.popScene(this.pop);
+				};
                 
 
 },
@@ -251,13 +280,21 @@ handleSortBy: function(SortBy) {
 
 UpdateList: function() {
 	
+//this.FillFavorites(this.FavoritesListModel);
 this.FillIndexList(0, this.NearbyListModel); //Index 0 means Nearby markers
 this.controller.modelChanged(this.NearbyListModel);
 this.FillIndexList(1, this.MarkersListModel); //Index 1 means Markers
-this.controller.modelChanged(this.MarkersListModel);	
+this.controller.modelChanged(this.MarkersListModel);
+
+Mojo.Log.info("Favorites %j ", Favorites);	
 
 	
 	
+},
+
+FillFavorites: function (model) {
+	
+	this.getFromFavDB();
 },
 
 FillIndexList: function(index, model) {
@@ -266,6 +303,7 @@ FillIndexList: function(index, model) {
 		
 			var ratingElement = '';
 			var distanceElement = '';
+			var favoriteElement = '';
 			
 			//Mojo.Log.info("** Marker image %j ***", this.Markers[index].place.formatted_phone_number);
 	
@@ -276,8 +314,12 @@ FillIndexList: function(index, model) {
 			if (this.Markers[index][i].place.distance) {
 				distanceElement = (this.Markers[index][i].place.distance/1000).toFixed(2) + " km ";
 			};
+			
+			if (this.Markers[index][i].place.favorite) {
+				favoriteElement = "<img src='images/star-favorite.png'></img>";
+			};
 				
-				model.items[i] = {name: this.Markers[index][i].place.name, address: this.Markers[index][i].place.vicinity, distance: distanceElement, rating: ratingElement, place: this.Markers[index][i].place };
+				model.items[i] = {name: this.Markers[index][i].place.name, address: this.Markers[index][i].place.vicinity, distance: distanceElement, rating: ratingElement, favorite: favoriteElement, place: this.Markers[index][i].place };
 			
 	};
 	
@@ -425,7 +467,28 @@ isTouchPad: function(){
 		return false;
 
 },
-	cleanup: function() {
+
+activate: function(arg) {
+	
+		this.pop = arg;
+	
+		if (arg != undefined) {
+				switch (arg.action) {
+					case "updatefavorites":
+						this.updateFavorites(arg.markerindex);
+					break;
+				
+				};
+			
+			};
+},
+
+updateFavorites: function (markerindex) {
+	Mojo.Log.info("** UPDATE FAV ***");
+	this.UpdateList();
+},
+
+cleanup: function() {
 		
 		// Stop all listeners
 		Mojo.Event.stopListening(this.NearbyDrawer, Mojo.Event.tap, this.NearbyDrawerEventHandler);

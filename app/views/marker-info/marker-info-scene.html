@@ -8,7 +8,10 @@
 		<div class="palm-page-header-wrapper">
 			<table>
 				<tr><td><div class="place-icon" id="place-icon"></div></td>                        
-				<td><div class="place-title" id="name"></div></td></tr>
+				<td><div class="place-title" id="name" x-mojo-element="TextField">
+					</div>
+					<br>
+				<div id="SmallHint">Tap and hold to rename</div></td></tr>
 			</table> 
 		</div>
 	</div>
@@ -34,7 +37,15 @@
 			<div class="rating_bar">
 				<div id="ratingstar"></div>
 			</div>
-		</div><br>	
+		</div><br>
+		<div class="palm-body-text" id="opening_hours" style="display: none;">
+			<div id="OpenhoursText">Open hours:</div>
+			<table>
+				<tr><td><div id="OpenHoursIcon"><img src="images/hours_open.png"></div></td>                        
+				<td><div id="TodayOpenText">Today 10:00-20:00</div>
+					</td></tr>
+			</table> 	
+		</div>
 		<div class="palm-body-text" id="url">
 		</div>
 		<div class="palm-body-text" id="website">
@@ -42,5 +53,8 @@
 	</div>
 
 </div>
+
+
+
 </body>
 </html>

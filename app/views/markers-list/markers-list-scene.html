@@ -35,6 +35,32 @@
 	<div x-mojo-element="List" id="MyLocationList"></div>
 </div>
 
+<div id="FavoritesContainer" style="display: none;">
+	<table class="palm-divider collapsible" id="Favorites" x-mojo-touch-feedback="delayed">
+		<tr>
+			<td class="left">
+				<div id="MarkersListIcon"></div>
+			</td>
+			<td class="label" id="LabelFavoritesText">
+				Favorites
+			</td>
+			<td class="line" width="100%">
+			</td>
+			<td>
+				<div id="FavoritesButArrow" class="palm-arrow-expanded arrow_button">
+				</div>
+			</td>
+			<td class="right">
+			</td>
+		</tr>
+	</table>
+	<div id="FavoritesDrawer"  x-mojo-element="Drawer">
+			<div class="palm-list" >
+				<div x-mojo-element="List" id="FavoritesList"></div>
+			</div>
+	</div>
+</div>
+
 <div id="NearbyContainer" style="display: none;">
 	<table class="palm-divider collapsible" id="NearbyMarkers" x-mojo-touch-feedback="delayed">
 		<tr>

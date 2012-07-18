@@ -7,6 +7,17 @@ this.TrafficCookie = arg.Cookies.TrafficCookie;
 this.PrefsCookie = arg.Cookies.PrefsCookie;
 }
 
+// define global variables
+var markers = [];
+var infoBubbles = [];
+var Favorites = [];
+
+// open SQLite database
+var db = new Mojo.Depot({name:"MainDB", version:1, replace:false},
+                        function(){}, 
+                        function(err){ Mojo.Log.error("MainDB", err.message);}
+);
+
 MainAssistant.prototype = {
 	setup: function() {
 
@@ -137,12 +148,25 @@ this.controller.setupWidget("LoadingSpinner",
   }
 );
 
+// setup status panel spinner
+
+this.controller.setupWidget("StatusPanelSpinner",
+  this.attributes = {
+      spinnerSize: "small"
+  },
+  this.StatusPanelSpinnerModel = {
+      spinning: true
+  }
+);
+
 //Observe a Swap button element in Directions input
 this.SwapDirectionsHandler = this.SwapDirections.bindAsEventListener(this);
 this.controller.get('SwapButton').observe(Mojo.Event.tap, this.SwapDirectionsHandler);
 
 //Set localized HTML texts
 this.setLocalizedHTML();
+
+this.setStatusPanel($L("Loading Maps..."));
 
 // --- test EVENETS help function for me
 /*
@@ -176,6 +200,8 @@ this.setLocalizedHTML();
 
 
 	this.$.gps1.startTracking();
+	
+	this.setStatusPanel($L("Waiting for your location..."));
 
 	/* vsechny normalni pristroje az na Pre3 maji rozdil pro velikost menu 170 */
 	this.widthadd = 170-60;
@@ -186,12 +212,10 @@ this.setLocalizedHTML();
 	
 	if(this.isPre3()){
 		Mojo.Log.info("*** Detected device is Pre3 ***");
-		this.widthadd = 330-60;
-		this.heightadd = 440-60;
-		//this.ScreenRoughRatio = this.controller.window.devicePixelRatio;
+		this.widthadd = (330-60);
+		this.heightadd = (440-60);
 		this.restmenuwidth = Mojo.Environment.DeviceInfo.screenWidth - this.widthadd;
 	} else {
-		//this.ScreenRoughRatio = this.controller.window.devicePixelRatio;
 		/* hodnota zbytku menu */
 		this.restmenuwidth = this.controller.window.innerWidth - this.widthadd;
 		};
@@ -349,6 +373,10 @@ this.mapStyleNight = [
 		
 	this.controller.enableFullScreenMode(this.Preferences.Fullscreen);
 	
+	//Load a Favorites from Mojo.Depot
+	this.getFavorites();
+	
+	
     // Na pozdeji implementace jinych mapovych podkladu napr. openstreetmaps
     /*
     this.map.mapTypes.set("Google", new google.maps.ImageMapType({
@@ -387,8 +415,8 @@ this.mapStyleNight = [
         new google.maps.event.addListener(this.Destinationautocomplete, 'place_changed', this.SelectedDestinationPlace.bind(this));
 
     //Setup arrays to hold our markers and infoBubbles and other variables
-    this.markers = [];
-	this.infoBubbles = [];
+    //this.markers = [];
+	//this.infoBubbles = [];
 	this.DirectinfoBubbles = [];
 	this.Directmarkers = [];
 	this.DirectStep = 0;
@@ -399,7 +427,8 @@ this.mapStyleNight = [
 	this.isdragging = false;
 	this.wasflicked = true;
 	this.Pre3refreshcounter = 0;
-
+	this.isNavit = false;
+	//this.Favorites = [];
 
 	// map doesn't follow GPS as default
 	this.followMap = false;
@@ -477,15 +506,18 @@ this.mapStyleNight = [
 	var panoramioLayer = new google.maps.panoramio.PanoramioLayer(panoramioOptions);
 	panoramioLayer.setMap(this.map);
 	*/
-
 	
-
-
  	new google.maps.event.addListener(this.map, 'idle', this.MapIdle.bind(this));
  	new google.maps.event.addListener(this.map, 'tilesloaded', this.MapTilesLoaded.bind(this));
  	new google.maps.event.addListener(this.map, 'bounds_changed', this.MapCenterChanged.bind(this));
  	//new google.maps.event.addListener(this.map, 'projection_changed', this.ProjectionChanged.bind(this));
+ 	new google.maps.event.addListener(this.map, 'overlaycomplete', this.OverlayComplete.bind(this));
  	this.CenterChanged = true;
+ 	
+ 	// stop mousemove propagation
+	//this.map.getDiv().addEventListener('drag', function(evt) {
+	//	evt.stopPropagation();
+	//});
  	
  	new google.maps.event.addDomListener(document.getElementById('map_canvas'), 'resize', this.Resize.bind(this));
  	
@@ -518,6 +550,21 @@ this.mapStyleNight = [
 
 	// TODO: mousedown event is needed by hiding the command menu
 	//Mojo.Event.listen(this.controller.get("map_canvas"), 'mousedown', this.mousedownHandler.bind(this));
+	
+	//Check if Navit is installed, needs FileMgr service
+	new Mojo.Service.Request('palm://ca.canucksoftware.filemgr', {
+ 				method: 'exists',
+ 				parameters: {
+ 					file: "/media/cryptofs/apps/usr/palm/applications/org.webosinternals.navit"
+ 				},
+ 				onSuccess: function(payload) {
+ 					this.isNavit = payload.exists;
+ 					Mojo.Log.info("**** Navit installed:  %j ****", this.isNavit);
+ 				}.bind(this),
+ 				onFailure: function(err) {
+ 					Mojo.Log.info('FileMgrs service is probably not installed or returns error');
+ 				}
+ 			});
 
 //******* zjistovani devices *******
 
@@ -549,12 +596,15 @@ handleCommand: function(event) {
     };
                 if (event.type === Mojo.Event.command) {
                         if (event.command == 'zoomOut') {
+										this.setStatusPanel($L("Zooming out..."));
                                         this.map.setZoom(this.map.getZoom() - 1);
                         }
                         if (event.command == 'zoomIn') {
+										this.setStatusPanel($L("Zooming in..."));
                                         this.map.setZoom(this.map.getZoom() + 1);
                         }
                         if ((event.command == 'forward-step') || (event.command == 'back-step')) {
+										this.setStatusPanel($L("Moving to next point..."));
                                         this.moveOnRoute(event.command);
                         }
                         if (event.command == 'maptype') {
@@ -588,7 +638,8 @@ handleCommand: function(event) {
                         if (event.command == 'debug') {
                         								this.Debug();
                         }
-                        if (event.command == 'MyLoc') {
+                        if (event.command == 'MyLoc') {	
+														this.setStatusPanel($L("Moving to My Location..."));
                         								this.mylocation();
                         }
                         if (event.command == 'PopMenu') {
@@ -601,20 +652,18 @@ handleCommand: function(event) {
 																				  items: [
 																					  {iconPath:'images/markers-icon.png', label: $L('Markers'), command: 'do-markers'},
 																					  {iconPath:'images/direction-icon.png', label: $L('Directions'), command: 'do-direct'},
-																				      {iconPath:'images/street.png', label: $L('Street View'), command: 'do-street'},					      
-																				      //{iconPath:'images/traffic-icon.png', label: 'Traffic', command: 'do-traffic', chosen: this.TrafficVisibile},
+																				      {iconPath:'images/street.png', label: $L('Street View'), command: 'do-street'},																				    
 																				      {iconPath:'images/clear-map.png', label: $L('Clear map'), command: 'do-clearmap'}
 																				  ]
 																				});} else {
-																				this.controller.popupSubmenu({
+														this.controller.popupSubmenu({
 																				  onChoose:  this.handlePopMenu,
 																				  placeNear: near,
 																				  items: [
 																					  {iconPath:'images/exit-fullscreen.png', label: $L('Exit Fullscreen'), command: 'do-fullscreenoff'},
 																				      {iconPath:'images/markers-icon.png', label: $L('Markers'), command: 'do-markers'},
 																					  {iconPath:'images/direction-icon.png', label: $L('Directions'), command: 'do-direct'},
-																				      {iconPath:'images/street.png', label: $L('Street View'), command: 'do-street'},
-																				      //{iconPath:'images/traffic-icon.png', label: 'Traffic', command: 'do-traffic', chosen: this.TrafficVisibile},
+																				      {iconPath:'images/street.png', label: $L('Street View'), command: 'do-street'},																	
 																				      {iconPath:'images/clear-map.png', label: $L('Clear map'), command: 'do-clearmap'}
 																						  ]
 																						});
@@ -739,7 +788,8 @@ this.feedMenuModel = {
           { label: $L("Google Maps"), command: 'searchPlaces', width: this.restmenuwidth},
           //{ label: $L("Tap or type to search..."), command: 'searchPlaces', width: this.restmenuwidth},
           { iconPath: "images/layers.png", command: 'maptype', label: $L('M')},
-          {label: $L('MyLoc'), iconPath:'images/menu-icon-mylocation.png', command:'MyLoc'}
+          {label: $L('MyLoc'), iconPath:'images/menu-icon-mylocation.png', command:'MyLoc'},
+          {}
       ]
       },
       {
@@ -779,26 +829,19 @@ gps1Success: function(inSender, inResponse, inRequest) {
 
 	// follow the map if the button in menu is active
 	if (this.followMap) {
-		//this.controller.window.innerWidth = 480;
-		//Mojo.Log.info("** FOLLOWING MAP ***");
-		//Mojo.Log.info("** INNER WIDTH ***", this.controller.window.innerWidth);
-		//Mojo.Log.info("** INNER HEIGHT ***", this.controller.window.innerHeight);
-		//Mojo.Log.info("** PIXEL RATIO ***", this.controller.window.devicePixelRatio)
 		this.map.panTo(this.MyLocation);
 		if (this.isPre3()) this.Pre3refreshcounter++;
 		if (this.isPre3() && this.Pre3refreshcounter > 5) {
 			this.Pre3Refresh();
 			this.Pre3refreshcounter = 0;
 			};
-		//this.map.setCenter(this.MyLocation);
+		
 		if (inResponse.velocity > 0.5) {
 			var velocity = Math.round(inResponse.velocity*3.6) + " km/h";
 			this.SetTopMenuText(velocity);
 		} else {
 			this.SetTopMenuText($L("Google Maps"));
 		};
-		
-		//google.maps.event.trigger(this.map, "center_changed");
 	};
 
 
@@ -890,7 +933,8 @@ if(this.isPre3()){
 },
 
 StreetView: function() {
-
+	
+	this.setStatusPanel($L("Loading StreetView..."));
 	this.WebOS2Events("stop");
 	var position = this.map.getCenter();
 	this.controller.stageController.pushScene({'name': 'street', transition: Mojo.Transition.none}, position);
@@ -939,6 +983,9 @@ mousedownInterruptsFollow: function () {
 	//stop the mousedown listener
 	Mojo.Event.stopListening(this.controller.get("map_canvas"), 'mousedown', this.mousedownInterruptsFollowHandler);
 
+	//rotate the map to the default heading
+	this.MapHeadingRotate(0); 
+	
 	this.followMap = false;
 	
 	//unblock screen timeout
@@ -948,8 +995,7 @@ mousedownInterruptsFollow: function () {
 	this.feedMenuModel.items[1].items[3].iconPath = 'images/menu-icon-mylocation.png';
 	this.controller.modelChanged(this.feedMenuModel);
 	
-	//rotate the map to the default heading
-	this.MapHeadingRotate(0); 
+
 	
 	//set default text to the top menu
 	this.SetTopMenuText($L("Google Maps"));
@@ -973,24 +1019,28 @@ handlePopMapType: function(MapType) {
       switch (MapType) {
 
         case 'Roadmap':
+			this.setStatusPanel($L("Setting map type: ") + $L('Roadmap'));
             this.map.setMapTypeId(google.maps.MapTypeId.ROADMAP);
             this.ClearMapType();
             this.ActualMapType[0] = true;
             this.MapCookie.put(MapType);
             break;
         case 'Hybrid':
+			this.setStatusPanel($L("Setting map type: ") + $L('Hybrid'));
             this.map.setMapTypeId(google.maps.MapTypeId.HYBRID);
             this.ClearMapType();
             this.ActualMapType[1] = true;
             this.MapCookie.put(MapType);
             break;
         case 'Terrain':
+			this.setStatusPanel($L("Setting map type: ") + $L('Terrain'));
             this.map.setMapTypeId(google.maps.MapTypeId.TERRAIN);
             this.ClearMapType();
             this.ActualMapType[2] = true;
             this.MapCookie.put(MapType);
             break;
         case 'Satellite':
+			this.setStatusPanel($L("Setting map type: ") + $L('Satellite'));
             this.map.setMapTypeId(google.maps.MapTypeId.SATELLITE);
             this.ClearMapType();
             this.ActualMapType[3] = true;
@@ -1046,7 +1096,11 @@ handlePopMenu: function(Case) {
 
 activate: function(args) {
 	
+	//Mojo.Log.info("*** ACTIVATE *** %j", args);
 	
+	//start the listener for keypress
+    this.controller.listen(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
+          
 		try {
 				//update a Preferences variables from Cookies after each activate
 				this.Preferences = this.PrefsCookie.get();	
@@ -1054,14 +1108,18 @@ activate: function(args) {
 			catch (error) {
 				Mojo.Log.info("Preferences cookie not properly defined", error);
 				};
-				
-				//Mojo.Log.info("** PREFERENCES *** %j", this.Preferences);
 		
 				//resize the map after each focus back
 				google.maps.event.trigger(this.map, "resize");
 
 
 		if (this.LaunchArg.Action != undefined) {
+			
+				// decode unicode from JustType and unescape possibile HTML
+				this.maploc = decodeURIComponent(this.maploc);
+				this.mapto = decodeURIComponent(this.mapto);
+				this.maploc = this.maploc.unescapeHTML();
+				this.mapto = this.mapto.unescapeHTML();
 			
 				// Override mapto -> maploc if set in Preferences
 				if (this.LaunchArg.Action == "mapto" && this.Preferences.MaptoOverride) {
@@ -1126,6 +1184,9 @@ activate: function(args) {
 							this.controller.get("DestinationSearchField").value = args.place.name;
 						};
 					break;
+					case "updatefavorites":
+						this.updateFavorites(args);
+					break;
 				
 				};
 			
@@ -1139,7 +1200,50 @@ activate: function(args) {
   			if(this.isTouchPad() == true){
 						google.maps.event.trigger(this.map, "resize");
 				}
+	// hide status panel after activate
+	this.hideStatusPanel();
+},
 
+updateFavorites: function(args) {
+	
+	var markerindex = args.markerindex;
+	var othermarker;
+
+	try {
+	//Set the apropriate icon for marker
+	var icon = (markers[markerindex].place.favorite ? 'images/Map-Marker-Push-Pin-2-Right-Red-icon-fav.png' : 'images/Map-Marker-Push-Pin-2-Right-Red-icon.png');
+	markers[markerindex].setIcon(icon);
+
+	//create new content of InfoBubble and set them
+	var newBubbleContent = '<div id="bubble" class="phoneytext">' + markers[markerindex].place.name + '<div class="phoneytext2">' + markers[markerindex].place.formatted_address + '</div></div>';
+	infoBubbles[markerindex].setContent(newBubbleContent);
+	} catch (error) {
+			//if the refresh fail, place new favorite marker (always if saving nerby as favorite)
+			othermarker = this.getMarkerFromID(args.id);
+			icon = (othermarker.place.favorite ? 'images/Map-Marker-Push-Pin-2-Right-Red-icon-fav.png' : 'images/Map-Marker-Push-Pin-2-Right-Red-icon.png');
+			othermarker.setMap(null);
+			for (b=0; b<this.NearbyinfoBubbles.length; b++){
+				this.NearbyinfoBubbles[b].close();
+			};
+			othermarker.place.favorite = true;
+			this.PlaceMarker({position: othermarker.place.geometry.location, title: othermarker.place.name, subtitle: othermarker.place.vicinity, place: othermarker.place, icon: 'Map-Marker-Push-Pin-2-Right-Red-icon-fav.png', popbubble: true});
+		};	
+},
+
+getMarkerFromID: function (id) {
+	
+	var marker = null;
+	
+	for (e=0; e<markers.length; e++){
+		if (markers[e].place.id == id) {marker = markers[e]};
+	};
+	
+	for (e=0; e<this.Nearbymarkers.length; e++){
+		if (this.Nearbymarkers[e].place.id == id) { marker = this.Nearbymarkers[e]};
+	};
+	
+	return marker;
+	
 },
 
 handleMapLoc: function(maploc) {
@@ -1249,9 +1353,7 @@ MapIdle: function() {
 					this.CenterChanged = true; //for sure if bounds_changed fails, the map was unmovable
 					//Mojo.Log.info("ActualCenter IDLE: ", this.ActualCenter);
 				}).bind(this).delay(1);
-		//Mojo.Log.info("ActualCenter IDLE: ", this.ActualCenter);
-
-
+				
 		// for Just type integration, call search after map idle
 		if (this.maploc != undefined) { //this occurs when the app is relanuching with parameter
 			this.Search(this.maploc);
@@ -1262,7 +1364,10 @@ MapIdle: function() {
 			this.wasflicked = false;
 			this.Pre3Refresh();	
 		};
-		//Mojo.Log.info("IDLE: ");
+		Mojo.Log.info("IDLE: ");
+		
+		//hides the status panel when idle
+		this.hideStatusPanel();
 	
 
 },
@@ -1271,6 +1376,9 @@ MapTilesLoaded: function () {
 	
 	this.NewTilesHere = true;
 	//Mojo.Log.info("TILES LOADED: ");
+	
+	//hides the status panel when idle
+	this.hideStatusPanel();
 	
 },
 
@@ -1324,10 +1432,12 @@ Resize: function(event) {
 Traffic: function() {
 
 		if (this.TrafficVisibile == false) {
+		this.setStatusPanel($L("Show") + " " + $L("Traffic") + "...", 2);
   		this.trafficLayer.setMap(this.map);
   		this.TrafficVisibile = true;
   		this.TrafficCookie.put(false);
   	} else {
+		this.setStatusPanel(($L("Hide") + " " + $L("Traffic") + "..."), 2);
   		this.trafficLayer.setMap(null);  //remove traffic layer
   		this.TrafficVisibile = false;
   		this.TrafficCookie.put(true);
@@ -1338,11 +1448,13 @@ Traffic: function() {
 Bike: function() {
 
 		if (this.BikeVisibile == false) {
+		this.setStatusPanel($L("Show") + " " + $L("Bike") + "...", 2);
   		this.bikeLayer.setMap(this.map);
   		this.BikeVisibile = true;
   		this.Preferences.Bike = true;
 		this.PrefsCookie.put(this.Preferences);
   	} else {
+		this.setStatusPanel($L("Hide") + " " + $L("Bike") + "...", 2);
   		this.bikeLayer.setMap(null);  //remove bike layer
   		this.BikeVisibile = false;
   		this.Preferences.Bike = false;
@@ -1354,6 +1466,7 @@ Bike: function() {
 Weather: function() {
 
 		if (this.WeatherVisibile == false) {
+		this.setStatusPanel($L("Show") + " " + $L("Weather") + "...", 2);
   		this.weatherLayer.setMap(this.map);
   		//the weather is visible only on zoom lower than 12
   		if (this.map.getZoom() > 12) this.map.setZoom(12);
@@ -1361,6 +1474,7 @@ Weather: function() {
   		this.Preferences.Weather = true;
 		this.PrefsCookie.put(this.Preferences);
   	} else {
+		this.setStatusPanel($L("Hide") + " " + $L("Weather") + "...", 2);
   		this.weatherLayer.setMap(null);
   		this.WeatherVisibile = false;
   		this.Preferences.Weather = false;
@@ -1372,6 +1486,7 @@ Weather: function() {
 Cloud: function() {
 
 		if (this.CloudVisibile == false) {
+		this.setStatusPanel($L("Show") + " " + $L("Clouds") + "...", 2);
   		this.cloudLayer.setMap(this.map);
   		//the cloud layer is visible only on zoom lower than 6
   		if (this.map.getZoom() > 6) this.map.setZoom(6);
@@ -1379,6 +1494,7 @@ Cloud: function() {
   		this.Preferences.Cloud = true;
 		this.PrefsCookie.put(this.Preferences);
   	} else {
+		this.setStatusPanel($L("Hide") + " " + $L("Clouds") + "...", 2);
   		this.cloudLayer.setMap(null);  //remove bike layer
   		this.CloudVisibile = false;
   		this.Preferences.Cloud = false;
@@ -1395,8 +1511,8 @@ var options;
 		options = {
 		styles: this.mapStyleNight[3]
 		};
-			this.map.setOptions(options);
-  		//this.cloudLayer.setMap(this.map);
+		this.setStatusPanel($L("Enable") + " " + $L("Night") + "...", 2);
+		this.map.setOptions(options);
   		this.NightVisibile = true;
   		this.Preferences.Night = true;
 		this.PrefsCookie.put(this.Preferences);
@@ -1404,6 +1520,7 @@ var options;
 		options = {
 		styles: null
 		};
+		this.setStatusPanel($L("Disable") + " " + $L("Night") + "...", 2);
   		this.map.setOptions(options);
   		this.NightVisibile = false;
   		this.Preferences.Night = false;
@@ -1418,6 +1535,7 @@ fitBounds: function(bounds) {
 
 handleGestureStart: function(e){
 	
+	this.setStatusPanel($L("Zooming..."));	
 	this.GestureCenter = this.map.getCenter();	
 	this.Zooming = true;
 	this.previouszoom = this.map.getZoom();
@@ -1444,6 +1562,7 @@ handleGestureChange: function(e){
 			var z = this.previouszoom + s;
 			Mojo.Log.info("setzoom+: ", z);
 			this.previousS = s;
+			this.setStatusPanel($L("Zooming to level ") + z);
 			this.map.setZoom(z);
 			
 		};
@@ -1454,15 +1573,10 @@ handleGestureEnd: function(e){
 	//Mojo.Log.info("SCALE: ", e.scale);
 },
 
-
-
 orientationChanged: function (orientation) {
 
 	if (this.isTouchPad()) {
 
-		//google.maps.event.trigger(this.map, "resize");
-
-		//Mojo.Log.info("NASTAVUJI NA: ", this.ActualCenter);
 		if( orientation == "left" ) {
 		  this.restmenuwidth = Mojo.Environment.DeviceInfo.screenWidth - this.widthadd;
 		  //Mojo.Log.info("restmenuwidth left ",  this.restmenuwidth);
@@ -1574,11 +1688,7 @@ mouseup: function(event) {
 	
 this.FirstDrag = false;
 
-//this.DraggsDiffX = this.DraggsDiffX + event.pageX - this.oldx;
-//this.DraggsDiffY = this.DraggsDiffY + event.pageY - this.oldy;
-
 if (this.isdragging && this.isPre3()) {
-	//this.Pre3Refresh(); // HOKUS POKUS
 	this.dragEnd();
 };
 },
@@ -1588,6 +1698,8 @@ if (this.isdragging && this.isPre3()) {
 
 
 dragStart: function(event) {
+	
+	//this.setStatusPanel($L("Moving..."));
 	
 	this.isdragging = true;
 
@@ -1638,9 +1750,11 @@ Pre3Refresh: function () {
 	 */
 	
 	//Mojo.Log.info("** PRE3 REFRESH ***");
-
+	
+	//Hack only if the screen is set to high pixel ratio
+	if (this.ScreenRoughRatio > 1) {
 	//Map moved in dragging function is moved 1.5times more, move to 1/2 of whole move back moves the map to the correct position
-	if (this.isdragging) {
+	if (this.isdragging ) {
 		this.map.panBy((-this.OLDX + this.oldx)/2+500, (-this.OLDY + this.oldy)/2+1000);
 		this.map.panBy(-500,-1000);
 	} else {
@@ -1648,6 +1762,7 @@ Pre3Refresh: function () {
 		this.map.panBy(500,1000);
 		this.map.panBy(-500,-1000);
 		};
+	};
 	
 },
 
@@ -1780,9 +1895,10 @@ this.searching = false;
 				// specify actual center (for TP is this needed)
 				this.ActualCenter = place.geometry.location;
 				};
-
+				
+			  //Mojo.Log.info("** PLACE ID %j***", place.id);
 			  //place marker
-			  this.PlaceMarker({position: place.geometry.location, title: place.name, subtitle: address, place: place});
+			  this.PlaceMarker({position: place.geometry.location, title: place.name, subtitle: address, place: place, popbubble: true});
 
 			  //update the view menu text
 			  this.feedMenuModel.items[1].items[1].label = place.name;
@@ -1962,8 +2078,9 @@ PlaceDroppedPin: function (place) {
 	place.icon = "images/menu-icon-mylocation.png";
 	place.formatted_address = subtitle;
 	place.vicinity = subtitle;
+	Mojo.Log.info("** MARKER DROP ID %j ***", place.id);
 	//place marker
-    this.PlaceMarker({position: place.geometry.location, title: this.inputstring, subtitle: subtitle, place: place, action: this.holdaction});
+    this.PlaceMarker({position: place.geometry.location, title: this.inputstring, subtitle: subtitle, place: place, action: this.holdaction, popbubble: true});
     this.inputstring = undefined;
     this.holdaction = undefined;
 },
@@ -2089,8 +2206,8 @@ SelectedDestinationPlace: function (event) {
 
 PlaceMarker: function (args) {
 
-		/* args.position, args.title, args.subtitle, args.place-(everything from autocompleter) */
-		
+		/* args.position, args.title, args.subtitle, args.place-(everything from autocompleter), args.icon, args.popbubble */
+		var ratingcontainer = "";
 		if (!args.icon) {args.icon = "Map-Marker-Push-Pin-2-Right-Red-icon.png"}; //default marker icon
 		var image = new google.maps.MarkerImage('images/' + args.icon,
 		new google.maps.Size(64, 64),
@@ -2113,17 +2230,23 @@ PlaceMarker: function (args) {
 
   	// push all information from autocompleter to marker.place
   	var place = args.place;
+  	
 	
-	//pan and zoom not for dropped pins
-	if (args.action != "droppin") {
+	//pan and zoom not for dropped pins and without poping bubble
+	if (args.action != "droppin" && args.popbubble) {
 		this.map.setZoom(14);
 		this.map.setCenter(args.position);
 	};
+	
+	if (place.rating) {
+		ratingcontainer = '<div class="rating-container" id="rating-container" style="padding-right: 7px; padding-left: 0px; margin-top: 5px; float:left;"><div class="rating_bar"><div id="ratingstar" style="width:' + place.rating*20 + '%"></div></div></div>';
+		};
 
  	//--> Define the infoBubble
 	var infoBubble = new InfoBubble({
 		map: this.map,
-		content: '<div id="bubble" class="phoneytext">' + args.title + '<div class="phoneytext2">' + args.subtitle + '</div></div>',
+		//content: '<div id="bubble" class="phoneytext">' + args.title + '<div class="phoneytext2">' + args.subtitle + '</div></div>',
+		content: '<div id="bubble" class="phoneytext">' + args.title + '<div class="phoneytext2">' + args.subtitle + '<br>' + ratingcontainer + '</div>',
 		shadowStyle: 1,
 		padding: 0,
 		backgroundColor: 'rgb(57,57,57)',
@@ -2157,22 +2280,28 @@ PlaceMarker: function (args) {
 		}.bind(this)
 	});
 
-	google.maps.event.addListener(marker,"click",this.toggleInfoBubble.bind(this, infoBubble, marker));
+	//google.maps.event.addListener(marker,"click",this.toggleInfoBubble.bind(this, infoBubble, marker));
 
 	// show the bubble after 1 second
 	this.MayBubblePop = true;
 
+	if (args.popbubble) {
 	(function(){
 				this.toggleInfoBubble(infoBubble, marker);
 			}).bind(this).delay(1);
+	};
 
 	//Add it to the array	
 	marker.place = place; //add place array to the marker, because of pushing to other scenes
+	infoBubble.id = place.id; //mark the infoBubble with the same ID as marker for further removing
+	
+	google.maps.event.addListener(marker,"click",this.toggleInfoBubble.bind(this, infoBubble, marker));
 	
 	//Add it to the array
-	this.infoBubbles.push(infoBubble);
-	this.markers.push(marker);
+	infoBubbles.push(infoBubble);
+	markers.push(marker);
 
+	//this.hideStatusPanel();
 
 },
 
@@ -2191,6 +2320,7 @@ toggleInfoBubble: function(infoBubble, marker){
 			//--> Clear all info bubbles...
 			infoBubble.open(this.map, marker);
 			this.MayBubblePop = false;
+			this.hideStatusPanel();
 		}else if (this.MayBubblePop){
 			infoBubble.close();
 			this.MayBubblePop = false;
@@ -2224,8 +2354,8 @@ toggleDirectInfoBubble: function(infoBubble, marker){
 
 hideInfoBubbles: function(){
 
-	for (b=0; b<this.infoBubbles.length; b++){
-		this.infoBubbles[b].close();
+	for (b=0; b<infoBubbles.length; b++){
+		infoBubbles[b].close();
 	}
 },
 
@@ -2241,10 +2371,10 @@ hideAllVisibileBubbles: function() {
 	var VisibileBubbles = [];
 	
 	//close all visibile infobubbles
-	for (b=0; b<this.infoBubbles.length; b++){
-		if (this.infoBubbles[b].isOpen()){
-				this.infoBubbles[b].close();
-				VisibileBubbles.push(this.infoBubbles[b]);	
+	for (b=0; b<infoBubbles.length; b++){
+		if (infoBubbles[b].isOpen()){
+				infoBubbles[b].close();
+				VisibileBubbles.push(infoBubbles[b]);	
 		};	
 	};
 	
@@ -2277,17 +2407,20 @@ showAllVisibileBubbles: function(bubbles) {
 
 mapClear: function() {
 	Mojo.Log.info("CLEARMAP ");
-	//--> Deletes ALL Markers
-	for (e=0; e<this.markers.length; e++){
-		this.markers[e].setMap(null);
+	//--> Deletes ALL Markers, not favorites
+	for (e=0; e<markers.length; e++){
+		if (!markers[e].place.favorite) { 
+			markers[e].setMap(null);
+			markers.remove(e);
+		};
 	}
 
 	//--> Deletes ALL infoBubbles
-	for (e=0; e<this.infoBubbles.length; e++){
-		this.infoBubbles[e].setMap(null);
+	for (e=0; e<infoBubbles.length; e++){
+		infoBubbles[e].setMap(null);
 	}
-	this.infoBubbles.length = 0;
-	this.markers.length = 0;
+	infoBubbles.length = 0;
+	//markers.length = 0;
 
 	// clear all route points and markers
 	this.clearDirectPoints();
@@ -2554,6 +2687,7 @@ CalcRoute: function() {
   		var request = {
           origin: this.origin,
           destination: this.destination,
+          /* ToDo's */
           //provideRouteAlternatives: true,
           //avoidHighways: true,
 		  //avoidTolls: true,
@@ -2710,7 +2844,22 @@ markerBubbleTap: function(marker) {
 
 	// pops the popupmenu
 	var near = event.originalEvent && event.originalEvent.target;
+	Mojo.Log.info("**** Navit installed pop ****", this.isNavit);
+	if (this.isNavit) {
     this.controller.popupSubmenu({
+		onChoose:  this.handlemarkerBubbleTap,
+		placeNear: near,
+		items: [
+			{iconPath:'images/bubble/info.png',label: $L('Info'), command: 'do-marker-info'},
+			{iconPath:'images/street.png', label: $L('Street View'), command: 'do-street'},
+			{iconPath:'images/bubble/flagA.png', label: $L('Route from here'), command: 'do-origin'},
+			{iconPath:'images/bubble/flagB.png', label: $L('Route to here'), command: 'do-destination'},
+			{iconPath:'images/navit_icon.png', label: $L('Route with Navit'), command: 'do-navit'},
+			{iconPath:'images/bubble/delete.png', label: $L('Remove'), command: 'do-marker-remove'},
+		]
+	});
+	} else {
+	this.controller.popupSubmenu({
 		onChoose:  this.handlemarkerBubbleTap,
 		placeNear: near,
 		items: [
@@ -2721,6 +2870,7 @@ markerBubbleTap: function(marker) {
 			{iconPath:'images/bubble/delete.png', label: $L('Remove'), command: 'do-marker-remove'},
 		]
 	});
+	};
 
 
 },
@@ -2729,9 +2879,11 @@ handlemarkerBubbleTap: function (command) {
 
 	      switch (command) {
          case 'do-street':
+			this.setStatusPanel($L("Loading StreetView..."));
             this.StreetView();
             break;
          case 'do-marker-info':
+			this.setStatusPanel($L("Loading marker info..."));
 			this.markerInfo(this.clickedMarker);
             break;
          case 'do-origin':
@@ -2764,27 +2916,98 @@ handlemarkerBubbleTap: function (command) {
             //launch a Directions (upon user feedback)
             this.Directions();
          	break;
+         case 'do-navit':
+			this.setStatusPanel($L("Launching Navit..."), 5);
+        	var name=this.clickedMarker.place.name;
+        	var pos =this.clickedMarker.marker.getPosition();
+			new Mojo.Service.Request('palm://ca.canucksoftware.filemgr', {
+ 				method: 'write',
+ 				parameters: {
+ 					file: "/media/internal/appdata/org.webosinternals.navit/destination.txt",
+ 					str: 'type=former_destination label="'+ name +'"\nmg: ' + pos.lng() + " " + pos.lat() + "\n",
+ 					append: true
+ 				},
+ 				onSuccess: function(payload) {
+ 					new Mojo.Service.Request('palm://com.palm.applicationManager', {
+ 						method: 'open',
+ 						parameters: {
+ 							id: 'org.webosinternals.navit',
+ 							params: {}
+ 						}
+ 					});
+ 				},
+ 				onFailure: function(err) {
+ 					Mojo.Controller.errorDialog($L('Set destination to Navit failed'));
+ 				}
+ 			}); 
+         	break;
          case 'do-marker-remove':
-			this.clickedMarker.marker.setMap(null);
-			this.clickedMarker.infoBubble.setMap(null);
+			this.markerRemove(this.clickedMarker);
          	break;
       }
 },
 
-markerInfo: function (marker) {
-
-	//var infostring = marker.subtitle + " | Loc: " + marker.marker.getPosition();
+markerRemove: function (markertoremove) {
 	
+	//hide them on map
+	markertoremove.marker.setMap(null);
+	markertoremove.infoBubble.setMap(null);
+	
+	//remove from array
+	for (e=0; e<markers.length; e++){
+		if (markertoremove.marker.place.id == markers[e].place.id) {
+					//Mojo.Log.info("Removing marker from array: ", e);
+					markers.remove(e);	
+				};
+	};
+
+	for (e=0; e<infoBubbles.length; e++){
+			if (markertoremove.marker.place.id == infoBubbles[e].id) {
+					//Mojo.Log.info("Removing infoBubble from array: ", e);
+					infoBubbles.remove(e);	
+				};
+	};
+	
+	//remove from favorites
+	if (markertoremove.marker.place.favorite) {
+		for (var i = 0; i < Favorites.length; i++) {
+			if (markertoremove.marker.place.id == Favorites[i].id) {
+					//Mojo.Log.info("Removing marker from favorites: ", i);
+					Favorites.remove(i);
+					this.addToFavorites(Favorites);				
+				};
+			};
+	};
+},
+
+markerInfo: function (marker) {
+	
+	//stop listen to keypress
+	this.controller.stopListening(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
+				
 	var request = {
 		reference: marker.place.reference
 	};
-
+	
 	this.InfoService = new google.maps.places.PlacesService(this.map);
 	this.InfoService.getDetails(request, function(place, status) {
+			//Mojo.Log.info("** INFOSERVICE STATUS %j ***", status);
 			if (status == google.maps.places.PlacesServiceStatus.OK) {
-				//this.result = place;
+				
+				//Mojo.Log.info("** RESULT %j ***", place.reviews);
+				//save favorite mark to result if is favorite
+				if (marker.place.favorite) place.favorite = marker.place.favorite;
+				place.id = marker.place.id; //set the id always from previous marker
+				place.geometry.location = marker.place.geometry.location; //just for sure, sometimes wrong infoservice results causes wrong coordinates
+				place.name = marker.place.name; //store the name the same in whole app
+				//use the longest (best) address
+				try {
+					if (place.formatted_address.length > marker.place.formatted_address.length) {
+						place.formatted_address = marker.place.formatted_address;
+						};
+				} catch (error) {};
 				this.controller.stageController.pushScene({'name': 'marker-info', transition: Mojo.Transition.none}, place);
-				//Mojo.Log.info("** ADRESA RESULT ***", this.result.formatted_address);
+				//Mojo.Log.info("** ADRESA RESULT ***", place.favorite);
 			} else if (marker.place.geometry.location) {
 				//if getDetails failed (usually due to missing reference for dropped pins)
 				this.controller.stageController.pushScene({'name': 'marker-info', transition: Mojo.Transition.none}, marker.place);				
@@ -3039,21 +3262,6 @@ PlaceNearbyMarker: function(place) {
           position: place.geometry.location
 		});
 
-	//Mojo.Log.info("** Marker zindex ***", marker.getZIndex());
-	/*
-	var infowindow = new google.maps.InfoWindow();
-        //arrInfoWindows[i] = infowindow;
-        marker.myHtml = "Test this";
-        
-        //google.maps.event.addListener(marker, 'click', function () {
-                infowindow.setContent(marker.myHtml);
-                infowindow.open(this.map, marker);
-          //  });
-          */
-          
-            
-	
-	
 	//variable to identify if the bubble for this place is created
 	place.infoBubble = undefined;
 	
@@ -3168,9 +3376,9 @@ getMarkerFromList: function (action) {
 	};
 	
 	//index the markers as "relevance" and add distance from actual location
-	for (var i = 0; i < this.markers.length; i++) {
-		this.markers[i].place.relevance = i;
-		this.markers[i].place.distance = google.maps.geometry.spherical.computeDistanceBetween(this.MyLocation, this.markers[i].place.geometry.location);
+	for (var i = 0; i < markers.length; i++) {
+		markers[i].place.relevance = i;
+		markers[i].place.distance = google.maps.geometry.spherical.computeDistanceBetween(this.MyLocation, markers[i].place.geometry.location);
 	};
 	
 	this.MyLocationMarker = [];
@@ -3185,9 +3393,9 @@ getMarkerFromList: function (action) {
 	MarkersArray.action = action;
 	
 	MarkersArray[0] = this.Nearbymarkers; //nearby markers
-	MarkersArray[1] = this.markers; //markers - found places
+	MarkersArray[1] = markers; //markers - found places
 	MarkersArray[2] = this.MyLocationMarker; //My Location marker
-	//MarkersArray[3] = this.Directmarkers //origin and destination markers
+	MarkersArray[3] = this.Favorites //favorites markers
 
 	
 	this.controller.stageController.pushScene({'name': 'markers-list', transition: Mojo.Transition.none}, MarkersArray);
@@ -3207,12 +3415,14 @@ GeocodeFromLatLng: function(latlng) {
 	
     geocoder.geocode({'latLng': latlng}, function(results, status) {
       if (status == google.maps.GeocoderStatus.OK) {
-        if (results[1]) {
-		  Mojo.Log.info("** ADRESA *** %j", results[1].formatted_address);
+        if (results[0]) {
+		  Mojo.Log.info("** ADRESA *** %j", results[0].formatted_address);
 		  //force the result to have original coordinates
-		  results[1].geometry.location = latlng;
-		  this.PlaceDroppedPin(results[1]);
-          return results[1];
+		  results[0].geometry.location = latlng;
+		  //generate random number as ID for dropped markers
+		  results[0].id = Math.floor((Math.random()*1000000000000)+1);
+		  this.PlaceDroppedPin(results[0]);
+          return results[0];
         } else {
           
         }
@@ -3257,16 +3467,8 @@ MapHold: function (event) {
 	
 	Mojo.Log.info("** DOWN X*** %j", event.down.x);
 	Mojo.Log.info("** DOWN Y*** %j", event.down.y);
- 
+	this.setStatusPanel($L("Dropping a pin..."));
 	
-	/*
-	document.getElementById("map_canvas").style.width = "0%";
-	document.getElementById("map_canvas").style.height = "0%";
-	document.getElementById("map_canvas").style.width = "100%";
-	document.getElementById("map_canvas").style.height = "100%";
-	document.getElementById("map_canvas").hide();
-	document.getElementById("map_canvas").show();
-	*/
 	//var MarkerPoint = this.overlay.getProjection().fromLatLngToContainerPixel(latlng);
 	var point = new google.maps.Point(event.down.x, event.down.y);
 	//Mojo.Log.info("** POINT*** %j", point);
@@ -3315,11 +3517,102 @@ setLocalizedHTML: function () {
 	document.getElementById("HintText").innerHTML = $L("<b>Hint:</b> If you select place from suggestions, one marker will be placed.<br> If you are looking for nearby places, just type what you need and press Enter.<br>Example 1: '<i>pizza</i>' find nearest pizza from map center within actual map bounds<br>Example 2: '<i>hotel@5000</i>' find hotels within 5000m from map center");
 },
 
+setStatusPanel: function (text, delay) {
+	
+	$("status-panel-text").innerHTML = "";
+	$("status-panel-text").innerHTML = text;
+	$("status-panel").style['-webkit-transition-duration'] = "0s";
+	$("status-panel").addClassName("active");
+	try {
+	this.controller.get('StatusPanelSpinner').mojo.start();
+	} catch (error) {};	
+	
+	if (delay != undefined && delay > 0) {
+		(function(){
+			this.hideStatusPanel();
+		}).bind(this).delay(delay);
+	};
+},
+
+hideStatusPanel: function (delay) {
+	
+		this.controller.get('StatusPanelSpinner').mojo.stop();
+		$("status-panel").style['-webkit-transition-duration'] = "1s";
+		$("status-panel").removeClassName("active");		
+},
+
+OverlayComplete: function () {
+	Mojo.Log.info("** overlay *** %j");
+},
+
+getFavorites: function() {
+	 this.setStatusPanel($L("Loading Favorites from database..."));
+	 db.get("Favorites", this.dbGetOK.bind(this), this.dbGetFail.bind(this))	
+},
+
+setFavorites: function(favorites) {
+	
+	/* This function changes the db stored Favorites to readable format for gAPI */
+	var place;
+	
+	//renew the location data
+	for (var i = 0; i < favorites.length; i++) {
+		favorites[i].geometry.location = new google.maps.LatLng(favorites[i].geometry.favlat, favorites[i].geometry.favlng);
+		this.PlaceMarker({position: favorites[i].geometry.location, title: favorites[i].name, subtitle: favorites[i].formatted_address, place: favorites[i], icon: 'Map-Marker-Push-Pin-2-Right-Red-icon-fav.png', popbubble: false});
+	};
+	
+	//set the Global variable using data from db
+	Favorites = favorites;
+	
+},
+
+dbGetOK: function (favorites) {
+
+	//Mojo.Log.info("Favorites from db %j ", favorites);
+	
+	//Hide the status panel only if is it showed because of db
+	if ($("status-panel-text").innerHTML == "Loading Favorites from database...") {
+		this.hideStatusPanel();
+	};
+	//Mojo.Log.info("Favorite database size: " , Object.values(favorites).size());
+        if (Object.favorites == "{}" || favorites === null) { 
+            Mojo.Log.warn("Retrieved empty or null list from Favorites DB");
+        } else {
+            Mojo.Log.info("Retrieved favorites from DB");
+            this.setFavorites(favorites);
+        };
+    //Mojo.Log.info("Favorites from FAVORITES %j ", Favorites);
+},
+
+dbGetFail: function(transaction,result) { 
+    Mojo.Log.warn("Database get error (#", result.message, ") - can't save favorites list. Will need to reload on next use."); 
+    Mojo.Controller.errorDialog("Database save error (#" + result.message + ") - can't save favorites list. Will need to reload on next use."); 
+},
+
+addToFavorites: function() {
+	//Mojo.Log.info("Favorites %j ", Favorites);
+    db.add("Favorites", Favorites, this.dbAddOK.bind(this), this.dbAddFail.bind(this));
+	
+},
+
+dbAddOK: function () {
+	Mojo.Log.info("Favorite saved OK");
+},
+
+dbAddFail: function(transaction,result) { 
+    Mojo.Log.warn("Database save error (#", result.message, ") - can't save favorites list. Will need to reload on next use."); 
+    Mojo.Controller.errorDialog("Database save error (#" + result.message + ") - can't save favorites list. Will need to reload on next use."); 
+},
+
 //EXPERIMENTAL ODTUD
 
 Debug: function() {
 	
-
+	for (var k = 0; k < markers.length; k++) {
+		Mojo.Log.info("IDsss %j ", markers[k].id);
+	};
+	
+	db.removeAll();
 
 }
 
