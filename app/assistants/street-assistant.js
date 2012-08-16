@@ -5,8 +5,7 @@ this.position = argFromPusher;
 
 StreetAssistant.prototype = {
 	setup: function() {
-		Ares.setupSceneAssistant(this);
-		
+		//Ares.setupSceneAssistant(this);
 
 		if (Mojo.Environment.DeviceInfo.platformVersionMajor == "2" && Mojo.Environment.DeviceInfo.platformVersionMinor == "2") {
 			this.SdragStartHandler = this.SdragStart.bindAsEventListener(this);
@@ -16,7 +15,7 @@ StreetAssistant.prototype = {
 			Mojo.Event.listen(this.controller.stageController.document, Mojo.Event.dragStart, this.SdragStartHandler);
 			Mojo.Event.listen(this.controller.stageController.document, Mojo.Event.dragging, this.SdraggingHandler);	
 		};
-         
+      
 this.controller.setupWidget("StreetSpinner",
   this.attributes = {
       spinnerSize: "large"
@@ -25,7 +24,8 @@ this.controller.setupWidget("StreetSpinner",
       spinning: true
   }
 );
-         
+
+    
 var menuModel = {
   visible: true,
   items: [
@@ -50,11 +50,13 @@ var menuModel = {
      this.controller.setupWidget(Mojo.Menu.commandMenu,
          this.attributes = {
              spacerHeight: 0,
-             menuClass: 'no-fade'
+             menuClass: 'street-bottom-menu'
          },
          menuModel
      );   
-	
+$('overlay-scrim').show();
+
+
 // Check for a street view at the position
 this.streetViewCheck = new google.maps.StreetViewService();  
 this.streetViewCheck.getPanoramaByLocation(this.position, 50, function(result, status) {
@@ -116,8 +118,12 @@ this.controller.get('StreetSpinner').mojo.stop(); //stop spinner
 $('overlay-scrim').hide();
 
 try {
+				//$("street_canvas").parentNode.style.width = this.controller.window.innerWidth + "px;";
+				//$("street_canvas").parentNode.style.height = this.controller.window.innerHeight + "px;";
 				this.panorama = new google.maps.StreetViewPanorama(document.getElementById("street_canvas"), panoramaOptions);
 				this.panorama.setVisible(true);
+				//$("street_canvas").style.height = this.controller.window.innerHeight + "px;";
+				//Mojo.Log.info("** PARENT HEIGHT ***", $("street_canvas").style.height);
 				}
 			catch (error) {
 				Mojo.Log.info("Cannot initiate StreetView - system error", error);
@@ -134,7 +140,7 @@ Panorama21: function() {
 		var height = Mojo.Environment.DeviceInfo.screenHeight;
 	
 		this.controller.get('StreetSpinner').mojo.stop();
-		 $('overlay-scrim').hide();
+		$('overlay-scrim').hide();
 		 
 		 var panoOptions = {
           visible: true,
@@ -207,7 +213,8 @@ Sdragging: function(event) {
         this.oldx = event.move.x;
         this.oldy = event.move.y;
 },
-	cleanup: function() {	
+
+cleanup: function() {	
 	 if (Mojo.Environment.DeviceInfo.platformVersionMajor == "2" && Mojo.Environment.DeviceInfo.platformVersionMinor == "2") {
 		Mojo.Event.stopListening(this.controller.stageController.document, Mojo.Event.dragStart, this.SdragStartHandler);
 		Mojo.Event.stopListening(this.controller.stageController.document, Mojo.Event.dragging, this.SdraggingHandler);
@@ -218,6 +225,6 @@ Sdragging: function(event) {
 		};
 		this.panorama.setVisible(true);
 		this.panorama = null;
-		Ares.cleanupSceneAssistant(this);
+		//Ares.cleanupSceneAssistant(this);
 	}
 };

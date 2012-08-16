@@ -2,6 +2,7 @@ CACHE
 
 http://maps.gstatic.com/
 http://maps.google.com/maps/api/
+http://maps.google.com/maps/api/js?v=3&sensor=true&libraries=places,weather,panoramio,geometry
 
 CACHE MANIFEST
 

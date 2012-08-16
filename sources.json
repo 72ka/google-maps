@@ -3,10 +3,6 @@
         "source": "app/assistants/stage-assistant.js"
     }, 
     {
-        "source": "app/views/main/main-chrome.js", 
-        "scenes": "main"
-    }, 
-    {
         "source": "app/assistants/main-assistant.js", 
         "scenes": "main"
     },  
@@ -15,17 +11,9 @@
         "scenes": "street"
     }, 
     {
-        "source": "app/views/street/street-chrome.js", 
-        "scenes": "street"
-    }, 
-    {
         "source": "app/assistants/about-assistant.js", 
         "scenes": "about"
     }, 
-    {
-        "source": "app/views/about/about-chrome.js", 
-        "scenes": "about"
-    },
     {
         "source": "app/assistants/license-assistant.js", 
         "scenes": "license"

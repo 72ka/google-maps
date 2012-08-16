@@ -1,34 +1,107 @@
-.palm-menu {
-	position: absolute;
-	-webkit-transform: scale(1.5, 1.5);
-}
+.palm-menu.command-menu.bottom-menu {
+		
+		-webkit-transform: scale(1.5, 1.5);
+		height: 75px; //vyska commandmenu bottom
+		//left: 100px;
+		//right: 150px;
+		//width: 320px;
+		//position: absolute;
 
-.palm-menu.view-menu {
+}
+/*
+.palm-menu.command-menu.street-bottom-menu {		
+		-webkit-transform: scale(1.5, 1.5);
+		height: 75px;
+}
+*/
+.palm-menu.view-menu.top-menu {
+ -webkit-transform: scale(1.5, 1.5);
   width: 100%;
   margin-top: 15px;
 } 
 
-.palm-menu.command-menu {
-		
-		height: 75px;
-
-}
-
 .palm-scrim {
-	-webkit-transform: scale(1.5, 1.5);
-	-webkit-transform: translate(0px, 100px);
+	//-webkit-transform: scale(2.5, 2.5);
+	//-webkit-transform: translate(0px, 0px);
+	background: url(../images/scrim.png) repeat-x;
+	position: fixed;
 }
 
-.palm-popup-container {
+.status-panel {
+	-webkit-transform: scale(1.5, 1.5);
+	top: 98px;
+	width: 56%;
+	right: 105px;
+}
+
+/*
+.hint {
+	-webkit-transform: scale(1.5, 1.5);
+	margin: -20px 0 5px 0;
+	width: 64%; 
+	left: 17%;
+	bottom: 45px;
+}
+*/
+/*
+.search-button {
+	-webkit-transform: scale(1.5, 1.5);
 	position: absolute;
-	-webkit-transform: scale(1.5, 1.5);
+	top: 15px;
+	left: 17%;
+	//height: 50px;
+	width: 66%;
 }
 
-.palm-menu-panel {
+.pac-container {
+	-webkit-transform: scale(1.5, 1.5);
+	width: 62%  !important; 
+	left: 19% !important;
+	top: 15px;
+	margin: 69px 0px 0px 0px !important;
+}
+*/
+
+.palm-popup-container.pre3maptype {
+    margin: 100px 0 0 -50px; 
+	-webkit-transform: scale(1.5, 1.5) !important;
+}
+
+.palm-popup-container.pre3maptypemore {
+    margin: 0px 0 0 0px; 
+	-webkit-transform: scale(1.5, 1.5) !important;
+}
+
+.palm-popup-container.pre3menu {
+    margin: -90px 0 0 -50px; 
+	-webkit-transform: scale(1.5, 1.5) !important;
+}
+
+.palm-popup-container.pre3markerpopup {
+    //margin: -90px 0 0 -50px; 
+	-webkit-transform: scale(1.5, 1.5) !important;
+}
+
+
+.palm-menu-panel.pre3 {
   -webkit-transform: scale(1.5, 1.5);
 } 
-
+/*
 .palm-scrim {
 		//position: absolute;
 	//	-webkit-transform: scale(1.5, 1.5);
+}
+*/
+
+.phoneytext {
+	font-size: 27px; padding: 6px 67px 6px 22px;
+	background: url(../images/1.5/map-bubble-arrow-blue.png) 95% 50% no-repeat;
+}
+
+.phoneytext2 {
+	font-size: 18px;
+}
+
+.phoneytextwithoutbutton {
+	font-size: 27px; padding: 6px 22px 6px 22px;
 }

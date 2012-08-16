@@ -21,10 +21,9 @@ var db = new Mojo.Depot({name:"MainDB", version:1, replace:false},
 MainAssistant.prototype = {
 	setup: function() {
 
-Ares.setupSceneAssistant(this);
-
 //Check internet connectivity at first
 this.checkConnectivity();
+//Mojo.Log.info("**** ZAPNOUT INTERNET CHECK ******");
 
 
 
@@ -112,6 +111,8 @@ this.MapHoldEventHandler = this.MapHold.bindAsEventListener(this);
 this.MapHold = this.controller.get('map_canvas');
 Mojo.Event.listen(this.MapHold, Mojo.Event.hold, this.MapHoldEventHandler);
 
+//define mousedown follow listener
+this.mousedownInterruptsFollowHandler = this.mousedownInterruptsFollow.bindAsEventListener(this);
 
 //setup TP Back buttons
 
@@ -172,6 +173,7 @@ this.setStatusPanel($L("Loading Maps..."));
 /*
  var gestures = [
          'click',
+         'dblclick',
          'dragstart',
          'dragfinish',
          'drag',
@@ -192,28 +194,31 @@ this.setStatusPanel($L("Loading Maps..."));
          'touchcancel'];
       for (var g in gestures) {
          document.addEventListener(gestures[g], function(event) {
-             Mojo.Log.info("*** EVENT TEST ***",event.type);
-         }, true);
+             Mojo.Log.info("*** EVENT TEST ***", event.type);
+         }.bind(this), true);
       };
 
 */
 
-
-	this.$.gps1.startTracking();
+	this.firstGPSfix();
 	
 	this.setStatusPanel($L("Waiting for your location..."));
 
 	/* vsechny normalni pristroje az na Pre3 maji rozdil pro velikost menu 170 */
 	this.widthadd = 170-60;
 	this.heightadd = 170-60;
+	this.ImageRatio = 1;
+	this.ImagePathAdd = "";
 	
 	//Puvodne jsem to prirazoval natvrdo, tohle je obecnejsi, ziskat pixel ratio (Pre3 1.5, ostatni 1.0)
 	this.ScreenRoughRatio = this.controller.window.devicePixelRatio;
 	
 	if(this.isPre3()){
 		Mojo.Log.info("*** Detected device is Pre3 ***");
-		this.widthadd = (330-60);
+		this.widthadd = (330-60+2); //the +2 fixes the horizontal and vertical lines in top menu
 		this.heightadd = (440-60);
+		this.ImageRatio = 1.5;
+		this.ImagePathAdd = "1.5/";
 		this.restmenuwidth = Mojo.Environment.DeviceInfo.screenWidth - this.widthadd;
 	} else {
 		/* hodnota zbytku menu */
@@ -235,12 +240,18 @@ this.setStatusPanel($L("Loading Maps..."));
 	//if this is enabled, the poi's on the map are disabled
 	var mapStyles =[
     {
-        featureType: "all",
+        featureType: "poi",
         elementType: "labels",
         stylers: [
               { visibility: "off" }
         ]
-    }
+    },{
+    featureType: "all",
+    elementType: "labels.text.fill",
+    stylers: [
+      //{ lightness: -100 }
+    ]
+	}
 	];
 	
 this.mapStyleNight = [
@@ -319,10 +330,12 @@ this.mapStyleNight = [
         scaleControl: true,
         maxZoom: 20,
         minZoom: 1,
-        //styles: mapStyleNight[3],
+        styles: mapStyles,
+        keyboardShortcuts: false,
       	draggable: false	
     };
-    this.map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+
+    this.map = new google.maps.Map(this.controller.get("map_canvas"), myOptions);
 
 	this.MapType = this.MapCookie.get();
 	
@@ -330,7 +343,6 @@ this.mapStyleNight = [
 		this.ActualMapType = [true, false, false, false];
 		Mojo.Log.info("DEFAULT:" , this.MapType);
 		} else {
-			//this.MapType.remove();
 			Mojo.Log.info("Cookie MapType:" , this.MapType);
 			try {
 				this.handlePopMapType(this.MapType);
@@ -415,8 +427,6 @@ this.mapStyleNight = [
         new google.maps.event.addListener(this.Destinationautocomplete, 'place_changed', this.SelectedDestinationPlace.bind(this));
 
     //Setup arrays to hold our markers and infoBubbles and other variables
-    //this.markers = [];
-	//this.infoBubbles = [];
 	this.DirectinfoBubbles = [];
 	this.Directmarkers = [];
 	this.DirectStep = 0;
@@ -424,11 +434,12 @@ this.mapStyleNight = [
 	this.Nearbymarkers = [];
 	this.NearbyStep = 0;
 	this.blockTPPan = false;
-	this.isdragging = false;
-	this.wasflicked = true;
-	this.Pre3refreshcounter = 0;
+	//this.isdragging = false;
+	this.wasflicked = false;
 	this.isNavit = false;
-	//this.Favorites = [];
+	this.blockGPSFix = false;
+	this.mapcanvasx = 0;
+	this.mapcanvasy = 0;
 
 	// map doesn't follow GPS as default
 	this.followMap = false;
@@ -444,7 +455,6 @@ this.mapStyleNight = [
 	this.directionsDisplay = new google.maps.DirectionsRenderer(rendererOptions);
 	this.directionsDisplay.setPanel(document.getElementById('directions-panel'));
 	
-	//this.TrafficVisibile = false;
     this.trafficLayer = new google.maps.TrafficLayer();
 
 	// load cookie for traffic layer
@@ -492,12 +502,15 @@ this.mapStyleNight = [
 			this.map.setOptions(styleoptions);
 	};
 	
+	//Setup Transit layer as hidden by default
+	this.TransitVisibile = false;
+	
 	//Set to last view
 	var lastlatlng = new google.maps.LatLng(this.Preferences.LastLoc.lat, this.Preferences.LastLoc.lng);
 	this.map.setCenter(lastlatlng);
 	this.map.setZoom(this.Preferences.LastLoc.zoom);
 	
-	/*
+	/* ToDo: Panoramio Layer
 	//Setup Panoramio Layer
 	var panoramioOptions = {
 		suppressInfoWindows: true,
@@ -507,18 +520,31 @@ this.mapStyleNight = [
 	panoramioLayer.setMap(this.map);
 	*/
 	
+	//********* ToDo: TRANSIT OVERLAY
+	/*
+	var transitOptions = {
+		getTileUrl: function(coord, zoom) {
+		return "http://mt1.google.com/vt/lyrs=m@155076273,transit:comp|vm:&" +
+		"hl=en&opts=r&s=Galil&z=" + zoom + "&x=" + coord.x + "&y=" + coord.y;
+	},
+		tileSize: new google.maps.Size(256, 256),
+		isPng: true
+	};
+
+	var transitMapType = new google.maps.ImageMapType(transitOptions);
+
+	this.map.overlayMapTypes.insertAt(0, transitMapType);
+	*/
+	//**********
+	
+	
  	new google.maps.event.addListener(this.map, 'idle', this.MapIdle.bind(this));
  	new google.maps.event.addListener(this.map, 'tilesloaded', this.MapTilesLoaded.bind(this));
  	new google.maps.event.addListener(this.map, 'bounds_changed', this.MapCenterChanged.bind(this));
  	//new google.maps.event.addListener(this.map, 'projection_changed', this.ProjectionChanged.bind(this));
  	new google.maps.event.addListener(this.map, 'overlaycomplete', this.OverlayComplete.bind(this));
  	this.CenterChanged = true;
- 	
- 	// stop mousemove propagation
-	//this.map.getDiv().addEventListener('drag', function(evt) {
-	//	evt.stopPropagation();
-	//});
- 	
+
  	new google.maps.event.addDomListener(document.getElementById('map_canvas'), 'resize', this.Resize.bind(this));
  	
  	//key press listener
@@ -540,12 +566,17 @@ this.mapStyleNight = [
 	Mojo.Event.listen(this.controller.get("map_canvas"), "gesturechange", this.handleGestureChange.bindAsEventListener(this));
 	Mojo.Event.listen(this.controller.get("map_canvas"), "gestureend", this.handleGestureEnd.bindAsEventListener(this));
 	//Mojo.Event.listen(this.controller.get("map_canvas"), "click", this.click.bindAsEventListener(this));
-
-	//setup dragging listeners
-	this.dragStartHandler = this.dragStart.bindAsEventListener(this);
-	//this.dragEndHandler = this.dragEnd.bindAsEventListener(this);
-	this.draggingHandler = this.dragging.bindAsEventListener(this);
-	this.flickHandler = this.flick.bindAsEventListener(this);
+	
+	//Setup map interaction listeners
+	this.DragStartEventHandler = this.dragStart.bindAsEventListener(this);
+    this.DraggingEventHandler = this.dragging.bindAsEventListener(this);
+    this.FlickEventHandler = this.flick.bindAsEventListener(this);
+	
+	//card minimize and maximize listeners
+	this.activateHandler = this.activateWindow.bind(this);
+	Mojo.Event.listen(this.controller.stageController.document, Mojo.Event.stageActivate, this.activateHandler);
+	this.deactivateHandler=this.deactivateWindow.bind(this);
+	Mojo.Event.listen(this.controller.stageController.document, Mojo.Event.stageDeactivate, this.deactivateHandler);
 
 
 	// TODO: mousedown event is needed by hiding the command menu
@@ -565,30 +596,8 @@ this.mapStyleNight = [
  					Mojo.Log.info('FileMgrs service is probably not installed or returns error');
  				}
  			});
-
-//******* zjistovani devices *******
-
-/*
-Mojo.Log.info("**** VERZE ****", Mojo.Environment.DeviceInfo.platformVersion);
-Mojo.Log.info("**** VERZE ****", Mojo.Environment.DeviceInfo.platformVersionMajor);
-Mojo.Log.info("**** VERZE ****", Mojo.Environment.DeviceInfo.platformVersionMinor);
-Mojo.Log.info("**** VERZE ****", Mojo.Environment.DeviceInfo.platformVersionDot);
-//Mojo.Log.info("**** VERZE ****", Mojo.Environment.DeviceInfo.screenWidth);
-*/
-//*******************************
-
 },
-/*
-setPreferences: function(argPreferences) {
-	
-	
-	Mojo.Log.info("**** Setting preferences %j ****", argPreferences);
-	this.Fullscreen = argPreferences.Fullscreen;
-	this.MapRotate = argPreferences.MapRotate;
-	this.MaptoOverride = argPreferences.MaptoOverride;
-	
-},
-*/
+
 handleCommand: function(event) {
 	
 	if(event.type == Mojo.Event.commandEnable && (event.command == Mojo.Menu.helpCmd || event.command == Mojo.Menu.prefsCmd)) {
@@ -596,10 +605,12 @@ handleCommand: function(event) {
     };
                 if (event.type === Mojo.Event.command) {
                         if (event.command == 'zoomOut') {
+										this.blockGPSFix = true;
 										this.setStatusPanel($L("Zooming out..."));
                                         this.map.setZoom(this.map.getZoom() - 1);
                         }
                         if (event.command == 'zoomIn') {
+										this.blockGPSFix = true;
 										this.setStatusPanel($L("Zooming in..."));
                                         this.map.setZoom(this.map.getZoom() + 1);
                         }
@@ -611,18 +622,14 @@ handleCommand: function(event) {
                                          var near = event.originalEvent && event.originalEvent.target;
                                          this.controller.popupSubmenu({
 																				  onChoose:  this.handlePopMapType,
+																				  popupClass: "pre3maptype",
 																				  placeNear: near,
 																				  items: [
 																				      {secondaryIconPath:'images/maptype-roadmap.png', label: $L('Roadmap'), command: 'Roadmap', chosen: this.ActualMapType[0]},
 																				      {secondaryIconPath:'images/maptype-hybrid.png', label: $L('Hybrid'), command: 'Hybrid', chosen: this.ActualMapType[1]},
 																				      {secondaryIconPath:'images/maptype-terrain.png', label: $L('Terrain'), command: 'Terrain', chosen: this.ActualMapType[2]},
 																				      {secondaryIconPath:'images/maptype-satellite.png', label: $L('Satellite'), command: 'Satellite', chosen: this.ActualMapType[3]},
-																				      {secondaryIconPath:'images/night.png', label: $L('Night'), command: 'do-night', chosen: this.NightVisibile},
-																				      {secondaryIconPath:'images/traffic-icon.png', label: $L('Traffic'), command: 'do-traffic', chosen: this.TrafficVisibile},
-																				      {secondaryIconPath:'images/bike.png', label: $L('Bike'), command: 'do-bike', chosen: this.BikeVisibile},
-																				      {secondaryIconPath:'images/weather.png', label: $L('Weather'), command: 'do-weather', chosen: this.WeatherVisibile},
-																				      {secondaryIconPath:'images/cloud.png', label: $L('Clouds'), command: 'do-cloud', chosen: this.CloudVisibile},
-																				      
+																				      {secondaryIconPath:'images/map-bubble-arrow-blue.png', label: $L('More') + ' ...', command: 'do-more', chosen: false}  
 																				  ]
 																				});
                         }
@@ -645,9 +652,11 @@ handleCommand: function(event) {
                         if (event.command == 'PopMenu') {
 
                         								var near = event.originalEvent && event.originalEvent.target;
+                        								this.NearLayerTap = near;
                         								if (!this.Preferences.Fullscreen) {
 														this.controller.popupSubmenu({
 																				  onChoose:  this.handlePopMenu,
+																				  popupClass: "pre3menu",
 																				  placeNear: near,
 																				  items: [
 																					  {iconPath:'images/markers-icon.png', label: $L('Markers'), command: 'do-markers'},
@@ -658,6 +667,7 @@ handleCommand: function(event) {
 																				});} else {
 														this.controller.popupSubmenu({
 																				  onChoose:  this.handlePopMenu,
+																				  popupClass: "pre3menu",
 																				  placeNear: near,
 																				  items: [
 																					  {iconPath:'images/exit-fullscreen.png', label: $L('Exit Fullscreen'), command: 'do-fullscreenoff'},
@@ -689,9 +699,7 @@ handleCommand: function(event) {
 
 
 cleanup: function() {
-		
-		Ares.cleanupSceneAssistant(this);
-		
+
 		//Save last location and zoom
 		this.Preferences.LastLoc.lat = this.map.getCenter().lat();
 		this.Preferences.LastLoc.lng = this.map.getCenter().lng();
@@ -699,21 +707,14 @@ cleanup: function() {
 		this.PrefsCookie.put(this.Preferences);
 
 		/* Stop all running listeners */
-		Mojo.Event.stopListening(this.controller.get("trick_container"), "gesturestart", this.handleGestureStart.bind(this));
-		Mojo.Event.stopListening(this.controller.get("trick_container"), "gesturechange", this.handleGestureChange.bind(this));
-		Mojo.Event.stopListening(this.controller.get("trick_container"), "gestureend", this.handleGestureEnd.bind(this));
+		Mojo.Event.stopListening(this.controller.get("map_canvas"), "gesturestart", this.handleGestureStart.bind(this));
+		Mojo.Event.stopListening(this.controller.get("map_canvas"), "gesturechange", this.handleGestureChange.bind(this));
+		Mojo.Event.stopListening(this.controller.get("map_canvas"), "gestureend", this.handleGestureEnd.bind(this));
 		Mojo.Event.stopListening(this.controller.get("map_canvas"), 'mousedown', this.mousedownHandler.bind(this));
 		Mojo.Event.stopListening(this.controller.get("map_canvas"), "click", this.click.bind(this));
 		Mojo.Event.stopListening(this.controller.sceneElement, Mojo.Event.keydown, this.KeypresseventHandler);
 
-		if (this.WebOS22) { //asi to vypinalo listenery na TP a pak neslo posouvat mapu
-			Mojo.Event.stopListening(this.controller.stageController.document, Mojo.Event.dragStart, this.dragStartHandler);
-			Mojo.Event.stopListening(this.controller.get("map_canvas"), 'mouseup', this.mouseup.bind(this)); //dragEnd isn't working, I don't know why
-			Mojo.Event.stopListening(this.controller.stageController.document, Mojo.Event.dragging, this.draggingHandler);
-			Mojo.Event.stopListening(this.controller.stageController.document, Mojo.Event.flick, this.flickHandler);
-			
-			
-		};
+		this.WebOS2Events("stop");
 
 		Mojo.Event.stopListening(this.DirectType, Mojo.Event.propertyChange, this.DirectTypeEventHandler);
 		Mojo.Event.stopListening(this.GetDirectionsButton, Mojo.Event.tap, this.GetDirectionsButtonEventHandler);
@@ -728,11 +729,9 @@ cleanup: function() {
 createMenu: function() {
 
 	if(this.isTouchPad()){
-		//this.restmenuwidth = 598; //workaround of Touchpad Orientation handle event BUG
 		$("TPBackButton").show(); //zapnu vsude backbuttony
 		$("TPBackButtonD").show();
 		this.actualTPwidth = this.controller.window.innerWidth;
-		//document.getElementById("MainSearchField").style.width= '60% !important;';
 	};
 
 /* Setup bottom command menu */
@@ -783,10 +782,7 @@ this.feedMenuModel = {
       items: [
 		  //{template:'main/top-bar-template'},
 		  {},
-          //{ icon: "search", command: 'searchPlaces', label: ""},
-          //{template:'main/search', width: 200},
           { label: $L("Google Maps"), command: 'searchPlaces', width: this.restmenuwidth},
-          //{ label: $L("Tap or type to search..."), command: 'searchPlaces', width: this.restmenuwidth},
           { iconPath: "images/layers.png", command: 'maptype', label: $L('M')},
           {label: $L('MyLoc'), iconPath:'images/menu-icon-mylocation.png', command:'MyLoc'},
           {}
@@ -800,59 +796,31 @@ this.feedMenuModel = {
  };
 
 this.controller.setupWidget(Mojo.Menu.viewMenu,
-  { spacerHeight: 0, menuClass:'no-fade' },
+  { spacerHeight: 0, menuClass:'top-menu' },
   this.feedMenuModel);
 
 },
 
-gps1Success: function(inSender, inResponse, inRequest) {
-
-
+firstFixSuccess: function(gps) {
+	
 	var accuracy = 500; // default accuracy
 
-	var Mylatlng = new google.maps.LatLng(inResponse.latitude, inResponse.longitude);
+	var Mylatlng = new google.maps.LatLng(gps.latitude, gps.longitude);
 
 	// tady je to nutne, aby GPS nedavala nedefinovane souradnice
-	if (inResponse.latitude != undefined) {
-	
-	/*	//UNCOMMENT IT FOR TESTING PURPOSES IN EMULATOR
-		if (this.MyLocation != undefined) {
-			this.Heading = this.GetHeadingFromLatLng(this.MyLocation, Mylatlng);
-			Mojo.Log.info("** HEADING ***", this.Heading);
-			this.MapHeadingRotate(-this.Heading);
-		};
-		*/
-	
+	if (gps.latitude != undefined) {
 		
+		Mojo.Log.info("** FIRST GPS FIX ***");
+
 	this.MyLocation = Mylatlng;
 
 
-	// follow the map if the button in menu is active
-	if (this.followMap) {
-		this.map.panTo(this.MyLocation);
-		if (this.isPre3()) this.Pre3refreshcounter++;
-		if (this.isPre3() && this.Pre3refreshcounter > 5) {
-			this.Pre3Refresh();
-			this.Pre3refreshcounter = 0;
-			};
-		
-		if (inResponse.velocity > 0.5) {
-			var velocity = Math.round(inResponse.velocity*3.6) + " km/h";
-			this.SetTopMenuText(velocity);
-		} else {
-			this.SetTopMenuText($L("Google Maps"));
-		};
-	};
-
-
 	//Mojo.Log.info("** MyLocation ***", this.MyLocation);
-	this.accuracy = inResponse.horizAccuracy;
+	this.accuracy = gps.horizAccuracy;
 
 	if (this.accuracy < 0) {
 		this.accuracy = 350; //odpovida accuracy fix 2
-	}
-
-	if (this.GPSFix == false) {
+	};
 		var oldaccuracy = this.accuracy;
 		this.circle = new google.maps.Circle({
 			center: this.MyLocation,
@@ -868,11 +836,11 @@ gps1Success: function(inSender, inResponse, inRequest) {
 
 
 if(this.isPre3()){
-				var image = new google.maps.MarkerImage('images/blue_dot.png',
-				new google.maps.Size(24, 24),
+				var image = new google.maps.MarkerImage('images/1.5/blue_dot.png',
+				new google.maps.Size(24*this.ImageRatio, 24*this.ImageRatio),
 				new google.maps.Point(0, 0), // origin
-				new google.maps.Point(12, 12), // anchor
-				new google.maps.Point(24, 24) //Scale to - kdyz neni aktivovano, dela to hranate kolecko na Pre3
+				new google.maps.Point(12*this.ImageRatio, 12*this.ImageRatio), // anchor
+				new google.maps.Point(24*this.ImageRatio, 24*this.ImageRatio) //Scale to - kdyz neni aktivovano, dela to hranate kolecko na Pre3
 				);
 				} else {
 				var image = new google.maps.MarkerImage('images/blue_dot.png',
@@ -911,25 +879,70 @@ if(this.isPre3()){
 					//and close the GPS wait dialog
 					this.GPSdialog.mojo.close();
 				};
+				
+				this.startTracking();
+				
+} else {
+	//next attempt to get first fix if the previous fail
+	this.firstGPSfix();
+	};
 
+	
+},
+
+gpsUpdate: function(gps) {
+
+	var Mylatlng = new google.maps.LatLng(gps.latitude, gps.longitude);
+
+	// tady je to nutne, aby GPS nedavala nedefinovane souradnice
+	if (gps.latitude != undefined && gps.longitude != undefined && !this.blockGPSFix) {
+		
+		//Mojo.Log.info("** GPS FIX ***");
+	
+	/*	//UNCOMMENT IT FOR TESTING PURPOSES IN EMULATOR
+		if (this.MyLocation != undefined) {
+			this.Heading = this.GetHeadingFromLatLng(this.MyLocation, Mylatlng);
+			Mojo.Log.info("** HEADING ***", this.Heading);
+			this.MapHeadingRotate(-this.Heading);
+		};
+		*/
+	
+		
+	this.MyLocation = Mylatlng;
+
+
+	// follow the map if the button in menu is active
+	if (this.followMap) {
+		this.map.panTo(this.MyLocation);		
+		if (gps.velocity > 0.5) {
+			var velocity = Math.round(gps.velocity*3.6) + " km/h";
+			this.SetTopMenuText(velocity);
 		} else {
+			this.SetTopMenuText($L("Google Maps"));
+		};
+	};
+
+	this.accuracy = gps.horizAccuracy;
+
+	if (this.accuracy < 0) {
+		this.accuracy = 500; //odpovida accuracy fix 2
+	}
+	try {
 			this.MyLocMarker.setPosition(this.MyLocation); //update markeru
 			this.circle.bindTo('center', this.MyLocMarker, 'position');
+		} catch (error) {
+			Mojo.Log.info("Warning: MyLocMarker not defined");
+			};
 
 			if (this.accuracy != this.oldaccuracy) {
 				this.circle.setRadius(this.accuracy); // update accuracy circle
 				this.oldaccuracy = this.accuracy;
 			};
 			
-			if (inResponse.heading != -1 && this.followMap && this.Preferences.MapRotate && (inResponse.velocity > 0.83)) { //funguje
-				this.MapHeadingRotate(-inResponse.heading); //funguje
+			if (gps.heading != -1 && this.followMap && this.Preferences.MapRotate && (gps.velocity > 0.83)) { //funguje
+				this.MapHeadingRotate(-gps.heading); //funguje
 			};
-
-		};
-		
 	};
-
-
 },
 
 StreetView: function() {
@@ -942,10 +955,8 @@ StreetView: function() {
 },
 
 zoom: function() {
-		//var oldZoom = this.map.getZoom();
-
   this.map.setZoom(7);
-	},
+},
 
 mylocation: function() {
 
@@ -960,7 +971,6 @@ mylocation: function() {
 									this.followMap = true;
 
 									//start the mousedown listener
-									this.mousedownInterruptsFollowHandler = this.mousedownInterruptsFollow.bindAsEventListener(this);
 									Mojo.Event.listen(this.controller.get("map_canvas"), 'mousedown', this.mousedownInterruptsFollowHandler);
 
 									this.map.panTo(this.MyLocation);
@@ -968,12 +978,11 @@ mylocation: function() {
 									this.map.fitBounds(this.circle.getBounds());
 									if ( this.map.getZoom() > 16 ) {
 											this.map.setZoom(16);
-										}
-										
-									if (this.isPre3()) {	
-										this.Pre3Refresh(); // Pre3 centering offset workaround
 									};
-
+										
+									//start the mousedown listener
+									Mojo.Event.listen(this.controller.get("map_canvas"), 'mousedown', this.mousedownInterruptsFollowHandler);
+									
 									//Mojo.Log.info("** MyLocation BUTTON ***", this.MyLocation);
 								} else {Mojo.Controller.errorDialog($L("Wait for GPS fix!"));}
 },
@@ -984,6 +993,7 @@ mousedownInterruptsFollow: function () {
 	Mojo.Event.stopListening(this.controller.get("map_canvas"), 'mousedown', this.mousedownInterruptsFollowHandler);
 
 	//rotate the map to the default heading
+	this.ContainerToRotate = this.getGoogleTiles();
 	this.MapHeadingRotate(0); 
 	
 	this.followMap = false;
@@ -994,8 +1004,6 @@ mousedownInterruptsFollow: function () {
 	// change the icon as "follow map is active"
 	this.feedMenuModel.items[1].items[3].iconPath = 'images/menu-icon-mylocation.png';
 	this.controller.modelChanged(this.feedMenuModel);
-	
-
 	
 	//set default text to the top menu
 	this.SetTopMenuText($L("Google Maps"));
@@ -1049,6 +1057,9 @@ handlePopMapType: function(MapType) {
         case 'do-traffic':
             this.Traffic();
         	break;
+        case 'do-transit':
+            this.Transit();
+        	break;
         case 'do-bike':
             this.Bike();
         	break;
@@ -1061,15 +1072,39 @@ handlePopMapType: function(MapType) {
         case 'do-night':
             this.Night();
         	break;
+        case 'do-more':
+            this.moreMapLayers();
+        	break;
       }
+},
 
-	},
+moreMapLayers: function (event) {
+	
+	//var near = event.originalEvent && event.originalEvent.target;
+          this.controller.popupSubmenu({
+			  onChoose:  this.handlePopMapType,
+			  popupClass: "pre3maptypemore",
+			  placeNear: null,
+			  //manualPlacement: true,
+			  //placeX: 250,
+              //placeY: 200,
+			  items: [
+			      {secondaryIconPath:'images/night.png', label: $L('Night'), command: 'do-night', chosen: this.NightVisibile},
+			      {secondaryIconPath:'images/traffic-icon.png', label: $L('Traffic'), command: 'do-traffic', chosen: this.TrafficVisibile},
+			      {secondaryIconPath:'images/transit.png', label: $L('Transit'), command: 'do-transit', chosen: this.TransitVisibile},
+			      {secondaryIconPath:'images/bike.png', label: $L('Bike'), command: 'do-bike', chosen: this.BikeVisibile},
+			      {secondaryIconPath:'images/weather.png', label: $L('Weather'), command: 'do-weather', chosen: this.WeatherVisibile},
+			      {secondaryIconPath:'images/cloud.png', label: $L('Clouds'), command: 'do-cloud', chosen: this.CloudVisibile}
+			      
+			  ]
+			});
+},
 
 ClearMapType: function() {
 
 	this.ActualMapType = [false, false, false, false];
 
-	},
+},
 
 handlePopMenu: function(Case) {
 
@@ -1097,11 +1132,17 @@ handlePopMenu: function(Case) {
 activate: function(args) {
 	
 	//Mojo.Log.info("*** ACTIVATE *** %j", args);
+	//Mojo.Log.info("*** DPI 1  *** %j", screen.deviceXDPI);
+
+	this.setViewPortWidth(480);
+	
+	//unblock the GPS fix updates
+	this.blockGPSFix = false;
 	
 	//start the listener for keypress
     this.controller.listen(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
           
-		try {
+	   try {
 				//update a Preferences variables from Cookies after each activate
 				this.Preferences = this.PrefsCookie.get();	
 				}
@@ -1142,8 +1183,6 @@ activate: function(args) {
 				};
 		};
 
-		//Mojo.Log.info("** MAIN ACTIVATE ***");
-		// Zarizeni s WebOS 2.2.x potrebuji odchytavat primo eventy z touchscreenu, v activate je to proto aby se aktivovaly odposlouchavace i pri navratu na mapu
 		this.WebOS2Events('start');
 
 		// navrat na stred markeru
@@ -1169,6 +1208,7 @@ activate: function(args) {
 						
 					break;	
 					case "origin":
+						this.setViewPortWidth(320);
 						this.origin = args.place.geometry.location;
 						if (args.place.vicinity != "") {
 							this.controller.get("OriginSearchField").value = args.place.name + ", " + args.place.vicinity;
@@ -1177,6 +1217,7 @@ activate: function(args) {
 						};
 					break;
 					case "destination":
+						this.setViewPortWidth(320);
 						this.destination = args.place.geometry.location;
 						if (args.place.vicinity != "") {
 							this.controller.get("DestinationSearchField").value = args.place.name + ", " + args.place.vicinity;
@@ -1204,6 +1245,13 @@ activate: function(args) {
 	this.hideStatusPanel();
 },
 
+deactivate: function () {
+	
+	this.blockGPSFix = true;
+	this.setViewPortWidth(320);
+	
+},
+
 updateFavorites: function(args) {
 	
 	var markerindex = args.markerindex;
@@ -1211,7 +1259,7 @@ updateFavorites: function(args) {
 
 	try {
 	//Set the apropriate icon for marker
-	var icon = (markers[markerindex].place.favorite ? 'images/Map-Marker-Push-Pin-2-Right-Red-icon-fav.png' : 'images/Map-Marker-Push-Pin-2-Right-Red-icon.png');
+	var icon = (markers[markerindex].place.favorite ? 'images/' + this.ImagePathAdd + 'Map-Marker-Push-Pin-2-Right-Red-icon-fav.png' : 'images/' + this.ImagePathAdd + 'Map-Marker-Push-Pin-2-Right-Red-icon.png');
 	markers[markerindex].setIcon(icon);
 
 	//create new content of InfoBubble and set them
@@ -1248,16 +1296,15 @@ getMarkerFromID: function (id) {
 
 handleMapLoc: function(maploc) {
 
+	maploc = decodeURIComponent(maploc);
+	
 	if (this.maploc == undefined) { //this occurs when the app is relanuching with parameter
 		this.maploc = maploc;
-		this.maploc = this.maploc.replace(/%20/gi,' '); //replaces all the %20 to spaces
-		this.maploc = this.maploc.replace(/%2C/gi,','); //replaces all the %2C to commas
 		google.maps.event.trigger(this.map, "idle");
 	};
 
 	if (this.maploc != undefined) {
-		this.maploc = this.maploc.replace(/%20/gi,' '); //replaces all the %20 to spaces
-		this.maploc = this.maploc.replace(/%2C/gi,','); //replaces all the %2C to commas
+		this.maploc = decodeURIComponent(this.maploc);
 		Mojo.Log.info("*** LAUNCH MAPLOC PLACES ***", this.maploc);
 	};
 
@@ -1268,47 +1315,44 @@ WebOS2Events: function (action) {
 	if (Mojo.Environment.DeviceInfo.platformVersionMajor == "2" && Mojo.Environment.DeviceInfo.platformVersionMinor == "2") {
 		this.WebOS22 = true;
 	};
-	/* this function starts or stop dragging listeners needed for WebOS2.2.x devices */
-	//if (Mojo.Environment.DeviceInfo.platformVersionMajor == "2" && Mojo.Environment.DeviceInfo.platformVersionMinor == "2") {
-	if(true) { //force it, in 0.1.3 is manually moving on all devices and the map is default not draggable by options, this is first attemption to speed up the map moving
-		//this.WebOS22 = true;
 		 switch (action) {
          case 'start':
-         	//Mojo.Log.info("*** START LISTENERS ***");
-		   Mojo.Event.listen(this.controller.get("map_canvas"), Mojo.Event.flick, this.flickHandler);
-		   Mojo.Event.listen(this.controller.get("map_canvas"), "click", this.click.bind(this));
-		   Mojo.Event.listen(this.controller.get("map_canvas"), "mouseup", this.mouseup.bind(this)); //dragEnd isn't working properly, I don't know why, instead use mouseup
-		   Mojo.Event.listen(this.controller.get("map_canvas"), Mojo.Event.dragStart, this.dragStart.bind(this));
-		   Mojo.Event.listen(this.controller.get("map_canvas"), Mojo.Event.dragging, this.dragging.bind(this));
-		   //Mojo.Event.listen(this.controller.get("map_canvas"), Mojo.Event.dragEnd, this.dragEnd.bind(this));
+         
+         //map_canvas is commont element to listen
+         this.ListeningElement = this.controller.get('map_canvas');
+         
+         //setup dragStart listener      
+		 Mojo.Event.listen(this.ListeningElement, Mojo.Event.dragStart, this.DragStartEventHandler);
 
-
+		 //setup dragging listener
+		 Mojo.Event.listen(this.ListeningElement, Mojo.Event.dragging, this.DraggingEventHandler);
+		 
+		 //setup flick listener
+		 Mojo.Event.listen(this.ListeningElement, Mojo.Event.flick, this.FlickEventHandler);
 
            break;
          case 'stop':
-         	//Mojo.Log.info("*** STOP LISTENERS ***");
-           Mojo.Event.stopListening(this.controller.get("map_canvas"), Mojo.Event.dragStart, this.dragStartHandler);
-           Mojo.Event.stopListening(this.controller.get("map_canvas"), 'mouseup', this.mouseup.bind(this));
-		   Mojo.Event.stopListening(this.controller.get("map_canvas"), Mojo.Event.dragging, this.draggingHandler);
-		   Mojo.Event.stopListening(this.controller.get("map_canvas"), Mojo.Event.flick, this.flickHandler);
-		   Mojo.Event.stopListening(this.controller.get("map_canvas"), "click", this.click.bind(this));
+         
+		   //stop the dragStart listener
+           Mojo.Event.stopListening(this.ListeningElement, Mojo.Event.dragStart, this.DragStartEventHandler);
+           
+		   //stop the dragging listener
+           Mojo.Event.stopListening(this.ListeningElement, Mojo.Event.dragging, this.DraggingEventHandler);
+           
+           //stop the flick listener
+           Mojo.Event.stopListening(this.ListeningElement, Mojo.Event.flick, this.FlickEventHandler);
+
 		   break;
-
       };
-	};
-
 },
 
 WebOSVersion1: function () {
 
-	/* this function starts or stop dragging listeners needed for WebOS2.2.x devices */
 	if (Mojo.Environment.DeviceInfo.platformVersionMajor == "1") {
 		return true;
 	} else {return false};
 
-
 },
-
 
 isTouchPad: function(){
 
@@ -1322,8 +1366,6 @@ isTouchPad: function(){
 
 		if(Mojo.Environment.DeviceInfo.screenHeight==1024){ return true; }
 
-
-
 		return false;
 
 },
@@ -1333,8 +1375,6 @@ isPre3: function(){
 		if(Mojo.Environment.DeviceInfo.screenWidth==800){ return true; }
 
 		if(Mojo.Environment.DeviceInfo.screenHeight==800){ return true; }
-
-
 
 		return false;
 
@@ -1346,6 +1386,13 @@ gps1Failure: function(inSender, inError) {
 
 MapIdle: function() {
 	
+		this.wasflicked = false;
+		
+		// unblock GPS only if the main scene is active
+		if (this.controller.stageController.activeScene().sceneName == "main") {
+			this.blockGPSFix = false;
+		};
+		
 		this.LoadingSpinner("stop");
 		//this.ActualCenter = this.map.getCenter();
 		(function(){
@@ -1359,17 +1406,10 @@ MapIdle: function() {
 			this.Search(this.maploc);
 			this.maploc = undefined;
 		};
-		
-		if(this.wasflicked && this.isPre3()) {
-			this.wasflicked = false;
-			this.Pre3Refresh();	
-		};
-		Mojo.Log.info("IDLE: ");
+		//Mojo.Log.info("IDLE: ");
 		
 		//hides the status panel when idle
 		this.hideStatusPanel();
-	
-
 },
 
 MapTilesLoaded: function () {
@@ -1382,22 +1422,9 @@ MapTilesLoaded: function () {
 	
 },
 
-MapCenterChanged: function () {
-	
-	//Mojo.Log.info("BOUNDS CHANGED: ");
+MapCenterChanged: function () {	
 	//indicates that the map was moved and allow events in dragging function
-	this.CenterChanged = true;	
-	
-	if (this.Zooming) {
-		
-		(function(){
-
-		document.getElementById('map_canvas').show();
-		
-		google.maps.event.trigger(this.map, "resize");
-		this.Zooming = false;
-		}).bind(this).delay(0.7);
-	};	
+	this.CenterChanged = true;
 },
 
 hideCommandMenu: function() {
@@ -1441,6 +1468,35 @@ Traffic: function() {
   		this.trafficLayer.setMap(null);  //remove traffic layer
   		this.TrafficVisibile = false;
   		this.TrafficCookie.put(true);
+  	};
+
+},
+
+Transit: function() {
+
+		if (this.TransitVisibile == false) {
+		this.setStatusPanel($L("Show") + " " + $L("Transit") + "...", 2);
+  		
+  		
+  		var transitOptions = {
+			getTileUrl: function(coord, zoom) {
+			return "http://mt1.google.com/vt/lyrs=m@155076273,transit:comp|vm:&" + "hl=en&opts=r&s=Galil&z=" + zoom + "&x=" + coord.x + "&y=" + coord.y;
+			},
+			tileSize: new google.maps.Size(256, 256),
+			isPng: true
+		};
+
+		var transitMapType = new google.maps.ImageMapType(transitOptions);
+
+		this.map.overlayMapTypes.setAt(0, transitMapType);
+
+  		this.TransitVisibile = true;
+  		//this.TransitCookie.put(false);
+  	} else {
+		this.setStatusPanel(($L("Hide") + " " + $L("Transit") + "..."), 2);
+  		this.map.overlayMapTypes.setAt(0, null);
+  		this.TransitVisibile = false;
+  		//this.TransitCookie.put(true);
   	};
 
 },
@@ -1535,6 +1591,7 @@ fitBounds: function(bounds) {
 
 handleGestureStart: function(e){
 	
+	this.blockGPSFix = true;
 	this.setStatusPanel($L("Zooming..."));	
 	this.GestureCenter = this.map.getCenter();	
 	this.Zooming = true;
@@ -1684,89 +1741,31 @@ showElementsByClass: function(nameOfClass) {
 	};
 },
 
-mouseup: function(event) {
-	
-this.FirstDrag = false;
-
-if (this.isdragging && this.isPre3()) {
-	this.dragEnd();
-};
-},
-
-
-
-
-
 dragStart: function(event) {
-	
-	//this.setStatusPanel($L("Moving..."));
-	
-	this.isdragging = true;
-
-	this.OLDX = event.down.x;
-	this.OLDY = event.down.y;
-	
-	this.oldx = event.down.x;
-	this.oldy = event.down.y;
+	this.blockGPSFix = true;
+	this.oldevent = event.down;
 },
 
 dragging: function(event) {
-
-		if (this.CenterChanged) {
+		event.stop();
+		if (this.CenterChanged && this.oldevent.x != event.move.x && this.oldevent.y != event.move.y && !this.wasflicked) {
 			this.CenterChanged = false;
-			this.map.panBy(this.ScreenRoughRatio*(this.oldx - event.move.x), this.ScreenRoughRatio*(this.oldy - event.move.y));
-			//this.map.panBy((this.oldx - event.move.x), (this.oldy - event.move.y));
-			this.oldx = event.move.x;
-			this.oldy = event.move.y;
+			this.map.panBy((this.oldevent.x - event.move.x), (this.oldevent.y - event.move.y));
+			this.oldevent = event.move;
 		};
 
-		
 },
-
-dragEnd: function () {
-	//Mojo.Log.info("*** DRAG END **** ");
-	if (this.isPre3()) {	
-		this.Pre3Refresh(); // Pre3 centering offset workaround
-	};
-	this.isdragging = false;
-},
-
 
 flick: function(event) {
-	this.CenterChanged = false;
-	this.wasflicked = true;
-	//this.map.panBy(this.ScreenRoughRatio*(-event.velocity.x/10), this.ScreenRoughRatio*(-event.velocity.y/10));
-	this.map.panBy((-event.velocity.x/10),(-event.velocity.y/10));
+		this.CenterChanged = false;
+		this.wasflicked = true;
+		this.map.panBy((-event.velocity.x/20),(-event.velocity.y/20));
+
 },
 
 click: function(event) {
 //Mojo.Log.info("*** CLICK **** ");
 },
-
-Pre3Refresh: function () {
-	/* Horrible and the biggest workaround on the world... don't ask me why I did this for Pre3...
-	 * If the map is moved more than pixel device width, the center will be corrected
-	 * It is not documented, it is only knowledge based on experiments
-	 */
-	
-	//Mojo.Log.info("** PRE3 REFRESH ***");
-	
-	//Hack only if the screen is set to high pixel ratio
-	if (this.ScreenRoughRatio > 1) {
-	//Map moved in dragging function is moved 1.5times more, move to 1/2 of whole move back moves the map to the correct position
-	if (this.isdragging ) {
-		this.map.panBy((-this.OLDX + this.oldx)/2+500, (-this.OLDY + this.oldy)/2+1000);
-		this.map.panBy(-500,-1000);
-	} else {
-		//pan the map out and back - do the recentering the map projection, this is a TRICK!
-		this.map.panBy(500,1000);
-		this.map.panBy(-500,-1000);
-		};
-	};
-	
-},
-
-
 
 handleMapTo: function(event) { // tato funkce odchytne, pokud byla aplikace spustena s parametrem mapto
 
@@ -1820,6 +1819,7 @@ mousedownHandler: function() {
 
 Search: function(address) {
 
+this.setViewPortWidth(320);
 
 this.WebOS2Events('stop');
 
@@ -1830,6 +1830,7 @@ this.searching = true;
 this.IsSet = false;
 
 this.controller.toggleMenuVisible(Mojo.Menu.viewMenu);
+this.controller.toggleMenuVisible(Mojo.Menu.commandMenu);
 
 $('searchScrim').show();
 
@@ -1858,8 +1859,10 @@ SelectedPlace: function (event) {
 this.WebOS2Events('start');
 
 this.controller.toggleMenuVisible(Mojo.Menu.viewMenu);
+this.controller.toggleMenuVisible(Mojo.Menu.commandMenu);
 
 $('searchScrim').hide();
+this.setViewPortWidth(480);
 
 this.searching = false;
 
@@ -2087,10 +2090,12 @@ PlaceDroppedPin: function (place) {
 
 EnterSubmittedPlace: function (input) {
 	
+this.setViewPortWidth(480);
+	
 this.WebOS2Events('start');
 
 this.controller.toggleMenuVisible(Mojo.Menu.viewMenu);
-
+this.controller.toggleMenuVisible(Mojo.Menu.commandMenu);
 
 
 this.searching = false;
@@ -2209,11 +2214,11 @@ PlaceMarker: function (args) {
 		/* args.position, args.title, args.subtitle, args.place-(everything from autocompleter), args.icon, args.popbubble */
 		var ratingcontainer = "";
 		if (!args.icon) {args.icon = "Map-Marker-Push-Pin-2-Right-Red-icon.png"}; //default marker icon
-		var image = new google.maps.MarkerImage('images/' + args.icon,
-		new google.maps.Size(64, 64),
+		var image = new google.maps.MarkerImage('images/' + this.ImagePathAdd + args.icon,
+		new google.maps.Size(64*this.ImageRatio, 64*this.ImageRatio),
 		new google.maps.Point(0, 0), // origin
-		new google.maps.Point(31, 62), // anchor
-		new google.maps.Size(64, 64) //scaled size
+		new google.maps.Point(31*this.ImageRatio, 62*this.ImageRatio), // anchor
+		new google.maps.Size(64*this.ImageRatio, 64*this.ImageRatio) //scaled size
 		);
 
 		var marker = new google.maps.Marker(
@@ -2250,8 +2255,8 @@ PlaceMarker: function (args) {
 		shadowStyle: 1,
 		padding: 0,
 		backgroundColor: 'rgb(57,57,57)',
-		borderRadius: 4,
-		arrowSize: 10,
+		borderRadius: 4*this.ImageRatio,
+		arrowSize: 10*this.ImageRatio,
 		borderWidth: 1,
 		borderColor: '#2c2c2c',
 		disableAutoPan: true,
@@ -2520,10 +2525,13 @@ handleBackSwipe: function (event) {
 	//Mojo.Log.info("** BACK ***");
 	if(this.searching) {
 
+			this.setViewPortWidth(480);
+			
 			// toggle back the scrim
 			$('searchScrim').toggle();
 
 			this.controller.toggleMenuVisible(Mojo.Menu.viewMenu);
+			this.controller.toggleMenuVisible(Mojo.Menu.commandMenu);
 
 			// loose focus
 			//this.controller.get('MainSearchField').mojo.blur();
@@ -2540,10 +2548,13 @@ handleBackSwipe: function (event) {
 
 		};
 	if(this.directing) {
+		
+			this.setViewPortWidth(480);
 
 			$('directionsScrim').toggle();
 
 			this.controller.toggleMenuVisible(Mojo.Menu.viewMenu);
+			this.controller.toggleMenuVisible(Mojo.Menu.commandMenu);
 
 			this.directing = false;
 			
@@ -2579,6 +2590,7 @@ Keypress: function (event) {
 
 Directions: function (position) {
 
+	this.setViewPortWidth(320);
 	this.WebOS2Events('stop');
 	
 	this.KeyWasPressed = true;
@@ -2588,6 +2600,7 @@ Directions: function (position) {
 	this.directing = true;
 	this.IsSet = false;
 	this.controller.toggleMenuVisible(Mojo.Menu.viewMenu);
+	this.controller.toggleMenuVisible(Mojo.Menu.commandMenu);
 	$('directionsScrim').toggle();
 
 	if (this.GPSFix && !this.firstinsertposition) {
@@ -2771,14 +2784,14 @@ PlaceDirectionMarker: function (args) {
 
 		switch (args.style) {
          case 'start':
-           var markerimage = 'images/bubble/flagA.png';
-           var size = 48;
-           var anchor = [23,46];
+           var markerimage = 'images/bubble/' + this.ImagePathAdd + 'flagA.png';
+           var size = 48*this.ImageRatio;
+           var anchor = [Math.round(23*this.ImageRatio),46*this.ImageRatio];
            break;
          case 'end':
-          var markerimage = 'images/bubble/flagB.png';
-          var size = 48;
-          var anchor = [23,46];
+          var markerimage = 'images/bubble/' + this.ImagePathAdd + 'flagB.png';
+          var size = 48*this.ImageRatio;
+          var anchor = [Math.round(23*this.ImageRatio),46*this.ImageRatio];
           break;
          case 'point':
            var markerimage = 'images/bubble/point.png';
@@ -2812,8 +2825,8 @@ PlaceDirectionMarker: function (args) {
 		shadowStyle: 1,
 		padding: 0,
 		backgroundColor: 'rgb(57,57,57)',
-		borderRadius: 4,
-		arrowSize: 10,
+		borderRadius: 4*this.ImageRatio,
+		arrowSize: 10*this.ImageRatio,
 		borderWidth: 1,
 		borderColor: '#2c2c2c',
 		disableAutoPan: false,
@@ -2848,6 +2861,7 @@ markerBubbleTap: function(marker) {
 	if (this.isNavit) {
     this.controller.popupSubmenu({
 		onChoose:  this.handlemarkerBubbleTap,
+		popupClass: "pre3markerpopup",
 		placeNear: near,
 		items: [
 			{iconPath:'images/bubble/info.png',label: $L('Info'), command: 'do-marker-info'},
@@ -2861,6 +2875,7 @@ markerBubbleTap: function(marker) {
 	} else {
 	this.controller.popupSubmenu({
 		onChoose:  this.handlemarkerBubbleTap,
+		popupClass: "pre3markerpopup",
 		placeNear: near,
 		items: [
 			{iconPath:'images/bubble/info.png',label: $L('Info'), command: 'do-marker-info'},
@@ -2994,7 +3009,7 @@ markerInfo: function (marker) {
 			//Mojo.Log.info("** INFOSERVICE STATUS %j ***", status);
 			if (status == google.maps.places.PlacesServiceStatus.OK) {
 				
-				//Mojo.Log.info("** RESULT %j ***", place.reviews);
+				Mojo.Log.info("** RESULT %j ***", place.reviews);
 				//save favorite mark to result if is favorite
 				if (marker.place.favorite) place.favorite = marker.place.favorite;
 				place.id = marker.place.id; //set the id always from previous marker
@@ -3021,14 +3036,23 @@ ChangeCmdMenu: function(action) {
 
 switch (action) {
 	case "directions":
-    	this.cmdMenuModel.items[0].items = [{icon:'back', command:'back-step', disabled: true},
-          {icon:'forward', command:'forward-step'}];
+    	this.cmdMenuModel.items[1].items = [
+			{icon:'back', command:'back-step', disabled: true},		
+			{label: $L('Minus'), iconPath:'images/zoomout.png', command:'zoomOut'},
+            {label: $L(''), iconPath:'images/list-view-icon.png', command:'PopMenu'},
+            {label: $L('Plus'), iconPath:'images/zoomin.png', command:'zoomIn'},
+            {icon:'forward', command:'forward-step'}		
+			];
         this.controller.modelChanged( this.cmdMenuModel );
         this.MayBubblePop = true;
         this.toggleDirectInfoBubble(this.DirectinfoBubbles[0], this.Directmarkers[0]);
 	break;
 	case "normal":
-		this.cmdMenuModel.items[0].items = [];
+		this.cmdMenuModel.items[1].items = [
+			{label: $L('Minus'), iconPath:'images/zoomout.png', command:'zoomOut'},
+            {label: $L(''), iconPath:'images/list-view-icon.png', command:'PopMenu'},
+            {label: $L('Plus'), iconPath:'images/zoomin.png', command:'zoomIn'}
+            ];
 		this.controller.modelChanged( this.cmdMenuModel );
 	break;
 	};
@@ -3108,23 +3132,23 @@ moveOnRoute: function (command) {
 			switch (this.DirectStep) {
 
 				case 0:
-					this.cmdMenuModel.items[0].items[0].disabled = true;
-					this.cmdMenuModel.items[0].items[1].disabled = false;
+					this.cmdMenuModel.items[1].items[0].disabled = true;
+					this.cmdMenuModel.items[1].items[4].disabled = false;
 					this.controller.modelChanged( this.cmdMenuModel );
 					break;
 				case 1:
-					this.cmdMenuModel.items[0].items[0].disabled = false;
-					this.cmdMenuModel.items[0].items[1].disabled = false;
+					this.cmdMenuModel.items[1].items[0].disabled = false;
+					this.cmdMenuModel.items[1].items[4].disabled = false;
 					this.controller.modelChanged( this.cmdMenuModel );
 					break;
 				case this.myRoute.steps.length - 2:
-					this.cmdMenuModel.items[0].items[0].disabled = false;
-					this.cmdMenuModel.items[0].items[1].disabled = false;
+					this.cmdMenuModel.items[1].items[0].disabled = false;
+					this.cmdMenuModel.items[1].items[4].disabled = false;
 					this.controller.modelChanged( this.cmdMenuModel );
 					break;
 				case this.myRoute.steps.length - 1:
-					this.cmdMenuModel.items[0].items[0].disabled = false;
-					this.cmdMenuModel.items[0].items[1].disabled = true;
+					this.cmdMenuModel.items[1].items[0].disabled = false;
+					this.cmdMenuModel.items[1].items[4].disabled = true;
 					this.controller.modelChanged( this.cmdMenuModel );
 					break;
 			};
@@ -3145,7 +3169,6 @@ MapHeadingRotate: function(heading) {
 
 	this.ContainerToRotate.style.webkitTransform = 'rotate(' + Math.round(heading) + 'deg)';
 	this.ContainerToRotate.style.overflow = "visible !important;";
-
 	
 	this.previousheading = heading;
 	
@@ -3176,8 +3199,6 @@ GetHeadingFromLatLng: function (location1, location2) {
 	  }
 	};
 
-	//Mojo.Log.info("** location1 %j ***", location1);
-	//Mojo.Log.info("** location2 %j ***", location2);
 	var lat1 = location1.Na;
 	var lon1 = location1.Oa;
 	var lat2 = location2.Na;
@@ -3247,11 +3268,11 @@ this.NearbyService.search(request, function(results, status) {
 PlaceNearbyMarker: function(place) {
 	
         var placeLoc = place.geometry.location;       
-        var image = new google.maps.MarkerImage('images/MapMarker_Ball__Red.png',
-		new google.maps.Size(48, 48),
+        var image = new google.maps.MarkerImage('images/' + this.ImagePathAdd + 'MapMarker_Ball__Red.png',
+		new google.maps.Size(48*this.ImageRatio, 48*this.ImageRatio),
 		new google.maps.Point(0, 0), // origin
-		new google.maps.Point(23, 47), // anchor
-		new google.maps.Size(48, 48) //scaled size
+		new google.maps.Point(23*this.ImageRatio, 47*this.ImageRatio), // anchor
+		new google.maps.Size(48*this.ImageRatio, 48*this.ImageRatio) //scaled size
 		);
 		
         var marker = new google.maps.Marker({
@@ -3604,15 +3625,73 @@ dbAddFail: function(transaction,result) {
     Mojo.Controller.errorDialog("Database save error (#" + result.message + ") - can't save favorites list. Will need to reload on next use."); 
 },
 
+setViewPortWidth: function(width) {
+
+// do this only for Pre3 device
+if(this.isPre3()){
+	if (width == 480) {this.ImageRatio = 1.5} else {this.ImageRatio = 1};
+  
+		var metatags = document.getElementsByTagName('meta');
+		for(cnt = 0; cnt < metatags.length; cnt++) { 
+		var element = metatags[cnt];
+		if(element.getAttribute('name') == 'viewport') {
+
+		element.setAttribute('content','width='+width+'px; initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, height=device-height');
+		//document.body.style['max-width'] = width+'px';
+   }
+  }
+	};
+},
+
+activateWindow: function(event) {
+  Mojo.Log.info("..................Maximized State");
+  this.blockGPSFix = false;
+  this.startTracking();
+},
+deactivateWindow: function(event) {
+  Mojo.Log.info("..................Minimized State");
+  this.blockGPSFix = true;
+  this.stopTracking();
+},
+
+firstGPSfix: function () {
+	
+		 Mojo.Log.info("Getting location...");
+		 this.firstFixHandle = this.controller.serviceRequest('palm://com.palm.location', {
+	     method: 'getCurrentPosition',
+	  	 parameters: {
+                  maximumAge: 5,
+                  accuracy: 3,
+			      responseTime: 1
+	         },
+	 	 onSuccess: this.firstFixSuccess.bind(this),
+		 onFailure: function (e){ Mojo.Log.info("startTracking failure, results="+JSON.stringify(e)); }
+	   });
+	
+},
+
+startTracking: function() {
+		
+	this.trackingHandle = this.controller.serviceRequest('palm://com.palm.location', {
+		method: 'startTracking',
+		parameters: {"subscribe":true},
+		onSuccess : this.gpsUpdate.bind(this),
+		onFailure : function (e){ Mojo.Log.info("startTracking failure, results="+JSON.stringify(e)); }
+	}); 
+	
+},
+
+stopTracking: function() {
+		
+	this.trackingHandle.cancel();
+	this.trackingHandle = null;
+},
+
 //EXPERIMENTAL ODTUD
 
 Debug: function() {
 	
-	for (var k = 0; k < markers.length; k++) {
-		Mojo.Log.info("IDsss %j ", markers[k].id);
-	};
-	
-	db.removeAll();
+	//Mojo.Log.info("USER AGENT: ", navigator.userAgent);
 
 }
 

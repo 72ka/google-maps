@@ -1,5 +1,9 @@
 <html><head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8"></head><body><div class="help">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"></head>
+
+<body>
+	
+<div class="help">
 
 <div class="palm-page-header multi-line">
 	<div class="palm-page-header-wrapper">
@@ -38,7 +42,7 @@
 	    Herrie (Dutch translation)<br>
 	    chris42 (German translation)<br>
 	    briest (Polish translation)<br>
-	    highrock2 (Chineese translation)<br>
+	    highrock2 (Chinese translation)<br>
 	    jcmarcos (Spanish translation)<br>
 	    HaPe (Route with Navit feature)<br>
 		</div>
@@ -50,12 +54,24 @@
         Changelog
     </div>
     <div class="palm-body-text">
+		
+	  0.2.1<br>
+	  <li>This update is focused to the Pre3 and their stability and performance issues</li>
+	  <li>Map scale for Pre3 is 1, other UI elements 1,5 - no more issues with wrong centering, negatives: small street names, artefacts on manually scaled-up elements, menus, etc...</li>
+	  <li>Rewritten the GPS location core, especially when tracking, for lower CPU usage</li>
+	  <li>The app in background stops the GPS tracking - lower cpu usage when in background, something like "idle" mode</li>
+	  <li>Some code cleaned, no more Ares dependency</li>
+	  <li>Small improvement of code for map paning - better performance</li>
+	  <li>More caching of API, decreasing app starting time</li>
+	  <li>New user reviews in place Information scene, scroll to the bottom and read them if the place is reviewed (have some yellow stars)</li>
+	  <li>New transit overlay, it's just an overlay with transit lines on basic map type, doesn't support changing map types while transit is visible. Layer not stored in cookies.</li><br><br>
+	  
 	  0.2.0<br>
 	  <li>New universal status/info/busy panel indicator</li>
 	  <li>Disabled autocorrections and auto capitalize in search bar</li>
 	  <li>New feature - Favorites: you can save the favorite places using Information scene star toggle button. The Favorite places will be visible on each app start marked by small yellow star.</li>  
 	  <li>You can rename the place using tap and hold on the place name in Information scene</li>
-	  <li>Added UI localization (thank to contributors) to Dutch, German, Polish, Chineese, Spanish </li>
+	  <li>Added UI localization (thank to contributors) to Dutch, German, Polish, Chinese, Spanish </li>
 	  <li>Added rating stars to standard bubbles too</li>
 	  <li>Added Open hours info support in place information, at this time shows just if the shop is open/closed and Today open hours</li>
 	  <li>Some minor bugfixes</li>

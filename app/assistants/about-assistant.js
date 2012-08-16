@@ -3,8 +3,6 @@ function AboutAssistant(argFromPusher) {
 
 AboutAssistant.prototype = {
 	setup: function() {
-		
-Ares.setupSceneAssistant(this);
 
 //setup localized text and variables
 $("AppTitleText").innerHTML = $L(Mojo.Controller.appInfo.title);

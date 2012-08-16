@@ -121,4 +121,3 @@ String.prototype.insert = function (index, string) {
 };
 
 
-

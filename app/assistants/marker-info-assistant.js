@@ -5,7 +5,7 @@ function MarkerInfoAssistant(place) {
 
 MarkerInfoAssistant.prototype = {
 setup: function() {
-	
+
 //setup UI widgets
 
 Mojo.Log.info("ID %j ", this.place.id);
@@ -13,6 +13,39 @@ Mojo.Log.info("ID %j ", this.place.id);
 //set localized text
 $("DeatilsText").innerHTML = $L("Details");
 $("SmallHint").innerHTML = $L("Tap and hold to rename");
+$("LabelReviewsText").innerHTML = $L("More details");
+$("UserReviewsText").innerHTML = $L("User reviews");
+
+
+//setup UserReview collapsible
+this.controller.setupWidget("UserReviewDrawer",
+  this.attributes = {
+      modelProperty: 'open',
+      unstyled: true
+  },
+  this.UserReviewDrawerModel = {
+      open: true
+  }
+); 
+
+//setup User reviews collapsible arrow listener
+this.UserReviewDrawerEventHandler = this.toggleUserReviewDrawer.bindAsEventListener(this);
+this.UserReviewDrawer = this.controller.get('UserReviewButArrow');
+Mojo.Event.listen(this.UserReviewDrawer, Mojo.Event.tap, this.UserReviewDrawerEventHandler);
+
+
+//setup User reviews list widget
+this.controller.setupWidget("UserReviewList",
+	{
+		itemTemplate: 'marker-info/user-review-listentry',
+		swipeToDelete: false,
+        reorderable: false
+	},
+       this.UserReviewModel = {
+		items : [    
+				]
+  }
+);
 
 //setup Call button
 this.controller.setupWidget("CallButton",
@@ -138,11 +171,12 @@ if (this.place.url) { $("url").innerHTML = "<a href='" + this.place.url + "'>" +
 if (this.place.website) { $("website").innerHTML = $L("Home page") + ":<br>" + "<a href='" + this.place.website + "'>" + this.place.website + "</a>"; };
 
 //User reviews
-/* ToDo
-if (this.place.reviews != undefined) {
-	
+
+if (this.place.reviews != undefined) {	
+	this.FillUserReviewList(this.place.reviews);
+	$("UserReviewContainer").show();	
 };
-*/
+
 		
 },
 
@@ -366,7 +400,7 @@ Favorites: function() {
 		this.addToFavorites(Favorites);
 		this.changeFavIcon(true);
 		
-		Mojo.Log.info("MARKERS LENGTH: ", markers.length);
+		//Mojo.Log.info("MARKERS LENGTH: ", markers.length);
 		
 		for (var k = 0; k < markers.length; k++) {
 			Mojo.Log.info("IDsss %j ", markers[k].place.id);
@@ -455,6 +489,101 @@ RenameChange: function (event) {
 					this.addToFavorites(Favorites);				
 				};
 			};
+},
+
+toggleUserReviewDrawer: function(){
+
+this.drawer = this.controller.get('UserReviewDrawer');
+//this will toggle the drawers state
+this.drawer.mojo.setOpenState(!this.drawer.mojo.getOpenState());
+
+if (this.drawer.mojo.getOpenState() == true)
+	{
+		this.controller.get('UserReviewButArrow').removeClassName('palm-arrow-closed').addClassName('palm-arrow-expanded');
+
+	} else {
+		
+		this.controller.get('UserReviewButArrow').removeClassName('palm-arrow-expanded').addClassName('palm-arrow-closed');
+
+	};
+
+},
+
+FillUserReviewList: function(reviews) {
+
+	for (var i = 0; i < reviews.length; i++) {
+		
+			var author_urlElement = '';
+			var AgoElement = '';
+	
+			if (reviews[i].author_url) {				
+				var photourl = this.getUserPhoto(reviews[i].author_url);		
+				author_urlElement = '<a href="' + reviews[i].author_url + '"><img src="' + photourl + '"></img></a>';
+			};
+			
+			var secondsNow = Math.round(new Date().getTime());
+			AgoElement = this.timeDifference(secondsNow, reviews[i].time*1000);
+
+			this.UserReviewModel.items[i] = {author_name: reviews[i].author_name, text: reviews[i].text, author_url: author_urlElement, rating: reviews[i].aspects[0].rating, agoElement: AgoElement, ratingText: $L("Rating") + ": "};
+			
+	};
+	
+	this.controller.modelChanged(this.UserReviewModel);
+},
+
+getUserPhoto: function(url) {
+	
+	/* grabs the UserID from the URL */
+	var userID = url.slice(url.lastIndexOf("/")+1);
+	var photourl = "http://profiles.google.com/s2/photos/profile/" + userID + "?sz=48";
+	
+	return photourl;
+},
+
+timeDifference: function(current, previous) {
+    
+    var msPerMinute = 60 * 1000;
+    var msPerHour = msPerMinute * 60;
+    var msPerDay = msPerHour * 24;
+    var msPerMonth = msPerDay * 30;
+    var msPerYear = msPerDay * 365;
+    
+    var timestring = "";
+    var time;
+    
+    var elapsed = current - previous;
+    
+    if (elapsed < msPerMinute) {
+		 time = Math.floor(elapsed/1000);
+		 timestring = time > 1 ? '#{ago} seconds ago' : '#{ago} second ago';  
+    }
+    
+    else if (elapsed < msPerHour) {
+         time = Math.floor(elapsed/msPerMinute);
+         timestring = time > 1 ? '#{ago} minutes ago' : '#{ago} minute ago';   
+    }
+    
+    else if (elapsed < msPerDay ) {
+         time = Math.floor(elapsed/msPerHour);
+         timestring = time > 1 ? '#{ago} hours ago' : '#{ago} hour ago';   
+    }
+
+    else if (elapsed < msPerMonth) {
+         time = Math.floor(elapsed/msPerDay);
+         timestring = time > 1 ? '#{ago} days ago' : '#{ago} day ago';   
+    }
+    
+    else if (elapsed < msPerYear) {
+         time = Math.floor(elapsed/msPerMonth);
+         timestring = time > 1 ? '#{ago} months ago' : '#{ago} month ago';  
+    }
+    
+    else {
+         time = Math.floor(elapsed/msPerYear);
+         timestring = time > 1 ? '#{ago} years ago' : '#{ago} year ago';   
+    }
+
+    return " (" + new Template($L(timestring)).evaluate({ago: time}) + ")"; 
 },
  
 isTouchPad: function(){
