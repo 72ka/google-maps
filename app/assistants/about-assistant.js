@@ -64,6 +64,5 @@ handleCommand: function(event) {
 
 },
 	cleanup: function() {
-		Ares.cleanupSceneAssistant(this);
 	}
 };

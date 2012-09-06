@@ -63,8 +63,9 @@
 */
 
 .palm-popup-container.pre3maptype {
-    margin: 100px 0 0 -50px; 
-	-webkit-transform: scale(1.5, 1.5) !important;
+    margin: 100px 0 0 -50px;
+    //-webkit-border-image: url(../images/palm-popup-background.png) 24 24 24 24 stretch stretch; 
+	-webkit-transform: scale(1.5, 1.5);
 }
 
 .palm-popup-container.pre3maptypemore {
@@ -85,7 +86,8 @@
 
 .palm-menu-panel.pre3 {
   -webkit-transform: scale(1.5, 1.5);
-} 
+}
+
 /*
 .palm-scrim {
 		//position: absolute;
@@ -104,4 +106,26 @@
 
 .phoneytextwithoutbutton {
 	font-size: 27px; padding: 6px 22px 6px 22px;
+}
+
+#compass {
+	//position: absolute;
+	//z-Index:10001;
+	top: 85px;
+	//display: none;
+	height:160px;
+	width:160px;
+	margin-left:5px;
+	//margin-right:auto;	
+	background:url(../images/1.5/compass.png) center center no-repeat;
+}
+
+#needle {
+	height:130px;
+	width:22px;
+	top: 85px;
+	margin-top: 13px;
+	margin-left:71px;
+	//margin-right:auto;
+	background:url(../images/1.5/needle.png) center center no-repeat;
 }

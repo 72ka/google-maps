@@ -1,28 +1,16 @@
 html, body {
 	width:100%;
  	height:100%;
- 	//-webkit-transform: scale(1.5, 1.5);
- 	//-webkit-device-pixel-ratio: 1.5;
- 	//min-resolution: 144dpi;
 }
 
 #map_canvas img{
-	//-webkit-transform: scale(1.5, 1.5) !important;
-	//-webkit-transition: all 2s ease-in-out !important;
-	//-webkit-min-device-pixel-ratio: 1 !important;
-	//overflow: visible !important;
-	//background-color: black;
-	//border-width: 2px;
+	overflow: visible !important;
 }
 
 #map_canvas {
 	position: absolute;
-	//top: 0px;
-	//left: 0px;
 	width:100%;
  	height:100%;
- 	//width:320px;
- 	//height:533px;
  	//-webkit-transform-origin-x: 0px !important;
  	//-webkit-transform-origin-y: 0px !important;
  	//-webkit-transform-origin: top left !important;
@@ -33,12 +21,10 @@ html, body {
  	//-webkit-transform-style: preserve-3d;
  	// -webkit-user-drag: element;
  	cursor:pointer;
- 	
- 	//noResize: true;
  	font-size: 14px; //InfoWindow font size
  	//-webkit-user-select: none;
  	z-Index:10000;
- 	//overflow: visible;
+ 	//overflow: visible !important;
  	background: none;
  	border-width: 2px;
 }
@@ -52,7 +38,6 @@ html, body {
  	z-Index: 9999;
  	display: none;
  	//background: black;
- 	//-webkit-transition: all 1s linear;
 }
 
 #trick_container {
@@ -61,7 +46,6 @@ html, body {
  	height:100%;
  	-webkit-user-select: none;
  	z-Index: 9998;
- 	//z-Index: 10001;
 }
 
 #street_canvas {
@@ -71,18 +55,19 @@ html, body {
  	height: 100%;
  	left:0;
  	top: 0;
- 	//width: 300px;
- 	//height: 400px;
  	background: black;
- 	
 }
 
 
 #MarkersList {
-		border-width: 0px 1px 0px 1px;
-		-webkit-border-image: url(../images/list-gradient.png) 0 1 0 1 stretch stretch;
-		-webkit-box-sizing: border-box;
-		padding: -20px 0px -20px 0px;
+	border-width: 0px 1px 0px 1px;
+	-webkit-border-image: url(../images/list-gradient.png) 0 1 0 1 stretch stretch;
+	-webkit-box-sizing: border-box;
+	padding: -20px 0px -20px 0px;
+}
+
+.gmnoprint {
+	//overflow: visible !important;
 }
 
 .palm-account-icon {
@@ -101,8 +86,6 @@ html, body {
 .rating_bar {
   width: 80px;
   background: url('../images/star-grey.png') 0 0 repeat-x;
-  //float: left;
-  //padding: 30px;
 }
 
 #rating {
@@ -136,15 +119,11 @@ html, body {
 .hint {
 
 		margin: -20px 0 5px 0;
-		//padding: -20px -20px -20px -20px;
 		position: absolute; 
 		z-index: 100000; 
 		width: 90%; 
 		left: 5%;
 		bottom: 5px;
-		//background-image:url(../images/map-bubble-bg.png);
-		//background-size: 100%;
-		//background-size: 100%, 100%;
 		border-width: 22px 18px 22px 18px;
 		-webkit-border-image: url(../images/map-bubble-background.png) 22 18 22 18 stretch stretch;
 		-webkit-box-sizing: border-box;
@@ -190,7 +169,7 @@ html, body {
 
 .pac-container {
 
-		margin: -16px 0px 0px 0px !important;
+		margin: -10px 0px 0px 0px !important;
 		padding: 0px 80px 0px 0px !important;
 		//border-width: 10px 118px 30px 22px;
 		border-width: 24px 24px 24px 24px;
@@ -224,13 +203,13 @@ html, body {
 }
 
 .textfield input {
-   		height: 46px;
+   		height: 38px;
 		outline: none;
 		background: none;
 		border-width: 0 0 0 0;
 		font-size: 16px;
 		line-height: 22px;
-		color: white;
+		color: black;
 		margin: 0 0px 0px 0px;
 		text-align: left;
 		//overflow: hidden !important;
@@ -240,18 +219,20 @@ html, body {
 		//position: absolute;
 		top: 0px;
 		text-align: left;
-		height: 50px;
+		height: 48px;
 		background: none;
-		-webkit-border-image: url(../images/palm-menu-button.png) 100 25 100 25 stretch stretch;
-		//-webkit-border-image: url(../images/searchbar.png) 0 135 0 40 stretch stretch;
+		//-webkit-border-image: url(../images/palm-menu-button.png) 100 25 100 25 stretch stretch;
+		//-webkit-border-image: url(../images/searchbar.png) 0 76 0 39 stretch stretch;
+		-webkit-border-image: url(../images/search-main-bar.png) 0 104 0 34 stretch stretch;
 		//-webkit-border-image: url(../images/searchbar.png) 100 25 100 25 stretch stretch;
 		-webkit-user-select: none;
-		//border-width: 0 144px 0 44px;
-		border-width: 0 25px 0 25px;
+		border-width: 0 104px 0 34px;
+		//border-width: 0 25px 0 25px;
 		font-size: 16px;
 		font-weight: bold;
-		line-height: 50px;
-		color: white;
+		line-height: 48px;
+		//color: white;
+		//color: black;
 		width: 100%;
 		-webkit-box-sizing: border-box;
 		-webkit-box-flex: 1;
@@ -280,15 +261,21 @@ html, body {
 		//position: absolute;
 		top: 60px;
 		width: 84%;
+		margin-top: 2px;
+		margin-left: 4px;
+		margin-right: 4px;
 		text-align: left;
-		height: 50px;
+		height: 38px;
 		background: none;
-		-webkit-border-image: url(../images/palm-menu-button.png) 100 25 100 25 stretch stretch;
+		//-webkit-border-image: url(../images/palm-menu-button.png) 100 25 100 25 stretch stretch;
+		-webkit-border-image: url(../images/direction_selector.png) 0 56 0 15 stretch stretch;
 		-webkit-user-select: none;
-		border-width: 0 0px 0 25px;
+		//border-width: 0 0px 0 25px;
+		border-width: 0 0px 0 15px;
 		font-size: 16px;
 		font-weight: bold;
-		line-height: 50px;
+		line-height: 38px;
+		//line-height: 38px;
 		color: white;
 		width: 100%;
 		-webkit-box-sizing: border-box;
@@ -296,10 +283,15 @@ html, body {
 }
 
 .origin-button {
-		height: 50px;
-		-webkit-border-image: url(../images/palm-menu-button-button.png) 100 49 100 1 stretch stretch;
+		height: 38px;
+		margin-right: 4px;
+		margin-left: 4px;
+		margin-top: 2px;
+		-webkit-border-image: url(../images/direction_selector.png) 0 56 0 15 stretch stretch;
+		//-webkit-border-image: url(../images/palm-menu-button-button.png) 100 49 100 1 stretch stretch;
 		-webkit-user-select: none;
-		border-width: 0 49px 0 1px;
+		//border-width: 0 49px 0 1px;
+		border-width: 0 56px 0 1px;
 		-webkit-box-sizing: border-box;
 }
 
@@ -307,19 +299,28 @@ html, body {
 		//position: absolute;
 		top: 110px;
 		width: 84%;
+		margin-left: 4px;
+		margin-top: 2px;
+		//margin-bottom: -4px;
 		text-align: left;
-		height: 50px;
+		height: 38px;
 		background: none;
-		-webkit-border-image: url(../images/palm-menu-button.png) 100 25 100 25 stretch stretch;
+		-webkit-border-image: url(../images/direction_selector.png) 0 56 0 15 stretch stretch;
+		//-webkit-border-image: url(../images/palm-menu-button.png) 100 25 100 25 stretch stretch;
 		-webkit-user-select: none;
-		border-width: 0 0px 0 25px;
+		//border-width: 0 0px 0 25px;
+		border-width: 0 0px 0 15px;
 		font-size: 16px;
 		font-weight: bold;
-		line-height: 50px;
+		line-height: 38px;
 		color: white;
 		width: 100%;
 		-webkit-box-sizing: border-box;
 		//z-Index: 100001;
+}
+
+#DestinationText {
+	margin-top: 8px; //adjust the free space for swap icon
 }
 
 .directions-container .palm-divider {
@@ -332,23 +333,23 @@ select {
 
 .search-button.focused,
 .search-button.hasfocus {
-		-webkit-border-image: url(../images/palm-menu-button.png) 100 25 100 25 stretch stretch;
+		//-webkit-border-image: url(../images/palm-menu-button.png) 100 25 100 25 stretch stretch;
 		//-webkit-border-image: url(../images/searchbar.png) 0 137 0 38 stretch stretch;
-		border-width: 0 25px 0 25px;
+		//border-width: 0 25px 0 25px;
 		//border-width: 0 144px 0 44px;
 }
 
 .search-button.focused:active {
-		-webkit-border-image: url(../images/palm-menu-button.png) 100 25 100 25 stretch stretch;
+		//-webkit-border-image: url(../images/palm-menu-button.png) 100 25 100 25 stretch stretch;
 		//-webkit-border-image: url(../images/searchbar.png) 0 137 0 38 stretch stretch;
-		border-width: 0 25px 0 25px;
+		//border-width: 0 25px 0 25px;
 		//border-width: 0 144px 0 44px;
 }
 
 .search-button:active {
-		-webkit-border-image: url(../images/palm-menu-button.png) 100 25 100 25 stretch stretch;
+		//-webkit-border-image: url(../images/palm-menu-button.png) 100 25 100 25 stretch stretch;
 		//-webkit-border-image: url(../images/searchbar.png) 0 137 0 38 stretch stretch;
-		border-width: 0 25px 0 25px;
+		//border-width: 0 25px 0 25px;
 		//border-width: 0 144px 0 44px;
 }
 
@@ -837,9 +838,10 @@ div#urlbar-title {
 #SwapButton {
 	position: absolute;
 	background: url(../images/swap-icon.png) no-repeat center;
-	width: 57px;
-	height: 38px;
-	top: 82px;
+	width: 39px;
+	height: 32px;
+	margin: 1px 1px 1px 1px;
+	top: 80px;
 	left: 40%;
 }
 
@@ -851,4 +853,75 @@ div#urlbar-title {
 	float: right;
 }
 
+/* Compass function in the map */
+
+#compass {
+	position: absolute;
+	z-Index:10001;
+	top: 85px;
+	//display: none;
+	height:160px;
+	width:160px;
+	margin-left:5px;
+	margin-right:auto;	
+	background:url(../images/compass.png) center center no-repeat;
+	-webkit-transition-property: scale translate;
+	-webkit-transition-duration: 0.5s;
+	-webkit-transition-timing-function: linear;
+	-webkit-transform:  scale(0.5) translateX(-80px) translateY(-80px);
+	//-webkit-transform: translateX(-20px);
+}
+
+#compass.active {
+	-webkit-transform:  scale(1) translateX(0) translateY(0);
+	//-webkit-transform: translateX(0);
+}
+
+#needle {
+	height:130px;
+	width:15px;
+	top: 83px;
+	margin-top: 14px;
+	margin-left:73px;
+	margin-right:auto;
+	background:url(../images/needle.png) center center no-repeat;
+}
+
+/* Pulsating GPS dot */
+
+#pulse {
+	height: 50px;
+	width: 50px;
+	position: absolute;
+	z-Index:10001;
+	opacity: 0;
+	-webkit-transition-property: opacity;
+	-webkit-animation: pulsation 1s ease-in;
+	-webkit-animation-iteration-count: 1;
+	-webkit-border-image: url(../images/1.5/pulse.png) 0 0 0 0 stretch stretch;
+	-webkit-box-sizing: border-box;
+}
+
+@-webkit-keyframes "pulsation" {
+ 0% {
+	-webkit-transform: scale(0);
+	opacity: 0.0;
+ }
+ 25% {
+	-webkit-transform: scale(1);
+	opacity: 0.1;
+ }
+ 50% {
+	-webkit-transform: scale(2);
+	opacity: 0.3;
+ }
+ 75% {
+	-webkit-transform: scale(3);
+	opacity: 0.5;
+ }
+ 100% {
+	-webkit-transform: scale(4);
+	opacity: 0.0;
+ }
+}
 

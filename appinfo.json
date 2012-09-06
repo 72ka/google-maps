@@ -1,6 +1,6 @@
 {
 	"id": "cz.72ka.googlemaps",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"vendor": "72ka",
 	"type": "web",
 	"main": "index.html",

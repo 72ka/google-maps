@@ -25,7 +25,12 @@ MainAssistant.prototype = {
 this.checkConnectivity();
 //Mojo.Log.info("**** ZAPNOUT INTERNET CHECK ******");
 
-
+/* DEBUG FUNCTION */
+this.cevent = [];
+this.cevent.magHeading = 0;
+this.debug = false;
+this.devfakegps = false;
+	
 
 /* SETUP UI WIDGETS */
 
@@ -120,7 +125,7 @@ this.controller.setupWidget("TPBackButton",
   this.attributes = {
   },
   this.BackButtonModel = {
-      label : "Back",
+      label: $L("Back"),
       disabled: false
   }
 );
@@ -440,6 +445,8 @@ this.mapStyleNight = [
 	this.blockGPSFix = false;
 	this.mapcanvasx = 0;
 	this.mapcanvasy = 0;
+	this.haveCompass = false;
+	this.blockpulse = false;
 
 	// map doesn't follow GPS as default
 	this.followMap = false;
@@ -510,7 +517,7 @@ this.mapStyleNight = [
 	this.map.setCenter(lastlatlng);
 	this.map.setZoom(this.Preferences.LastLoc.zoom);
 	
-	/* ToDo: Panoramio Layer
+	/* ToDo: Panoramio Layer - unusable on WebOS 2.x devices, because the pictures are not touchable
 	//Setup Panoramio Layer
 	var panoramioOptions = {
 		suppressInfoWindows: true,
@@ -519,23 +526,6 @@ this.mapStyleNight = [
 	var panoramioLayer = new google.maps.panoramio.PanoramioLayer(panoramioOptions);
 	panoramioLayer.setMap(this.map);
 	*/
-	
-	//********* ToDo: TRANSIT OVERLAY
-	/*
-	var transitOptions = {
-		getTileUrl: function(coord, zoom) {
-		return "http://mt1.google.com/vt/lyrs=m@155076273,transit:comp|vm:&" +
-		"hl=en&opts=r&s=Galil&z=" + zoom + "&x=" + coord.x + "&y=" + coord.y;
-	},
-		tileSize: new google.maps.Size(256, 256),
-		isPng: true
-	};
-
-	var transitMapType = new google.maps.ImageMapType(transitOptions);
-
-	this.map.overlayMapTypes.insertAt(0, transitMapType);
-	*/
-	//**********
 	
 	
  	new google.maps.event.addListener(this.map, 'idle', this.MapIdle.bind(this));
@@ -577,6 +567,17 @@ this.mapStyleNight = [
 	Mojo.Event.listen(this.controller.stageController.document, Mojo.Event.stageActivate, this.activateHandler);
 	this.deactivateHandler=this.deactivateWindow.bind(this);
 	Mojo.Event.listen(this.controller.stageController.document, Mojo.Event.stageDeactivate, this.deactivateHandler);
+	
+	//Compass for magnetic compas capable devices
+	this.compassHandler = this.compassHandler.bindAsEventListener(this);
+	this.controller.listen(document, "compass", this.compassHandler);
+	
+	this.compassTapHandler = this.compassTap.bindAsEventListener(this);
+	this.controller.listen($("compass"), Mojo.Event.tap, this.compassTapHandler);
+	
+	/** ToDo: compas tap and hold feature **/
+	//this.compassTapHoldHandler = this.compassTapHold.bindAsEventListener(this);
+	//this.controller.listen($("compass"), Mojo.Event.hold, this.compassTapHoldHandler);
 
 
 	// TODO: mousedown event is needed by hiding the command menu
@@ -713,6 +714,7 @@ cleanup: function() {
 		Mojo.Event.stopListening(this.controller.get("map_canvas"), 'mousedown', this.mousedownHandler.bind(this));
 		Mojo.Event.stopListening(this.controller.get("map_canvas"), "click", this.click.bind(this));
 		Mojo.Event.stopListening(this.controller.sceneElement, Mojo.Event.keydown, this.KeypresseventHandler);
+		
 
 		this.WebOS2Events("stop");
 
@@ -834,30 +836,16 @@ firstFixSuccess: function(gps) {
 			strokeWeight: 1
 		});
 
-
-if(this.isPre3()){
-				var image = new google.maps.MarkerImage('images/1.5/blue_dot.png',
-				new google.maps.Size(24*this.ImageRatio, 24*this.ImageRatio),
-				new google.maps.Point(0, 0), // origin
-				new google.maps.Point(12*this.ImageRatio, 12*this.ImageRatio), // anchor
-				new google.maps.Point(24*this.ImageRatio, 24*this.ImageRatio) //Scale to - kdyz neni aktivovano, dela to hranate kolecko na Pre3
-				);
-				} else {
-				var image = new google.maps.MarkerImage('images/blue_dot.png',
-				new google.maps.Size(24, 24),
-				new google.maps.Point(0, 0), // origin
-				new google.maps.Point(12, 12) // anchor
-				);
-};
-
 				this.MyLocMarker = new google.maps.Marker({
 					position: this.MyLocation,
 					map: this.map,
-					icon: image,
+					//icon: image,
 					optimized: this.optimizedmarkers,
 					flat: true,
-					title: 'I might be here'
+					title: 'My Location'
 				});
+				
+				this.setDefaultMyLocMarker();
 
 
 				this.GPSFix = true;
@@ -897,16 +885,28 @@ gpsUpdate: function(gps) {
 	// tady je to nutne, aby GPS nedavala nedefinovane souradnice
 	if (gps.latitude != undefined && gps.longitude != undefined && !this.blockGPSFix) {
 		
-		//Mojo.Log.info("** GPS FIX ***");
-	
-	/*	//UNCOMMENT IT FOR TESTING PURPOSES IN EMULATOR
+/** FAKE GPS HEADING and VELOCITY FOR EMULATOR **/
+
+if (this.devfakegps) {
+
+		gps.heading = this.devpreviousheading;
 		if (this.MyLocation != undefined) {
 			this.Heading = this.GetHeadingFromLatLng(this.MyLocation, Mylatlng);
-			Mojo.Log.info("** HEADING ***", this.Heading);
-			this.MapHeadingRotate(-this.Heading);
+
+			if (this.Heading != 0) {
+				gps.heading = this.Heading;
+				this.devpreviousheading = this.Heading;
+				
+			} else {
+				gps.heading = this.devpreviousheading;
+				};
 		};
-		*/
-	
+
+		gps.velocity = 10;
+		//Mojo.Log.info("** HEADING ***", gps.heading);
+};
+
+/** END OF FAKE GPS HEADING and VELOCITY FOR EMULATOR **/	
 		
 	this.MyLocation = Mylatlng;
 
@@ -920,7 +920,9 @@ gpsUpdate: function(gps) {
 		} else {
 			this.SetTopMenuText($L("Google Maps"));
 		};
-	};
+	} else {
+		this.pulseDot(this.MyLocation);
+		};
 
 	this.accuracy = gps.horizAccuracy;
 
@@ -939,8 +941,16 @@ gpsUpdate: function(gps) {
 				this.oldaccuracy = this.accuracy;
 			};
 			
+			//follow the map
 			if (gps.heading != -1 && this.followMap && this.Preferences.MapRotate && (gps.velocity > 0.83)) { //funguje
 				this.MapHeadingRotate(-gps.heading); //funguje
+				this.setScoutMarker(Math.round(gps.heading));
+			};
+			//set marker arrow based on heading for velocity > 2km/h
+			if (gps.heading != -1 && (gps.velocity > 0.55) && !this.followMap) {
+				this.setScoutMarker(Math.round(gps.heading));
+			} else if (!this.followMap) {
+				this.setDefaultMyLocMarker();
 			};
 	};
 },
@@ -950,7 +960,7 @@ StreetView: function() {
 	this.setStatusPanel($L("Loading StreetView..."));
 	this.WebOS2Events("stop");
 	var position = this.map.getCenter();
-	this.controller.stageController.pushScene({'name': 'street', transition: Mojo.Transition.none}, position);
+	this.controller.stageController.pushScene({'name': 'street', disableSceneScroller: true, transition: Mojo.Transition.none}, position);
 
 },
 
@@ -993,7 +1003,7 @@ mousedownInterruptsFollow: function () {
 	Mojo.Event.stopListening(this.controller.get("map_canvas"), 'mousedown', this.mousedownInterruptsFollowHandler);
 
 	//rotate the map to the default heading
-	this.ContainerToRotate = this.getGoogleTiles();
+	//this.ContainerToRotate = this.getGoogleTiles();
 	this.MapHeadingRotate(0); 
 	
 	this.followMap = false;
@@ -1249,6 +1259,8 @@ deactivate: function () {
 	
 	this.blockGPSFix = true;
 	this.setViewPortWidth(320);
+	//stop listening to the compass handler on each deactivate
+	this.controller.stopListening(document, "compass", this.compassHandler);
 	
 },
 
@@ -1391,6 +1403,7 @@ MapIdle: function() {
 		// unblock GPS only if the main scene is active
 		if (this.controller.stageController.activeScene().sceneName == "main") {
 			this.blockGPSFix = false;
+			this.blockpulse = false;
 		};
 		
 		this.LoadingSpinner("stop");
@@ -1668,6 +1681,8 @@ orientationChanged: function (orientation) {
 
 getGoogleTiles: function () {
 	
+/** Commented obsolete code, but still usable if I need to find some elements **/
+/*	
 this.child = document.getElementById('map_canvas').getElementsByTagName('*');
 
 
@@ -1687,7 +1702,7 @@ for (var i = 0, l = this.child.length; i < l; i++)
 		};
 
 this.ScreenSizeBackTile = this.imgchild[0].parentNode; //static image of actual map view after loading tiles
-
+*/
 this.TilesContainer = document.getElementById('map_canvas').firstChild.firstChild; //experimental
 		
 return this.TilesContainer;
@@ -1743,6 +1758,8 @@ showElementsByClass: function(nameOfClass) {
 
 dragStart: function(event) {
 	this.blockGPSFix = true;
+	$("pulse").hide();
+	this.blockpulse = true;
 	this.oldevent = event.down;
 },
 
@@ -1819,6 +1836,7 @@ mousedownHandler: function() {
 
 Search: function(address) {
 
+
 this.setViewPortWidth(320);
 
 this.WebOS2Events('stop');
@@ -1829,8 +1847,10 @@ this.controller.stopListening(this.controller.stageController.document, 'keydown
 this.searching = true;
 this.IsSet = false;
 
-this.controller.toggleMenuVisible(Mojo.Menu.viewMenu);
-this.controller.toggleMenuVisible(Mojo.Menu.commandMenu);
+/* Hide the menu instead of toggle, fixes the sometimes hidden menu */
+this.controller.setMenuVisible(Mojo.Menu.viewMenu, false);
+this.controller.setMenuVisible(Mojo.Menu.commandMenu, false);
+
 
 $('searchScrim').show();
 
@@ -1858,11 +1878,13 @@ SelectedPlace: function (event) {
 
 this.WebOS2Events('start');
 
-this.controller.toggleMenuVisible(Mojo.Menu.viewMenu);
-this.controller.toggleMenuVisible(Mojo.Menu.commandMenu);
+this.setViewPortWidth(480);
+
+this.controller.setMenuVisible(Mojo.Menu.viewMenu, true);
+this.controller.setMenuVisible(Mojo.Menu.commandMenu, true);
+
 
 $('searchScrim').hide();
-this.setViewPortWidth(480);
 
 this.searching = false;
 
@@ -2151,14 +2173,14 @@ CheckSearchInput: function (dropdown, inp) {
                 	
                 if (dropdown.style.display == '') {
                     //msg.innerHTML = 'has results? true';
-                    Mojo.Log.info("** TRUE ***");
+                    //Mojo.Log.info("** TRUE ***");
                     this.ns.checkTimer = null;
                 	};
                 if (inp && dropdown.style.display == 'none' && this.ns.checktimes > 1) {
                     //msg.innerHTML = 'has results? false';
                     //Mojo.Log.info("** FALSE ***");
                     dropdown.style.display = 'block';
-                    dropdown.style.top = "50px";
+                    dropdown.style.top = "44px";
                     //var child = dropdown.appendChild(child);
 
                     
@@ -2700,7 +2722,7 @@ CalcRoute: function() {
   		var request = {
           origin: this.origin,
           destination: this.destination,
-          /* ToDo's */
+          /** ToDo's **/
           //provideRouteAlternatives: true,
           //avoidHighways: true,
 		  //avoidTolls: true,
@@ -3009,7 +3031,7 @@ markerInfo: function (marker) {
 			//Mojo.Log.info("** INFOSERVICE STATUS %j ***", status);
 			if (status == google.maps.places.PlacesServiceStatus.OK) {
 				
-				Mojo.Log.info("** RESULT %j ***", place.reviews);
+				//Mojo.Log.info("** RESULT %j ***", place.reviews);
 				//save favorite mark to result if is favorite
 				if (marker.place.favorite) place.favorite = marker.place.favorite;
 				place.id = marker.place.id; //set the id always from previous marker
@@ -3163,16 +3185,19 @@ MapHeadingRotate: function(heading) {
 		this.NewTilesHere = false;
 	};
 	 
-     if (this.previousheading != undefined) {
+     if (this.previousheading != undefined && heading !=0) {
 		  heading = (heading + this.previousheading)/2;
 		 };
+		 
+	 if(heading > 360) {
+			heading = heading - 360;
+		};
 
-	this.ContainerToRotate.style.webkitTransform = 'rotate(' + Math.round(heading) + 'deg)';
+	this.ContainerToRotate.style["-webkit-transform"] = "rotate3d(0,0,1," + Math.round(heading).toString() + "deg)";
 	this.ContainerToRotate.style.overflow = "visible !important;";
-	
+
 	this.previousheading = heading;
-	
-	
+
 },
 
 SetTopMenuText: function (text) {
@@ -3199,10 +3224,12 @@ GetHeadingFromLatLng: function (location1, location2) {
 	  }
 	};
 
-	var lat1 = location1.Na;
-	var lon1 = location1.Oa;
-	var lat2 = location2.Na;
-	var lon2 = location2.Oa;
+	//Mojo.Log.info("** LOCATION *** %j", location1);
+
+	var lat1 = location1.Xa;
+	var lon1 = location1.Ya;
+	var lat2 = location2.Xa;
+	var lon2 = location2.Ya;
 	
 	var dLat = (lat2-lat1).toRad();
 	var dLon = (lon2-lon1).toRad();
@@ -3687,11 +3714,216 @@ stopTracking: function() {
 	this.trackingHandle = null;
 },
 
+compassTap: function(event) {
+
+	switch ($("compass").className) {
+		 case '':
+			this.activeCompass();
+            //$("compass").addClassName("active");
+            break;
+         case 'active':
+			this.inactiveCompass();
+            //$("compass").removeClassName("active");
+            this.setDefaultMyLocMarker();
+            break;	  
+         
+     };
+},
+
+/** ToDo - tap and hold on compass **/
+
+compassTapHold: function(event) {
+event.stop();
+var near = event.originalEvent && event.originalEvent.target;
+	this.controller.popupSubmenu({
+	  onChoose:  this.handlecompassTapHold,
+	  popupClass: "pre3maptype",
+	  placeNear: near,
+	  items: [
+	      {secondaryIconPath:'', label: $L('Facing cone'), command: ''},
+	      {secondaryIconPath:'', label: $L('Rotate map'), command: ''}
+	  ]
+	});
+
+},
+
+handlecompassTapHold: function() {
+	
+},
+
+compassHandler: function(event) {
+	
+	/* if the device has compass, this function is called, this way I can detect the device compass capability
+		and store it to the haveCompass variable
+	*/
+	if (!this.haveCompass) {
+		this.initiateCompass();
+		this.haveCompass = true;
+		this.compassactive = false;
+	};
+	
+	var currHeading = undefined;
+	var previousheading;
+
+	currHeading = Math.round(event.magHeading);
+
+	if(currHeading!=undefined && currHeading!=previousheading) {
+		if(currHeading > 360) {
+			currHeading = currHeading - 360;
+		};
+		$("needle").style["-webkit-transform"] = "rotate3d(0,0,1,-" + currHeading + "deg)";
+		if (this.compassactive) {
+			this.setScoutMarker(currHeading);
+			};
+		previousheading = currHeading;
+		
+	};
+	
+},
+
+initiateCompass: function () {
+	Mojo.Log.info(" ** Compass capable device detected ** ");
+
+	$("compass").show();
+	this.controller.stopListening(document, "compass", this.compassHandler);
+},
+
+activeCompass: function () {
+	
+	this.blockScreenTimeout(true);
+	this.controller.listen(document, "compass", this.compassHandler);
+	$("compass").addClassName("active");
+	$("needle").show();
+	this.compassactive = true;
+
+},
+
+inactiveCompass: function () {
+	
+	this.controller.stopListening(document, "compass", this.compassHandler);
+	$("compass").removeClassName("active");	
+	$("needle").hide();
+	this.blockScreenTimeout(false);
+	this.compassactive = false;	
+},
+
+setScoutMarker: function (heading) {
+	
+	/** I can't use sprite, because while map is rotated, the whole sprite is visible... strange, I'm forced to use slower switching between images **/
+	/*
+	//Use the 0deg sprite as for 360deg
+	if (heading > 337.5) heading = 0;
+	
+	var originX = 1039/(360/heading);
+	originX = Math.round(originX/65)*65;
+	
+	
+	var scoutMarker = new google.maps.MarkerImage('images/1.5/sprite-rotation.png',
+				new google.maps.Size(65, 65),
+				new google.maps.Point(originX, 0), // origin
+				new google.maps.Point(32, 32), // anchor
+				//new google.maps.Size(49, 49) //Scale to - kdyz neni aktivovano, dela to hranate kolecko na Pre3
+				null
+	);
+	
+	this.MyLocMarker.setIcon(scoutMarker);
+	*/
+	
+	if (heading > 337.5) heading = 0;
+	
+	var originX = 16/(360/heading);
+	originX = Math.round(originX);
+	originX = String("0" + originX).slice(-2);
+	var scoutMarker = new google.maps.MarkerImage('images/1.5/blue_arrow/sprite_rotation' + originX + '.png',
+				new google.maps.Size(65, 65),
+				new google.maps.Point(0, 0), // origin
+				new google.maps.Point(32, 32), // anchor
+				//new google.maps.Size(49, 49) //Scale to - kdyz neni aktivovano, dela to hranate kolecko na Pre3
+				null
+	);
+	
+	this.MyLocMarker.setIcon(scoutMarker);
+	
+},
+
+setDefaultMyLocMarker: function () {
+	
+if(this.isPre3()){
+				var image = new google.maps.MarkerImage('images/1.5/blue_dot_on.png',
+				new google.maps.Size(64, 64),
+				new google.maps.Point(0, 0), // origin
+				new google.maps.Point(32, 32), // anchor
+				new google.maps.Point(64, 64) //Scale to - kdyz neni aktivovano, dela to hranate kolecko na Pre3
+				);
+				} else {
+				var image = new google.maps.MarkerImage('images/blue_dot_on.png',
+				new google.maps.Size(42, 42),
+				new google.maps.Point(0, 0), // origin
+				new google.maps.Point(21, 21) // anchor
+				);
+};
+
+this.MyLocMarker.setIcon(image);
+
+},
+
+blockScreenTimeout: function (block) {
+	
+	this.controller.stageController.window.PalmSystem.setWindowProperties({
+		blockScreenTimeout: block
+    });
+},
+
+pulseDot: function (latlng) {
+	/* this function draw a one pulse around a dot */
+	
+	try {
+	
+	if (!this.blockpulse) {
+	
+	var coord = this.overlay.getProjection().fromLatLngToContainerPixel(latlng);
+	
+	coord.x = Math.round(coord.x-25);
+	coord.y = Math.round(coord.y-25);
+	//Mojo.Log.info("COODR: %j", coord);
+
+	//webOS 1.x needs this obsolete syntax
+	document.getElementById("pulse").setAttribute("style", "margin: " + coord.y.toString() + "px 0 0 " + coord.x.toString() + "px;");
+		
+	$("pulse").show();
+	
+	this.blockpulse = true;
+	(function(){
+			$("pulse").hide();
+			this.blockpulse = false;					
+	}).bind(this).delay(2);
+	};
+	} catch (error) {};
+},
+
+
 //EXPERIMENTAL ODTUD
 
 Debug: function() {
 	
 	//Mojo.Log.info("USER AGENT: ", navigator.userAgent);
+	
+	//$("needle").show();
+	
+	
+	this.cevent.magHeading = this.cevent.magHeading + 22.5;
+	//this.MapHeadingRotate(this.cevent.magHeading);
+	//Mojo.Log.info("CHEADING: ", this.cevent.magHeading);
+	this.compassactive = true;
+	this.compassHandler(this.cevent.magHeading);
+	
+	//this.setScoutMarker(75);
+	
+	//$("pulse").addClassName("active");
+	//$("pulse").style.marginLeft = "150px;";
+	
+	//document.getElementById("pulse").setAttribute("style", "margin-top: 150px;");
+	//this.pulseDot(this.MyLocation);
 
 }
 
