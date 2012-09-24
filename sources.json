@@ -3,7 +3,7 @@
         "source": "app/assistants/stage-assistant.js"
     }, 
     {
-        "source": "app/assistants/main-assistant.js", 
+        "source": "app/assistants/main-assistant-min.js", 
         "scenes": "main"
     },  
     {
@@ -31,6 +31,9 @@
         "scenes": "preferences"
     }, 
     {
-    	"source": "javascript/infobubble.js"
+    	"source": "javascript/infobubble/infobubble-compiled.js"
+    },
+    {
+    	"source": "javascript/kalendae/kalendae-compiled.js"
     }
 ]

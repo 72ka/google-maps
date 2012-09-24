@@ -1,4 +1,5 @@
 {
+"ZERO_RESULTS": "Nessun Percorso",
 "Transit": "Transito",
 "More": "Altro",
 "Open hours:": "Orario apertura:",
@@ -63,7 +64,6 @@
 "m": "m",
 "No results": "Nessun risultato",
 "My Location": "Mia Posizione",
-"No route": "Nessun Percorso",
 "Info": "Info",
 "Route from here": "Parti da qui",
 "Route to here": "Arriva qui",

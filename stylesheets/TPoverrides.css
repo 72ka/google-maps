@@ -9,11 +9,11 @@
   background: url(../images/palm-divider-collapse-left.png) left -1px repeat;
 } 
 
-/*
+/* ToDo - panel to the right
 #directionsScrim {
 
 	position: relative;
-	width: 320px;
+	width: 380px;
 	//right: 0px;
 	float: right;
 	background: none;

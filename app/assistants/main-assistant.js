@@ -55,21 +55,21 @@ if (this.isTouchPad()) {
 	this.optimizedmarkers = true;
 } else {
 	// set height of scroller depends on device resolution
-	var listheight = Math.round(this.controller.window.innerHeight*0.7) + "px";
+	var listheight = Math.round(this.controller.window.innerHeight*0.75) + "px";
 	document.getElementById("DirectionsPanelScroller").style.maxHeight = listheight;
 	// Older WebOS devices doesn't support optimized markers in newest gAPI v3
 	this.optimizedmarkers = false;
 	};
 
-//setup toggle button directions type
+//setup radio button directions type
 
 this.controller.setupWidget("DirectType",
   this.attributes = {
       choices: [
-          {label: $L("Drive"), value: "driving"},
-          {label: $L("Walk"), value: "walking"},
-        //  {label: "Pub.", value: 3}, not at this time
-          {label: $L("Bike"), value: "bicycling"}
+          {label: $L(""), value: "driving"},
+          {label: $L(""), value: "walking"},
+          {label: $L(""), value: "transit"},
+          {label: $L(""), value: "bicycling"} 
       ]
   },
   this.model = {
@@ -81,6 +81,148 @@ this.controller.setupWidget("DirectType",
 this.DirectTypeEventHandler = this.DirectType.bindAsEventListener(this);
 this.DirectType = this.controller.get('DirectType');
 Mojo.Event.listen(this.DirectType, Mojo.Event.propertyChange, this.DirectTypeEventHandler);
+
+//setup radio button time picker for Transit arrival or departure time
+
+this.controller.setupWidget("TimePickerRadio",
+  this.attributes = {
+      choices: [
+          {label: $L("Departure"), value: "departure"},
+          {label: $L("Arrival"), value: "arrival"}
+      ]
+  },
+  this.TimePickerRadioModel = {
+      value: "departure",
+      disabled: false
+  }
+);
+
+this.TimePickerRadioEventHandler = this.TimePickerRadio.bindAsEventListener(this);
+this.TimePickerRadio = this.controller.get('TimePickerRadio');
+Mojo.Event.listen(this.TimePickerRadio, Mojo.Event.propertyChange, this.TimePickerRadioEventHandler);
+
+//setup field and observe for initiate custom date picker
+
+this.TransitDateFieldEventHandler = this.pickDateKalendae.bindAsEventListener(this);
+this.TransitDateField = this.controller.get('TransitDateField');
+this.TransitDateField.observe(Mojo.Event.tap, this.TransitDateFieldEventHandler);
+
+
+//Setup date picker for Transit options
+
+//externi kalendae
+this.kalendae = new Kalendae("Kalendae", {
+	//this.kalendae = new Kalendae(document.body, {
+		months: 1,
+		mode: 'single',
+		weekStart: 1,
+		direction: 'today-future',
+		selected: new Date()
+});
+
+this.kalendae.subscribe('change', this.handleKalendaeDate.bind(this));
+
+$("TransitDateField").innerHTML = $L("Today");	
+	
+var todayDate = new Date();
+
+//setup KalendaeDrawer collapsible
+this.controller.setupWidget("KalendaeDrawer",
+  this.attributes = {
+      modelProperty: 'open',
+      unstyled: true
+  },
+  this.KalendaeDrawerModel = {
+      open: false
+  }
+);
+
+//Setup time picker for Transit options
+
+this.controller.setupWidget("TransitTime",
+  this.attributes = {
+      label: $L("Time"),
+      modelProperty: 'time'
+  },
+  this.TransitDateModel = {
+      time: todayDate
+  }
+);
+
+//listener for timepicker
+this.TransitPickerEventHandler = this.TransitPicker.bindAsEventListener(this);
+this.TransitTimePicker = this.controller.get('TransitTime');
+Mojo.Event.listen(this.TransitTimePicker, Mojo.Event.propertyChange, this.TransitPickerEventHandler);
+
+
+//default values for direction options
+this.routeAlternatives = false;
+this.avoidHighways = false;
+this.avoidTolls = false;
+
+
+//setup Route alternatives checkbox
+
+this.controller.setupWidget("RouteAlternatives",
+  this.attributes = {
+      trueValue: true,
+      falseValue: false
+  },
+  this.RouteAlternativesModel = {
+      value: this.routeAlternatives,
+      disabled: false
+  }
+);
+
+this.RouteAlternativesHandler = this.handleRouteAlternatives.bindAsEventListener(this);
+Mojo.Event.listen(this.controller.get("RouteAlternatives"), Mojo.Event.propertyChange, this.RouteAlternativesHandler);
+
+//setup Avoid highways checkbox
+
+this.controller.setupWidget("AvoidHighways",
+  this.attributes = {
+      trueValue: true,
+      falseValue: false
+  },
+  this.AvoidHighwaysModel = {
+      value: this.avoidHighways,
+      disabled: false
+  }
+);
+
+this.AvoidHighwaysHandler = this.handleAvoidHighways.bindAsEventListener(this);
+Mojo.Event.listen(this.controller.get("AvoidHighways"), Mojo.Event.propertyChange, this.AvoidHighwaysHandler);
+
+//setup Avoid Tolls checkbox
+
+this.controller.setupWidget("AvoidTolls",
+  this.attributes = {
+      trueValue: true,
+      falseValue: false
+  },
+  this.AvoidTollsModel = {
+      value: this.avoidTolls,
+      disabled: false
+  }
+); 
+
+this.AvoidTollsHandler = this.handleAvoidTolls.bindAsEventListener(this);
+Mojo.Event.listen(this.controller.get("AvoidTolls"), Mojo.Event.propertyChange, this.AvoidTollsHandler);
+
+//setup direction options scroller
+
+this.controller.setupWidget("DirectionsOptionsScroller",
+  this.attributes = {
+      mode: 'vertical'
+  },
+  this.DirectionsOptionsScrollerModel = {
+      snapElements: {
+      x: []
+      }
+  }
+);
+
+document.getElementById("DirectionsOptionsScroller").style.maxHeight = listheight;
 
 //setup get directions buttons
 
@@ -233,7 +375,6 @@ this.setStatusPanel($L("Loading Maps..."));
 
 	this.createMenu();
 
-	
 	this.GPSFix = false;
 
 	//setup geocoder
@@ -335,7 +476,7 @@ this.mapStyleNight = [
         scaleControl: true,
         maxZoom: 20,
         minZoom: 1,
-        styles: mapStyles,
+        //styles: mapStyles,
         keyboardShortcuts: false,
       	draggable: false	
     };
@@ -447,14 +588,26 @@ this.mapStyleNight = [
 	this.mapcanvasy = 0;
 	this.haveCompass = false;
 	this.blockpulse = false;
+	this.routeIndex = 0;
 
 	// map doesn't follow GPS as default
 	this.followMap = false;
-
+    
 	//setup direction service
     var rendererOptions = {
   		map: this.map,
   		suppressMarkers: true,
+		polylineOptions: {
+			//geodesic: true,
+			clickable: false,
+			//editable: true,
+			strokeColor: '#4941e3',
+			strokeOpacity: 0.7,
+			strokeWeight: 8*this.ScreenRoughRatio
+			},
+		markerOptions: {
+			optimized: this.optimizedmarkers
+			},
   		suppressInfoWindows: true,
   		draggable: false,
 		}
@@ -531,8 +684,8 @@ this.mapStyleNight = [
  	new google.maps.event.addListener(this.map, 'idle', this.MapIdle.bind(this));
  	new google.maps.event.addListener(this.map, 'tilesloaded', this.MapTilesLoaded.bind(this));
  	new google.maps.event.addListener(this.map, 'bounds_changed', this.MapCenterChanged.bind(this));
- 	//new google.maps.event.addListener(this.map, 'projection_changed', this.ProjectionChanged.bind(this));
  	new google.maps.event.addListener(this.map, 'overlaycomplete', this.OverlayComplete.bind(this));
+ 
  	this.CenterChanged = true;
 
  	new google.maps.event.addDomListener(document.getElementById('map_canvas'), 'resize', this.Resize.bind(this));
@@ -600,7 +753,7 @@ this.mapStyleNight = [
 },
 
 handleCommand: function(event) {
-	
+	//Mojo.Log.info("**** EVENT CMDMENU  %j ****", event.type);
 	if(event.type == Mojo.Event.commandEnable && (event.command == Mojo.Menu.helpCmd || event.command == Mojo.Menu.prefsCmd)) {
       event.stopPropagation();
     };
@@ -760,6 +913,9 @@ this.cmdMenuModel = {
 };
 
 this.controller.setupWidget(Mojo.Menu.commandMenu, {menuClass:'bottom-menu'}, this.cmdMenuModel);
+
+this.CmdMenuHoldHandler = this.handleCmdMenuHold.bindAsEventListener(this);
+Mojo.Event.listen(document.body, Mojo.Event.hold, this.CmdMenuHoldHandler);
 
 /* Setup application menu */
 this.appMenuModel = {
@@ -1672,6 +1828,9 @@ orientationChanged: function (orientation) {
 		  this.restmenuwidth = Mojo.Environment.DeviceInfo.screenWidth - this.widthadd;
 	   };
 	   this.map.setCenter(this.ActualCenter);
+	   
+	   //update the list height
+	   this.updateDirectListHeight();
    };
 
    this.feedMenuModel.items[1].items[1].width = this.restmenuwidth;
@@ -2572,6 +2731,11 @@ handleBackSwipe: function (event) {
 	if(this.directing) {
 		
 			this.setViewPortWidth(480);
+			
+			try {
+				//update directions in infobubbles for alternative routes
+				this.updateDirectionsResponse(this.directionsResponse);
+			} catch (error) {};
 
 			$('directionsScrim').toggle();
 
@@ -2618,12 +2782,23 @@ Directions: function (position) {
 	this.KeyWasPressed = true;
 	//stop listen to keypress
 	this.controller.stopListening(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
-	
+    
+    //get actual time for transit options       
+    this.transitTime = new Date();
+    this.setTransitDatePickers(this.transitTime);
+       
 	this.directing = true;
 	this.IsSet = false;
 	this.controller.toggleMenuVisible(Mojo.Menu.viewMenu);
 	this.controller.toggleMenuVisible(Mojo.Menu.commandMenu);
 	$('directionsScrim').toggle();
+	
+	if (this.TravelMode == undefined) {
+		this.travel = google.maps.DirectionsTravelMode.DRIVING;
+		this.TravelMode = "driving";
+		$('TransitOptions').hide();
+		$('DriveOptions').show();
+	};
 
 	if (this.GPSFix && !this.firstinsertposition) {
 		this.firstinsertposition = true;
@@ -2643,11 +2818,44 @@ Directions: function (position) {
 				address = undefined;
 				this.mapto = undefined;
 	};
+	
+	//update the list height
+    this.updateDirectListHeight();
 
 },
 
 DirectType: function (event) {
+	
 	this.TravelMode = event.value;
+	
+	/* Update the actual time to the Date and Timepicker */
+	//this.TransitDateModel.time = new Date();
+	//this.controller.modelChanged(this.TransitDateModel);
+		
+	
+	
+	switch (event.value) {
+         case 'driving':
+           this.travel = google.maps.DirectionsTravelMode.DRIVING;
+           $('TransitOptions').hide();
+           $('DriveOptions').show();
+           break;
+         case 'walking':
+          this.travel = google.maps.DirectionsTravelMode.WALKING;
+          $('TransitOptions').hide();
+          $('DriveOptions').hide();
+          break;
+         case 'bicycling':
+           this.travel = google.maps.DirectionsTravelMode.BICYCLING;
+           $('TransitOptions').hide();
+           $('DriveOptions').hide();
+           break;
+         case 'transit':
+           this.travel = google.maps.DirectionsTravelMode.TRANSIT;
+           $('DriveOptions').hide();
+           $('TransitOptions').show();
+           break;
+      };
 },
 
 GetDirectionsButtonTap: function (event) {
@@ -2702,30 +2910,35 @@ SwapDirections: function () {
 CalcRoute: function() {
 
   if (!(this.origin == undefined || this.destination == undefined)) {
+		
+	  //reset the route index to the first route
+      this.routeIndex = 0;
+      
+      /** Set the transit options **/
 
-				if (this.TravelMode == undefined) {
-					this.TravelMode = "driving";
-				};
-
-  	 switch (this.TravelMode) {
-         case 'driving':
-           this.travel = google.maps.DirectionsTravelMode.DRIVING;
+      switch (this.TransitWhichTime) {
+         case 'departure':
+           this.transitOptions = {
+				departureTime: new Date(this.transitTime.getTime())
+		   };
            break;
-         case 'walking':
-          this.travel = google.maps.DirectionsTravelMode.WALKING;
+         case 'arrival':
+          this.transitOptions = {
+				arrivalTime: new Date(this.transitTime.getTime())
+		   };
           break;
-         case 'bicycling':
-           this.travel = google.maps.DirectionsTravelMode.BICYCLING;
-           break;
       };
-
+      
+      //Mojo.Log.info("** POCITAM ***" + this.transitTime);
+      
   		var request = {
           origin: this.origin,
           destination: this.destination,
           /** ToDo's **/
-          //provideRouteAlternatives: true,
-          //avoidHighways: true,
-		  //avoidTolls: true,
+          provideRouteAlternatives: this.routeAlternatives,
+          avoidHighways: this.avoidHighways,
+		  avoidTolls: this.avoidTolls,
+		  transitOptions: this.transitOptions,
           travelMode: this.travel,
         };
         this.directionsService.route(request, function(response, status) {
@@ -2734,21 +2947,29 @@ CalcRoute: function() {
 			  this.IsRouted(true);
 			  //Mojo.Log.info("** RESPONSE1 ***");
 			  this.clearDirectPoints();
-			  this.DirectionMarkers({start: this.origin, end: this.destination, start_title: response.routes[0].legs[0].start_address, end_title: response.routes[0].legs[0].end_address});
+			  
 			  if (this.WebOSVersion1()) {
+			  //if (true) {
 					response = this.makeFriendly145withmarkers(response); //change the response to WebOS 1.4.5 readable
-				} else {
-					this.makeDirectMarkers(response);
-					};
-			  //Mojo.Log.info("** RESPONSE2 ***");
+			  };
+			  
+			  this.directionsResponse = response;
 
-			  this.ChangeCmdMenu("directions");
-			  // hides the scrim
+			  this.DirectionMarkers({start: this.origin, end: this.destination, start_title: response.routes[this.routeIndex].legs[0].start_address, end_title: response.routes[this.routeIndex].legs[0].end_address});
+
+			 this.ChangeCmdMenu("directions");
+			 // hides the scrim
 			 this.MapIdle();
+
              this.directionsDisplay.setDirections(response);
              this.directionsDisplay.setMap(this.map);
+             this.routeIndex = this.directionsDisplay.getRouteIndex();
+             this.makeDirectMarkers(response);
+             this.SetTopMenuText(response.routes[this.routeIndex].legs[0].distance.text + "; " + response.routes[this.routeIndex].legs[0].duration.text);
 
-          } else { Mojo.Controller.errorDialog($L("No route"));
+          } else { 
+					//Mojo.Controller.errorDialog($L("No route"));
+					Mojo.Controller.errorDialog($L(status));
 					this.IsRouted(false);
 					// hides the scrim
 					this.MapIdle();
@@ -2763,30 +2984,54 @@ CalcRoute: function() {
 
 makeFriendly145withmarkers: function (directionResult) {
 
-/* make direction result friendly for WebOS 1.4.5 - positions have to be refreshed */
-  var myRoute = directionResult.routes[0].legs[0];
+/* make direction result friendly for WebOS 1.4.5 */
 
-  var NewResult = directionResult;
+/** The API returns in directions result object some locations in webOS 1.x not as LatLng object, but only in single set of lat and lng fields, 
+ * but directions renderer require a LatLng object. This function reads the single lat and lng fields and create LatLng objects to
+ * the same position in directionresults **/
+ 
 
-  for (var i = 0; i < myRoute.steps.length; i++) {
+for (var routes = 0; routes < directionResult.routes.length; routes++) {
 
-	  //start and end location
-	  newlatlng = new google.maps.LatLng(myRoute.start_location.lat, myRoute.start_location.lng);
-	  NewResult.routes[0].legs[0].start_location = newlatlng;
+	  //start and end location of the leg
 
-	  newlatlng = new google.maps.LatLng(myRoute.end_location.lat, myRoute.end_location.lng);
-	  NewResult.routes[0].legs[0].end_location = newlatlng;
+	  directionResult.routes[routes].legs[0].start_location = new google.maps.LatLng(directionResult.routes[routes].legs[0].start_location.lat, directionResult.routes[routes].legs[0].start_location.lng);
+	  directionResult.routes[routes].legs[0].end_location = new google.maps.LatLng(directionResult.routes[routes].legs[0].end_location.lat, directionResult.routes[routes].legs[0].end_location.lng);
+	  
+	  
+	   //waypoints
+	   /**
+	    * it tooks me 2 days to find this damned undocumented property, 
+	    * can't understand, why alternative route use waypoints, which are not requested...
+	   **/
+	   
+	   try {
+		   
+		  directionResult.routes[routes].legs[0].via_waypoint[0].location = new google.maps.LatLng(directionResult.routes[routes].legs[0].via_waypoint[0].location.lat, directionResult.routes[routes].legs[0].via_waypoint[0].location.lng);
+		  
+		  /** there exists via_waypoints, but does not affect the result **/
+		  
+		  //newlatlng = new google.maps.LatLng(myRoute.via_waypoints.lat, myRoute.via_waypoints.lng);
+		  //directionResult.routes[routes].legs[0].via_waypoints = newlatlng;
+		} catch (error) {};
 
-  };
+	for (var step = 0; step < directionResult.routes[routes].legs[0].steps.length; step++) { /** bez toho nejdou na webOS 1.4.5 Transit trasy, normalni trasa jde... **/
+  
+	  directionResult.routes[routes].legs[0].steps[step].start_location = new google.maps.LatLng(directionResult.routes[routes].legs[0].steps[step].start_location.lat, directionResult.routes[routes].legs[0].steps[step].start_location.lng);
+	  directionResult.routes[routes].legs[0].steps[step].end_location = new google.maps.LatLng(directionResult.routes[routes].legs[0].steps[step].end_location.lat, directionResult.routes[routes].legs[0].steps[step].end_location.lng);
+	  directionResult.routes[routes].legs[0].steps[step].start_point = new google.maps.LatLng(directionResult.routes[routes].legs[0].steps[step].start_point.lat, directionResult.routes[routes].legs[0].steps[step].start_point.lng);
+	  directionResult.routes[routes].legs[0].steps[step].end_point = new google.maps.LatLng(directionResult.routes[routes].legs[0].steps[step].end_point.lat, directionResult.routes[routes].legs[0].steps[step].end_point.lng);
+	};
+  
+  
+};
 
-  this.myRoute = NewResult.routes[0].legs[0];
-
-  return NewResult;
+  return directionResult;
 },
 
 makeDirectMarkers: function (directionResult) {
 
-	this.myRoute = directionResult.routes[0].legs[0];
+	this.myRoute = directionResult.routes[this.routeIndex].legs[0];
 
 },
 
@@ -3104,11 +3349,6 @@ moveOnRoute: function (command) {
 
 			this.DirectStep++;
 
-			if (this.WebOSVersion1()) {
-				var newlatlng = new google.maps.LatLng(this.myRoute.steps[this.DirectStep].start_point.lat, this.myRoute.steps[this.DirectStep].start_point.lng);
-				this.myRoute.steps[this.DirectStep].start_location = newlatlng;
-			};
-
 			//create a desired marker
 			this.PlaceDirectionMarker({position: this.myRoute.steps[this.DirectStep].start_location, style: "point", title: this.myRoute.steps[this.DirectStep].instructions, subtitle: "" });
 			this.MayBubblePop = true;
@@ -3135,12 +3375,6 @@ moveOnRoute: function (command) {
 			};
 
 			this.DirectStep--;
-
-			if (this.WebOSVersion1()) {
-				var newlatlng = new google.maps.LatLng(this.myRoute.steps[this.DirectStep].start_point.lat, this.myRoute.steps[this.DirectStep].start_point.lng);
-				this.myRoute.steps[this.DirectStep].start_location = newlatlng;
-			};
-
 
 			//create a desired marker
 			this.PlaceDirectionMarker({position: this.myRoute.steps[this.DirectStep].start_location, style: "point", title: this.myRoute.steps[this.DirectStep].instructions, subtitle: "" });
@@ -3563,6 +3797,10 @@ setLocalizedHTML: function () {
 	document.getElementById("OriginText").innerHTML = '<img src="images/bubble/flagA.png" width="24" height="24" >' + $L("Origin:");
 	document.getElementById("DestinationText").innerHTML = '<img src="images/bubble/flagB.png" width="24" height="24">' + $L("Destination:");
 	document.getElementById("HintText").innerHTML = $L("<b>Hint:</b> If you select place from suggestions, one marker will be placed.<br> If you are looking for nearby places, just type what you need and press Enter.<br>Example 1: '<i>pizza</i>' find nearest pizza from map center within actual map bounds<br>Example 2: '<i>hotel@5000</i>' find hotels within 5000m from map center");
+	document.getElementById("RouteAlternativesText").innerHTML = $L("Provide route alternatives");
+	document.getElementById("AvoidHighwaysText").innerHTML = $L("Avoid highways");
+	document.getElementById("AvoidTollsText").innerHTML = $L("Avoid tolls");
+	document.getElementById("TransitDateLabel").innerHTML = $L("Date");
 },
 
 setStatusPanel: function (text, delay) {
@@ -3901,6 +4139,100 @@ pulseDot: function (latlng) {
 	} catch (error) {};
 },
 
+TimePickerRadio: function (event) {
+	this.TransitWhichTime = event.value;
+},
+
+TransitPicker: function (event) {
+	var time = new Date(event.value);
+	this.transitTime.setHours(time.getHours());
+	this.transitTime.setMinutes(time.getMinutes());
+	this.transitTime.setSeconds(time.getSeconds());
+	Mojo.Log.info(this.transitTime);
+},
+
+pickDateKalendae: function(event) {
+	
+	event.stop();
+	this.controller.get('KalendaeDrawer').mojo.setOpenState(true);
+
+},
+
+handleKalendaeDate: function () {
+
+	var pickedDate = this.kalendae.getSelected();
+	var pickedDateAsDates = this.kalendae.getSelectedAsDates();
+	Mojo.Log.info(pickedDate);
+
+	pickedDateAsDates = new Date (pickedDateAsDates);
+	this.transitTime.setDate(pickedDateAsDates.getDate());
+	this.transitTime.setMonth(pickedDateAsDates.getMonth());
+	this.transitTime.setFullYear(pickedDateAsDates.getFullYear());
+
+	this.controller.get('KalendaeDrawer').mojo.setOpenState(false);
+	this.setTransitDatePickers(this.transitTime);
+
+},
+
+handleRouteAlternatives: function (event) {
+	this.routeAlternatives = event.value;
+},
+
+handleAvoidHighways: function (event) {
+	this.avoidHighways = event.value;
+},
+
+handleAvoidTolls: function (event) {
+	this.avoidTolls = event.value;
+},
+
+updateDirectionsResponse: function (response) {
+	
+	  //update Route index
+      this.routeIndex = this.directionsDisplay.getRouteIndex();
+
+	  this.DirectStep = 0;
+	  this.clearDirectPoints();
+	  this.DirectionMarkers({start: this.origin, end: this.destination, start_title: response.routes[this.routeIndex].legs[0].start_address, end_title: response.routes[this.routeIndex].legs[0].end_address});
+	  this.makeDirectMarkers(response);
+	  this.SetTopMenuText(response.routes[this.routeIndex].legs[0].distance.text + "; " + response.routes[this.routeIndex].legs[0].duration.text);
+},
+
+setTransitDatePickers: function (date) {
+	
+	//update text in custom date picker
+	$("TransitDateField").innerHTML = date.getDate() + "." + date.getMonth() + "." + date.getFullYear();
+	
+	//update time in timepicker
+	this.TransitDateModel.time = date;
+	this.controller.modelChanged(this.TransitDateModel);
+},
+
+updateDirectListHeight: function () {
+	
+	if (this.isTouchPad()) {
+	// set height of scroller for TP
+	var listheight = Math.round(this.controller.window.innerHeight*0.84) + "px";
+	document.getElementById("DirectionsPanelScroller").style.maxHeight = "620px";
+	// TP as onlyone WebOS device support optimized markers in newest gAPI v3
+	this.optimizedmarkers = true;
+} else {
+	// set height of scroller depends on device resolution
+	var listheight = Math.round(this.controller.window.innerHeight*0.74) + "px";
+	document.getElementById("DirectionsPanelScroller").style.maxHeight = listheight;
+	document.getElementById("DirectionsOptionsScroller").style.maxHeight = listheight;
+	// Older WebOS devices doesn't support optimized markers in newest gAPI v3
+	this.optimizedmarkers = false;
+	Mojo.Log.info("INNER HEIGHT ", this.controller.window.innerHeight);
+	};
+	
+},
+
+handleCmdMenuHold: function () {
+	Mojo.Log.info("CMD MENU HOLD ");
+},
+
+
 
 //EXPERIMENTAL ODTUD
 
@@ -3911,11 +4243,11 @@ Debug: function() {
 	//$("needle").show();
 	
 	
-	this.cevent.magHeading = this.cevent.magHeading + 22.5;
+	//this.cevent.magHeading = this.cevent.magHeading + 22.5;
 	//this.MapHeadingRotate(this.cevent.magHeading);
 	//Mojo.Log.info("CHEADING: ", this.cevent.magHeading);
-	this.compassactive = true;
-	this.compassHandler(this.cevent.magHeading);
+	//this.compassactive = true;
+	//this.compassHandler(this.cevent.magHeading);
 	
 	//this.setScoutMarker(75);
 	
@@ -3924,6 +4256,9 @@ Debug: function() {
 	
 	//document.getElementById("pulse").setAttribute("style", "margin-top: 150px;");
 	//this.pulseDot(this.MyLocation);
+	
+	//var index = this.directionsDisplay.getRouteIndex();
+	//Mojo.Log.info("DIRECTION ROUTE INDEX: ", index);
 
 }
 

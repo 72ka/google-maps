@@ -19,7 +19,10 @@
 		
 			<div class="directions-container">
 				
+			 
+				 
 				<div id="DirectionsInput">
+					<div x-mojo-element="Scroller" id="DirectionsOptionsScroller">
 							<div class="smalltitle" id="OriginText"><img src="images/bubble/flagA.png" width="24" height="24" >Origin:</div>		
 							<table class="palm-divider">					
 								<tr>
@@ -52,9 +55,68 @@
 							</tr>
 						</table>	
 						<div>
-						  <div x-mojo-element="RadioButton" id="DirectType" class="directtype-radiobutton" name="DirectType"></div>					  
-						</div>						
+						  <div x-mojo-element="RadioButton" id="DirectType" name="DirectType">
+						  </div>
+						  <div id="DirectRadioImages"></div>					  
+						</div>	
+						
+					<div id="ProvideRouteAlternatives">
+						<table>				
+							<tr>
+									<td>
+										<div x-mojo-element="CheckBox" id="RouteAlternatives" name="RouteAlternatives" class="CheckBoxDirect"></div>
+									</td>
+									<td>
+										<div id="RouteAlternativesText" class="CheckBoxLabel">Provide route alternatives</div>
+									</td>
+							</tr>
+						</table>
+					</div>
+					
+					<div id="TransitOptions" style="display: none;">
+					
+						<div x-mojo-element="RadioButton" id="TimePickerRadio" name="TimePickerRadio"></div>
+		
+										<div class="label left mv-picker-label" id="TransitDateLabel"></div>
+
+										<div id="TransitDateField" name="TransitDateField" class="capsules-container mv-picker-container mv-picker-capsule"></div>
+
+						
+						<div id="KalendaeDrawer"  x-mojo-element="Drawer">
+								<div class="auto-kal" id="Kalendae"></div>
+						</div>
+						<div x-mojo-element="TimePicker" id="TransitTime" name="TransitTime"></div>
+					
+					</div>
+
+					<div id="DriveOptions" style="display: none;">
+						<table>
+							<tr>
+									<td>
+										<div x-mojo-element="CheckBox" id="AvoidHighways" name="AvoidHighways" class="CheckBoxDirect"></div>
+									</td>
+									<td>
+										<div id="AvoidHighwaysText" class="CheckBoxLabel">Avoid highways</div>
+									</td>
+							</tr>
+							<tr>
+									<td>
+										<div x-mojo-element="CheckBox" id="AvoidTolls" name="AvoidTolls" class="CheckBoxDirect"></div>
+									</td>
+									<td>
+										<div id="AvoidTollsText" class="CheckBoxLabel">Avoid tolls</div>
+									</td>
+							</tr>
+						</table>	
+						
+					</div>
+									
 				</div>
+				
+				
+				
+				</div>
+				
 				
 					<div class="boxtable">
 						<div x-mojo-element="Button" id="GetDirectionsButton" class=""></div>
@@ -96,8 +158,6 @@
 <div class="palm-scrim" id="busy-overlay-scrim">
 	<div x-mojo-element="Spinner" id="LoadingSpinner" class="spinnerClass" />
 </div>
-
-
 
 
 

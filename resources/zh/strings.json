@@ -1,4 +1,5 @@
 {
+	"ZERO_RESULTS": "无路线",
 	"Drive": "开车",
 	"Walk": "行走",
 	"Bike": "自行车",
@@ -37,7 +38,6 @@
 	"m": "米",
 	"No results": "无结果",
 	"My Location": "我的位置",
-	"No route": "无路线",
 	"Info": "信息",
 	"Route from here": "从这里出发的路线",
 	"Route to here": "到达这里的路线",

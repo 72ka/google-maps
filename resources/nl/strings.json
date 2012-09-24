@@ -1,4 +1,5 @@
 {
+	"ZERO_RESULTS": "Geen route",
 	"Drive": "Auto",
 	"Walk": "Lopen",
 	"Bike": "Fiets",
@@ -37,7 +38,6 @@
 	"m": "m",
 	"No results": "Geen resultaten",
 	"My Location": "Mijn locatie",
-	"No route": "Geen route",
 	"Info": "Informatie",
 	"Route from here": "Route vanaf hier",
 	"Route to here": "Route naar hier",

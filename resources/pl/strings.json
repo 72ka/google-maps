@@ -1,4 +1,5 @@
 {
+	"ZERO_RESULTS": "Nie znaleziono trasy",
 	"Drive": "Samochód",
 	"Walk": "Pieszo",
 	"Bike": "Rower",
@@ -37,7 +38,6 @@
 	"m": "m",
 	"No results": "Nie znaleziono",
 	"My Location": "Moje położenie",
-	"No route": "Nie znaleziono trasy",
 	"Info": "Informacja",
 	"Route from here": "Trasa stąd",
 	"Route to here": "Trasa do tego miejsca",

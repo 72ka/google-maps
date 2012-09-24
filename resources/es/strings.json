@@ -1,4 +1,5 @@
 {
+	"ZERO_RESULTS": "Sin ruta",
 	"Transit": "Transporte público", 
 	"More": "Más", 
 	"Open hours:": "Horario:", 
@@ -59,7 +60,6 @@
 	"m": "m",
 	"No results": "Sin resultados",
 	"My Location": "Mi localización",
-	"No route": "Sin ruta",
 	"Info": "Info",
 	"Route from here": "Ruta desde aquí",
 	"Route to here": "Ruta hasta aquí",
