@@ -3,10 +3,10 @@
 	"version": "0.2.4",
 	"vendor": "72ka",
 	"type": "web",
-	"main": "index.html",
-	"title": "Google Maps",
-	"icon": "icon.png",
-	"splashicon": "icon-256x256.png",
+	"main": "../../index.html",
+	"title": "谷歌地图",
+	"icon": "../../icon.png",
+	"splashicon": "../../icon-256x256.png",
 	"uiRevision": "2",
 	"mimeTypes": [	{"scheme": "mapto"},
 					{"scheme": "maploc"},
@@ -14,7 +14,7 @@
     ],	
 	"universalSearch":{
 			  	"search" :  {
-    				  "displayName":"Google Maps",
+    				  "displayName":"谷歌地图",
     				  "url":"cz.72ka.googlemaps",
     				  "launchParam":{"target":"maploc:#{searchTerms}"}
   					}

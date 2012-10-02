@@ -1,5 +1,13 @@
 {
 	"ZERO_RESULTS": "Pas d'itinéraire",
+	"Today": "Aujourd'hui",
+	"Date": "Date",
+	"Time": "Heure",
+	"Provide route alternatives": "Proposer des variantes de trajet",
+	"Avoid highways": "Eviter les autoroutes",
+	"Avoid tolls": "Eviter les péages",
+	"Arrival": "Arrivée",
+	"Departure": "Départ",
 	"Back": "Ok",
 	"Moving to My Location...": "Déplacement vers ma position...",
 	"Zooming in...": "Zoom avant...",

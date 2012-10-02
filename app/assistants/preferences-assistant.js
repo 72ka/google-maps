@@ -171,7 +171,8 @@ this.controller.setupWidget("LangList",
 			{code:"uk",name:$L("Ukrainian")},
 			{code:"vi",name:$L("Vietnamese")},
 			{code:"zh-CN",name:$L("Chinese (Simplified)")},
-			{code:"zh-TW",name:$L("Chinese (Traditional)")}
+			{code:"zh-TW",name:$L("Chinese (Traditional)")},
+			{code:"zh-HK",name:$L("Chinese (Hong Kong)")},
 				]
   }
 );
@@ -229,9 +230,19 @@ setPrefsWidgets: function(Preferences) {
   this.FullscreenToggleModel.value = Preferences.Fullscreen;
   this.RotateToggleModel.value = Preferences.MapRotate;
   this.MaptoToggleModel.value = Preferences.MaptoOverride;
-  this.controller.get('LangOverrideField').innerHTML = Preferences.APILang.name;
- 
-	
+  var a = this.containsCode(this.LangListModel.items, Preferences.APILang.code);
+  this.controller.get('LangOverrideField').innerHTML = $L(this.LangListModel.items[a].name);
+ 	
+},
+
+containsCode: function(a, obj) {
+    var i = a.length;
+    while (i--) {
+       if (a[i].code === obj) {
+           return i;
+       }
+    }
+    return 0;
 },
 	
 handleCommand: function(event) {

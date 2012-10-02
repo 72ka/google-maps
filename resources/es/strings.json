@@ -1,5 +1,13 @@
 {
 	"ZERO_RESULTS": "Sin ruta",
+	"Today": "Hoy", 
+	"Date": "Día", 
+	"Time": "Hora", 
+	"Provide route alternatives": "Proporcionar alternativas", 
+	"Avoid highways": "Evitar autopistas", 
+	"Avoid tolls": "Evitar peajes", 
+	"Arrival": "Llegada", 
+	"Departure": "Salida", 
 	"Transit": "Transporte público", 
 	"More": "Más", 
 	"Open hours:": "Horario:", 

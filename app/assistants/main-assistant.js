@@ -258,6 +258,10 @@ this.MapHoldEventHandler = this.MapHold.bindAsEventListener(this);
 this.MapHold = this.controller.get('map_canvas');
 Mojo.Event.listen(this.MapHold, Mojo.Event.hold, this.MapHoldEventHandler);
 
+//setup map-tap listener, start listening only for webOS 2.2.x in webos2events function
+this.MapTapEventHandler = this.MapTap.bindAsEventListener(this);
+this.MapTap = this.controller.get('map_canvas');
+
 //define mousedown follow listener
 this.mousedownInterruptsFollowHandler = this.mousedownInterruptsFollow.bindAsEventListener(this);
 
@@ -753,7 +757,7 @@ this.mapStyleNight = [
 },
 
 handleCommand: function(event) {
-	//Mojo.Log.info("**** EVENT CMDMENU  %j ****", event.type);
+	//Mojo.Log.info("**** EVENT CMDMENU  %j ****", event.count);
 	if(event.type == Mojo.Event.commandEnable && (event.command == Mojo.Menu.helpCmd || event.command == Mojo.Menu.prefsCmd)) {
       event.stopPropagation();
     };
@@ -783,6 +787,7 @@ handleCommand: function(event) {
 																				      {secondaryIconPath:'images/maptype-hybrid.png', label: $L('Hybrid'), command: 'Hybrid', chosen: this.ActualMapType[1]},
 																				      {secondaryIconPath:'images/maptype-terrain.png', label: $L('Terrain'), command: 'Terrain', chosen: this.ActualMapType[2]},
 																				      {secondaryIconPath:'images/maptype-satellite.png', label: $L('Satellite'), command: 'Satellite', chosen: this.ActualMapType[3]},
+																				      {secondaryIconPath:'images/traffic-icon.png', label: $L('Traffic'), command: 'do-traffic', chosen: this.TrafficVisibile},
 																				      {secondaryIconPath:'images/map-bubble-arrow-blue.png', label: $L('More') + ' ...', command: 'do-more', chosen: false}  
 																				  ]
 																				});
@@ -878,6 +883,14 @@ cleanup: function() {
 		Mojo.Event.stopListening(this.OriginMarkersButton, Mojo.Event.tap, this.OriginMarkersButtonEventHandler);
 		Mojo.Event.stopListening(this.DestinationMarkersButton, Mojo.Event.tap, this.DestinationMarkersButtonEventHandler);
 		Mojo.Event.stopListening(this.MapHold, Mojo.Event.hold, this.MapHoldEventHandler);
+		Mojo.Event.stopListening(this.MapTap, Mojo.Event.tap, this.MapTapEventHandler);
+		Mojo.Event.stopListening(this.TimePickerRadio, Mojo.Event.propertyChange, this.TimePickerRadioEventHandler);
+		this.TransitDateField.stopObserving(Mojo.Event.tap, this.TransitDateFieldEventHandler);
+		Mojo.Event.stopListening(this.TransitTimePicker, Mojo.Event.propertyChange, this.TransitPickerEventHandler);
+		Mojo.Event.stopListening(this.controller.get("RouteAlternatives"), Mojo.Event.propertyChange, this.RouteAlternativesHandler);
+		Mojo.Event.stopListening(this.controller.get("AvoidHighways"), Mojo.Event.propertyChange, this.AvoidHighwaysHandler);
+		Mojo.Event.stopListening(this.controller.get("AvoidTolls"), Mojo.Event.propertyChange, this.AvoidTollsHandler);
+		
 },
 
 
@@ -1090,7 +1103,7 @@ if (this.devfakegps) {
 			this.circle.bindTo('center', this.MyLocMarker, 'position');
 		} catch (error) {
 			Mojo.Log.info("Warning: MyLocMarker not defined");
-			};
+		};
 
 			if (this.accuracy != this.oldaccuracy) {
 				this.circle.setRadius(this.accuracy); // update accuracy circle
@@ -1098,8 +1111,8 @@ if (this.devfakegps) {
 			};
 			
 			//follow the map
-			if (gps.heading != -1 && this.followMap && this.Preferences.MapRotate && (gps.velocity > 0.83)) { //funguje
-				this.MapHeadingRotate(-gps.heading); //funguje
+			if (gps.heading != -1 && this.followMap && (gps.velocity > 0.83)) {
+				if (this.Preferences.MapRotate) { this.MapHeadingRotate(-gps.heading)};
 				this.setScoutMarker(Math.round(gps.heading));
 			};
 			//set marker arrow based on heading for velocity > 2km/h
@@ -1256,7 +1269,7 @@ moreMapLayers: function (event) {
               //placeY: 200,
 			  items: [
 			      {secondaryIconPath:'images/night.png', label: $L('Night'), command: 'do-night', chosen: this.NightVisibile},
-			      {secondaryIconPath:'images/traffic-icon.png', label: $L('Traffic'), command: 'do-traffic', chosen: this.TrafficVisibile},
+			      //{secondaryIconPath:'images/traffic-icon.png', label: $L('Traffic'), command: 'do-traffic', chosen: this.TrafficVisibile},
 			      {secondaryIconPath:'images/transit.png', label: $L('Transit'), command: 'do-transit', chosen: this.TransitVisibile},
 			      {secondaryIconPath:'images/bike.png', label: $L('Bike'), command: 'do-bike', chosen: this.BikeVisibile},
 			      {secondaryIconPath:'images/weather.png', label: $L('Weather'), command: 'do-weather', chosen: this.WeatherVisibile},
@@ -1497,6 +1510,9 @@ WebOS2Events: function (action) {
 		 
 		 //setup flick listener
 		 Mojo.Event.listen(this.ListeningElement, Mojo.Event.flick, this.FlickEventHandler);
+		 
+		 //start mapTap listener
+		 Mojo.Event.listen(this.MapTap, Mojo.Event.tap, this.MapTapEventHandler);
 
            break;
          case 'stop':
@@ -1509,6 +1525,9 @@ WebOS2Events: function (action) {
            
            //stop the flick listener
            Mojo.Event.stopListening(this.ListeningElement, Mojo.Event.flick, this.FlickEventHandler);
+           
+           //stop mapTap listener
+		   Mojo.Event.stopListening(this.MapTap, Mojo.Event.tap, this.MapTapEventHandler);
 
 		   break;
       };
@@ -2805,6 +2824,7 @@ Directions: function (position) {
 		this.origin = this.MyLocation;
 		// fill the origin field with MyLocation
 		this.controller.get("OriginSearchField").value = $L("My Location");
+		this.controller.get('DestinationSearchField').focus();
 	} else if (this.controller.get('OriginSearchField').value == "") {
 		this.controller.get('OriginSearchField').focus();
 	};
@@ -4226,6 +4246,22 @@ updateDirectListHeight: function () {
 	Mojo.Log.info("INNER HEIGHT ", this.controller.window.innerHeight);
 	};
 	
+},
+
+MapTap: function (event) {
+
+	 switch (event.count) {
+        case 1:
+            break;
+        case 2:
+			this.setStatusPanel($L("Zooming in..."));
+			this.blockGPSFix = true;
+			var point = new google.maps.Point(event.down.x, event.down.y);
+			var taplatlng = this.overlay.getProjection().fromContainerPixelToLatLng(point);
+			this.map.panTo(taplatlng);
+			this.map.setZoom(this.map.getZoom() + 1);
+            break;
+		};
 },
 
 handleCmdMenuHold: function () {
