@@ -17,6 +17,8 @@ var DefaultPreferences = {
 		Cloud: false,
 		Night: false,
 		LastLoc: {lat: 37.39281, lng: -122.04046199999999, zoom: 2},
+		LengthUnits: "metric",
+		Temperature: "celsius",
 	};
 //Cookies.MapCookie.remove();
 //Cookies.TrafficCookie.remove();

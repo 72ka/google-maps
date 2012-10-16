@@ -1,9 +1,7 @@
 .phoney {
 	background: -webkit-gradient(linear,left top,left bottom,color-stop(0, rgb(112,112,112)),color-stop(0.51, rgb(94,94,94)),color-stop(0.52, rgb(57,57,57)));
-	//background-image:url(../images/map-bubble-bg.png); background-size: 100%;
 }
 .phoney-clicked {
 	background: -webkit-gradient(linear,left top,left bottom,color-stop(0, rgb(112,112,112)),color-stop(0.51, rgb(94,94,94)),color-stop(0.52, rgb(57,57,57)));
-	//background-image:url(../images/map-bubble-bg-clicked.png); background-size: 100%;
 }
 

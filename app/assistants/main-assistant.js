@@ -472,6 +472,10 @@ this.mapStyleNight = [
 ]
 ];
 
+Mojo.Log.info("*************************************");
+Mojo.Log.info("* GOOGLE MAPS API VERSION: ", this.getApiVersion());
+Mojo.Log.info("*************************************");
+
     var myOptions = {
         zoom: 2,
         center: this.MyLocation,
@@ -647,7 +651,7 @@ this.mapStyleNight = [
     
 	//Setup Weather layer
 	this.weatherLayer = new google.maps.weather.WeatherLayer({
-		suppressInfoWindows: true
+		suppressInfoWindows: true,
 	});
 	this.WeatherVisibile = this.Preferences.Weather;
 	if (this.WeatherVisibile) {this.weatherLayer.setMap(this.map)};
@@ -674,7 +678,8 @@ this.mapStyleNight = [
 	this.map.setCenter(lastlatlng);
 	this.map.setZoom(this.Preferences.LastLoc.zoom);
 	
-	/* ToDo: Panoramio Layer - unusable on WebOS 2.x devices, because the pictures are not touchable
+	/* ToDo: Panoramio Layer - unusable on WebOS 2.x devices, because the pictures are not touchable */
+	/*
 	//Setup Panoramio Layer
 	var panoramioOptions = {
 		suppressInfoWindows: true,
@@ -852,6 +857,10 @@ handleCommand: function(event) {
             //handle Back swipe event   
             if (event.type == Mojo.Event.back) {
 				this.handleBackSwipe(event);
+			};
+			//handle Forward swipe event   
+            if (event.type == Mojo.Event.forward) {
+				this.handleForwardSwipe(event);
 			}
   },
 
@@ -1084,7 +1093,8 @@ if (this.devfakegps) {
 	if (this.followMap) {
 		this.map.panTo(this.MyLocation);		
 		if (gps.velocity > 0.5) {
-			var velocity = Math.round(gps.velocity*3.6) + " km/h";
+			//var velocity = Math.round(gps.velocity*3.6) + " km/h";
+			var velocity = this.getVelocityFromGPS(gps.velocity);
 			this.SetTopMenuText(velocity);
 		} else {
 			this.SetTopMenuText($L("Google Maps"));
@@ -1360,6 +1370,8 @@ activate: function(args) {
 				Mojo.Log.info("*** LAUNCH MAPTO DIRECTIONS ***", this.mapto);
 				this.handleMapTo();
 				};
+				//remove variable
+				this.LaunchArg.Action = undefined;
 		};
 
 		this.WebOS2Events('start');
@@ -1711,6 +1723,9 @@ Weather: function() {
 
 		if (this.WeatherVisibile == false) {
 		this.setStatusPanel($L("Show") + " " + $L("Weather") + "...", 2);
+		this.weatherLayer.setOptions({
+				temperatureUnits: this.getGoogleUnitSystem(this.Preferences.Temperature)
+			});
   		this.weatherLayer.setMap(this.map);
   		//the weather is visible only on zoom lower than 12
   		if (this.map.getZoom() > 12) this.map.setZoom(12);
@@ -2954,7 +2969,7 @@ CalcRoute: function() {
   		var request = {
           origin: this.origin,
           destination: this.destination,
-          /** ToDo's **/
+          unitSystem: this.getGoogleUnitSystem(this.Preferences.LengthUnits),
           provideRouteAlternatives: this.routeAlternatives,
           avoidHighways: this.avoidHighways,
 		  avoidTolls: this.avoidTolls,
@@ -3700,7 +3715,7 @@ getMarkerFromList: function (action) {
 	MarkersArray[3] = this.Favorites //favorites markers
 
 	
-	this.controller.stageController.pushScene({'name': 'markers-list', transition: Mojo.Transition.none}, MarkersArray);
+	this.controller.stageController.pushScene({'name': 'markers-list', transition: Mojo.Transition.none}, MarkersArray, this.Preferences);
 },
 
 OriginMarkersButtonTap: function (event) {
@@ -4092,12 +4107,14 @@ setScoutMarker: function (heading) {
 	var originX = 16/(360/heading);
 	originX = Math.round(originX);
 	originX = String("0" + originX).slice(-2);
+	var anchor = Math.round(21*this.ImageRatio);
+	var scaledsize = Math.round(42*this.ImageRatio);
 	var scoutMarker = new google.maps.MarkerImage('images/1.5/blue_arrow/sprite_rotation' + originX + '.png',
 				new google.maps.Size(65, 65),
 				new google.maps.Point(0, 0), // origin
-				new google.maps.Point(32, 32), // anchor
-				//new google.maps.Size(49, 49) //Scale to - kdyz neni aktivovano, dela to hranate kolecko na Pre3
-				null
+				new google.maps.Point(anchor, anchor), // anchor
+				new google.maps.Size(scaledsize, scaledsize) //Scale to - kdyz neni aktivovano, dela to hranate kolecko na Pre3
+				//null
 	);
 	
 	this.MyLocMarker.setIcon(scoutMarker);
@@ -4265,36 +4282,77 @@ MapTap: function (event) {
 },
 
 handleCmdMenuHold: function () {
-	Mojo.Log.info("CMD MENU HOLD ");
+	//Mojo.Log.info("CMD MENU HOLD ");
 },
 
+getGoogleUnitSystem: function (units) {
+	
+	switch (units) {
+        case "metric":
+            return google.maps.UnitSystem.METRIC;
+            break;
+        case "imperial":
+			return google.maps.UnitSystem.IMPERIAL;
+			break;
+		case "fahrenheit":
+			return google.maps.weather.TemperatureUnit.FAHRENHEIT;
+			break;
+		case "celsius":
+			return google.maps.weather.TemperatureUnit.CELSIUS;
+			break;
+	};
+	
+},
+
+getVelocityFromGPS: function (gpsVelocity) {
+	
+	switch (this.Preferences.LengthUnits) {
+        case "metric":
+            return Math.round(gpsVelocity*3.6) + " km/h";
+            break;
+        case "imperial":
+			return Math.round(gpsVelocity*2.23693629) + " mph";
+			break;
+	};
+	
+},
+
+handleForwardSwipe: function (event) {
+	/** ToDo **/
+	Mojo.Log.info("** Forward ***");
+},
+
+getApiVersion: function () {
+	
+	  var scripts = document.getElementsByTagName("SCRIPT");
+	  var api = "unknown";
+      for (var n = 0 ; n < scripts.length ; n++ ){ 
+        var a=scripts[n].src; 
+        if (a.indexOf("api-3")>-1) {
+			api = a.substring(a.indexOf("api-3")+4,a.indexOf("api-3")+10);
+        }; 
+      };
+   return api;
+},
 
 
 //EXPERIMENTAL ODTUD
 
 Debug: function() {
 	
+	/*
+    var latlng = new google.maps.LatLng(37., -95.5);
+    var imageBounds = new google.maps.LatLngBounds(
+        new google.maps.LatLng(24.0,-125.0),
+        new google.maps.LatLng(50.0,-66.0));
+
+    var oldmap = new google.maps.GroundOverlay(
+        "http://sites.google.com/site/3davel/home/light-pollution/lp2001/gmap_images/lp2001_v5_trans.png?attredirects=0&d=1",
+        imageBounds);
+    oldmap.setMap(this.map);
+	*/
+  
 	//Mojo.Log.info("USER AGENT: ", navigator.userAgent);
-	
-	//$("needle").show();
-	
-	
-	//this.cevent.magHeading = this.cevent.magHeading + 22.5;
-	//this.MapHeadingRotate(this.cevent.magHeading);
-	//Mojo.Log.info("CHEADING: ", this.cevent.magHeading);
-	//this.compassactive = true;
-	//this.compassHandler(this.cevent.magHeading);
-	
-	//this.setScoutMarker(75);
-	
-	//$("pulse").addClassName("active");
-	//$("pulse").style.marginLeft = "150px;";
-	
-	//document.getElementById("pulse").setAttribute("style", "margin-top: 150px;");
-	//this.pulseDot(this.MyLocation);
-	
-	//var index = this.directionsDisplay.getRouteIndex();
-	//Mojo.Log.info("DIRECTION ROUTE INDEX: ", index);
 
 }
 

@@ -43,6 +43,7 @@ document.getElementById("OverrideDirInfoText").innerHTML = $L("If enabled, the a
 document.getElementById("ExperimentalTitleText").innerHTML = $L("Experimental features (UNSTABLE)");
 document.getElementById("MapHeadingText").innerHTML = $L("Map Heading");
 document.getElementById("MapHeadingInfoText").innerHTML = $L("When enabled and following map is active, the map is rotated to the actual heading if the velocity is higher than 3km/h.<br><br>");
+document.getElementById("UnitsTitleText").innerHTML = $L("Units");
 
 // Fullscreen toggle button
 this.controller.setupWidget("FullscreenToggle",
@@ -182,7 +183,45 @@ this.LangListEventHandler = this.ListTap.bindAsEventListener(this);
 this.LangList = this.controller.get('LangList');
 Mojo.Event.listen(this.LangList, Mojo.Event.listTap, this.LangListEventHandler);
 
+//setup Length units list selector
+this.controller.setupWidget("LengthListselector",
+  this.LengthListselectorattributes = {
+      choices: [
+          {label: $L("Metric"), value: "metric"},
+          {label: $L("Imperial"), value: "imperial"}
+      ],
+      label: $L("Speed")+"/"+$L("Length")
+  },
+  this.LengthListselectormodel = {
+      value: "metric",
+      disabled: false
+  }
+);
 
+// setup Lenght units listener
+this.LengthListselectorEventHandler = this.LengthListselector.bindAsEventListener(this);
+this.LengthListselector = this.controller.get('LengthListselector');
+Mojo.Event.listen(this.LengthListselector, Mojo.Event.propertyChange, this.LengthListselectorEventHandler);
+  
+//setup Temperature units list selector
+this.controller.setupWidget("TemperatureListselector",
+  this.TemperatureListselectorattributes = {
+      choices: [
+          {label: $L("Celsius"), value: "celsius"},
+          {label: $L("Fahrenheit"), value: "fahrenheit"}
+      ],
+      label: $L("Temperature")
+  },
+  this.TemperatureListselectormodel = {
+      value: "celsius",
+      disabled: false
+  }
+);
+
+// setup temperature units listener
+this.TemperatureListselectorEventHandler = this.TemperatureListselector.bindAsEventListener(this);
+this.TemperatureListselector = this.controller.get('TemperatureListselector');
+Mojo.Event.listen(this.TemperatureListselector, Mojo.Event.propertyChange, this.TemperatureListselectorEventHandler);
 
 //SETUP PREFERENCES COOKIE
 
@@ -232,6 +271,8 @@ setPrefsWidgets: function(Preferences) {
   this.MaptoToggleModel.value = Preferences.MaptoOverride;
   var a = this.containsCode(this.LangListModel.items, Preferences.APILang.code);
   this.controller.get('LangOverrideField').innerHTML = $L(this.LangListModel.items[a].name);
+  this.LengthListselectormodel.value = Preferences.LengthUnits;
+  this.TemperatureListselectormodel.value = Preferences.Temperature;
  	
 },
 
@@ -257,31 +298,25 @@ handleCommand: function(event) {
 
 handleFullscreenToggle: function(event) {
 	this.Preferences.Fullscreen = event.model.value;
-	//Mojo.Log.info("** FullscreenToggleButton *** %j", event.model.value);
 	this.PrefsCookie.put(this.Preferences);
 },
 
 handleRotateToggle: function(event) {
 	this.Preferences.MapRotate = event.model.value;
-	//Mojo.Log.info("** RotateToggleButton *** %j", event.model.value);
 	this.PrefsCookie.put(this.Preferences);
 },
 
 handleMaptoToggle: function(event) {
 	this.Preferences.MaptoOverride = event.model.value;
-	//Mojo.Log.info("** MaptoToggleButton *** %j", event.model.value);
 	this.PrefsCookie.put(this.Preferences);
 },
 
 handleLangOverrideField: function(event) {
-	Mojo.Log.info("** TAP *** %j");
-	
 	//this will open the drawers state
 	this.controller.get('LangDrawer').mojo.setOpenState(true);
 },
 
 ListTap: function (event) {
-	Mojo.Log.info("** TAP *** %j", event.item.name);
 	//this will close the drawers state
 	this.controller.get('LangDrawer').mojo.setOpenState(false);
 	
@@ -292,6 +327,16 @@ ListTap: function (event) {
 	//read the name of the lang from the variable
 	this.controller.get('LangOverrideField').innerHTML = this.Preferences.APILang.name;
 	
+},
+
+LengthListselector: function (event) {
+	this.Preferences.LengthUnits = event.value;
+	this.PrefsCookie.put(this.Preferences);
+},
+
+TemperatureListselector: function (event) {
+	this.Preferences.Temperature = event.value;
+	this.PrefsCookie.put(this.Preferences);
 },
 
 isTouchPad: function(){

@@ -202,6 +202,7 @@ InfoBubble.prototype.extend = function(obj1, obj2) {
  */
 InfoBubble.prototype.buildDom_ = function() {
   var bubble = this.bubble_ = document.createElement('DIV');
+  bubble.className = 'infobubble';
   bubble.style['position'] = 'absolute';
   bubble.style['zIndex'] = this.baseZIndex_;
   var that = this;

@@ -130,6 +130,7 @@ if(this.isTouchPad()){
 this.pop = [];
 this.pop.action = null;
 this.pop.id = null;
+this.openhoursNote = "";
 
 //changes the icon upon favorite or not
 this.changeFavIcon(this.place.favorite);
@@ -159,13 +160,28 @@ if (this.place.rating) {
 	};
 	
 if (this.place.opening_hours != undefined) {
+	
 	var d = new Date();
-	var n = d.getDay();
-	Mojo.Log.info("Opening %j ", this.place.opening_hours.periods[n]);
+	var n = d.getDay()-1;
+	var daynames = [$L("Monday"),$L("Tuesday"),$L("Wednesday"),$L("Thursday"),$L("Friday"),$L("Saturday"),$L("Sunday")]
 	$("opening_hours").show();
 	$("OpenhoursText").innerHTML = $L("Open hours:");
-	$("OpenHoursIcon").innerHTML = (this.place.opening_hours.open_now ? '<img src="images/hours_open.png">' : '<img src="images/hours_closed.png">');
-	$("TodayOpenText").innerHTML = $L("Today: ") + this.place.opening_hours.periods[n].open.time.insert(2, ":") + " - " + this.place.opening_hours.periods[n].close.time.insert(2, ":");
+	this.openhoursNote = $L("Open hours:") + "\n";
+	
+	/* Fills the open hours week schedule */
+	for (day = 0; day < 7; day++){
+				  var opennow = (this.place.opening_hours.open_now ? '<font color="green">' : '<font color="red">');
+				  var todaybold = ((n==day) ? '<b>' + opennow : '</font>');
+				  document.getElementById('nameday'+day).innerHTML = todaybold + daynames[day] + ": " + todaybold;
+				  if (this.place.opening_hours.periods[day]) {
+						document.getElementById('hoursday'+day).innerHTML = todaybold + this.place.opening_hours.periods[day].open.time.insert(2, ":") + " - " + this.place.opening_hours.periods[day].close.time.insert(2, ":") + todaybold;
+						this.openhoursNote = this.openhoursNote + daynames[day] + ": " + this.place.opening_hours.periods[day].open.time.insert(2, ":") + " - " + this.place.opening_hours.periods[day].close.time.insert(2, ":") + "\n";
+					} else {
+						document.getElementById('hoursday'+day).innerHTML = todaybold + $L("CLOSED") + todaybold;
+						this.openhoursNote = this.openhoursNote + daynames[day] + ": " + $L("CLOSED") + "\n";
+					};
+				  
+	};
 };
 if (this.place.url) { $("url").innerHTML = "<a href='" + this.place.url + "'>" + $L("Show full Google page") + "</a>"; };
 if (this.place.website) { $("website").innerHTML = $L("Home page") + ":<br>" + "<a href='" + this.place.website + "'>" + this.place.website + "</a>"; };
@@ -249,12 +265,18 @@ sendEmail: function () {
 
 var gURL = "";
 var website = "";
+var phone = "";
+var openhoursEmail = new Array();
+var openhoursEmailText = "";
 
 var Address = "<br><b>" + $L("Address") + ":</b> " + this.place.formatted_address;
 if (this.place.url) gURL = "<br><b>" + $L("Google Maps URL") + ": </b><a href='" + this.place.url + "'>" + this.place.url + "</a>";
 if (this.place.website) website = "<br><b>" + $L("Home page") + ":</b> " + "<a href='" + this.place.website + "'>" + this.place.website + "</a>";
+if (this.place.formatted_phone_number) phone = "<br><b>" + $L("Phone") + ":</b> " + this.place.formatted_phone_number;
+openhoursEmail = this.openhoursNote.split("\n");
+openhoursEmailText = "<br><b>" + openhoursEmail[0] + "</b><br>" + openhoursEmail[1] + "<br>" + openhoursEmail[2] + "<br>" + openhoursEmail[3] + "<br>" + openhoursEmail[4] + "<br>" + openhoursEmail[5] + "<br>" + openhoursEmail[6] + "<br>" + openhoursEmail[7] + "<br>";
 
-var EmailText = "<b>" + $L("Name") + ":</b> " + this.place.name + Address + "<br><b>" + $L("Location") + ":</b> " + this.place.geometry.location + gURL + website + "</p><i><h6><font color='grey'>" + $L("-- Sent from") + " <a href='http://www.webosnation.com/google-maps-72ka'>" + $L("homebrew Google Maps</a> application for WebOS") + "</font><h6></i>";
+var EmailText = "<b>" + $L("Name") + ":</b> " + this.place.name + Address + "<br><b>" + $L("Location") + ":</b> " + this.place.geometry.location + gURL + phone + website + openhoursEmailText + "</p><i><h6><font color='grey'>" + $L("-- Sent from") + " <a href='http://www.webosnation.com/google-maps-72ka'>" + $L("homebrew Google Maps</a> application for WebOS") + "</font><h6></i>";
 				
 
 
@@ -283,11 +305,13 @@ sendSMS: function () {
 
 var gURL = "";
 var website = "";
+var phone = "";
 
 if (this.place.url) gURL = " gURL: " + this.place.url;
 if (this.place.website) website = " WWW: " + this.place.website;
+if (this.place.formatted_phone_number) phone = ", " + $L("Phone") + ": " + this.place.formatted_phone_number;
 		
-var SMSText = this.place.name + ", " + this.place.formatted_address + " " + $L("Loc: ") + this.place.geometry.location + gURL + website;
+var SMSText = this.place.name + ", " + this.place.formatted_address + " " + $L("Loc: ") + this.place.geometry.location + gURL + phone + website;
 				
 
 
@@ -310,12 +334,15 @@ sendToClipboard: function () {
 
 var gURL = "";
 var website = "";
+var phone = "";
 
 var Address = ", " + $L("Address") + ": " + this.place.formatted_address;
 if (this.place.url) gURL = ", " + $L("Google Maps URL") + ": " + this.place.url;
 if (this.place.website) website = ", " + $L("Home page") + ": " + this.place.website;
+if (this.place.formatted_phone_number) phone = ", " + $L("Phone") + ": " + this.place.formatted_phone_number;
 
-var CBtext = $L("Name") + ": " + this.place.name + Address + ", " + $L("Location") + ": " + this.place.geometry.location + gURL + website;
+
+var CBtext = $L("Name") + ": " + this.place.name + Address + ", " + $L("Location") + ": " + this.place.geometry.location + gURL + phone + website + "\n" + this.openhoursNote;
 		
 this.controller.stageController.setClipboard(CBtext ,true);
 
@@ -332,7 +359,8 @@ var contact = {
 		type: 'type_work',
 		streetAddress: this.place.formatted_address	
 	}],
-	note: $L('Added by homebrew Google Maps.')
+	//note: $L('Added by homebrew Google Maps.')
+	note: this.openhoursNote + "\n\n" + $L('Added by homebrew Google Maps.')
 };
 
 //add phone number, if we have it

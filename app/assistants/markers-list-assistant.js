@@ -1,6 +1,7 @@
-function MarkersListAssistant(Markers) {
+function MarkersListAssistant(Markers, Preferences) {
 	// place is response from google place service
 	this.Markers = Markers;
+	this.Preferences = Preferences;
 }
 
 MarkersListAssistant.prototype = {
@@ -308,7 +309,8 @@ FillIndexList: function(index, model) {
 			};
 			
 			if (this.Markers[index][i].place.distance) {
-				distanceElement = (this.Markers[index][i].place.distance/1000).toFixed(2) + " km ";
+				distanceElement = this.getDistanceInCorrectUnits(this.Markers[index][i].place.distance);
+				//distanceElement = (this.Markers[index][i].place.distance/1000).toFixed(2) + " km ";
 			};
 			
 			if (this.Markers[index][i].place.favorite) {
@@ -317,6 +319,19 @@ FillIndexList: function(index, model) {
 				
 				model.items[i] = {name: this.Markers[index][i].place.name, address: this.Markers[index][i].place.vicinity, distance: distanceElement, rating: ratingElement, favorite: favoriteElement, place: this.Markers[index][i].place };
 			
+	};
+	
+},
+
+getDistanceInCorrectUnits: function (distance) {
+	
+	switch (this.Preferences.LengthUnits) {
+        case "metric":
+            return (distance/1000).toFixed(2) + " km ";
+            break;
+        case "imperial":
+			return (distance*0.000621371192).toFixed(2) + " " + $L("miles") + " ";
+			break;
 	};
 	
 },

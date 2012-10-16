@@ -671,13 +671,15 @@ div#urlbar-title {
 
 /* INFOBUBLE */
 
+.infobubble {
+	opacity: 0.9;
+}
+
 .phoney {
-	//background: -webkit-gradient(linear,left top,left bottom,color-stop(0, rgb(112,112,112)),color-stop(0.51, rgb(94,94,94)),color-stop(0.52, rgb(57,57,57)));
-	//background-image:url(../images/map-bubble-bg.png); background-size: 100%;
+
 }
 .phoney-clicked {
-	//background: -webkit-gradient(linear,left top,left bottom,color-stop(0, rgb(112,112,112)),color-stop(0.51, rgb(94,94,94)),color-stop(0.52, rgb(57,57,57)));
-	//background-image:url(../images/map-bubble-bg-clicked.png); background-size: 100%;
+
 }
 .phoneytext {
 	text-shadow: 0 -1px 0 #000; color: #fff; font-family: Helvetica Neue, Helvetica, arial; font-size: 18px; padding: 4px 45px 4px 15px; font-weight: bold;
@@ -923,4 +925,7 @@ div#urlbar-title {
 	
 }
 
+#OpeningHoursWeek {
+	//font-size: 12px;
+}
 
