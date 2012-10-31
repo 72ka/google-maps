@@ -1,12 +1,12 @@
 function MarkersListAssistant(Markers, Preferences) {
 	// place is response from google place service
-	this.Markers = Markers;
 	this.Preferences = Preferences;
 }
 
 MarkersListAssistant.prototype = {
 setup: function() {
 	
+Mojo.Log.info("GLOBAL: %j ", MarkersArray.length);
 //setup UI widgets
 
 
@@ -54,7 +54,8 @@ Mojo.Event.listen(this.MarkersDrawer, Mojo.Event.tap, this.MarkersDrawerEventHan
 this.controller.setupWidget("NearbyMarkersList",
 	{
 		itemTemplate: 'markers-list/listentry',
-		swipeToDelete: false,
+		swipeToDelete: true,
+		autoconfirmDelete: true,
         reorderable: false
 	},
        this.NearbyListModel = {
@@ -68,11 +69,17 @@ this.NearbyMarkersListEventHandler = this.ListTap.bindAsEventListener(this);
 this.NearbyMarkersList = this.controller.get('NearbyMarkersList');
 Mojo.Event.listen(this.NearbyMarkersList, Mojo.Event.listTap, this.NearbyMarkersListEventHandler);
 
+//setup NearbyMarkersList delete listener
+this.DeleteMarkersListEventHandler = this.MarkersListDelete.bindAsEventListener(this);
+Mojo.Event.listen(this.NearbyMarkersList, Mojo.Event.listDelete, this.DeleteMarkersListEventHandler);
+
+
 //setup Places list widget
 this.controller.setupWidget("MarkersList",
 	{
 		itemTemplate: 'markers-list/listentry',
-		swipeToDelete: false,
+		swipeToDelete: true,
+		autoconfirmDelete: true,
         reorderable: false
 		//dividerFunction : this.whatPosition
 	},
@@ -86,6 +93,9 @@ this.controller.setupWidget("MarkersList",
 this.MarkersListEventHandler = this.ListTap.bindAsEventListener(this);
 this.MarkersList = this.controller.get('MarkersList');
 Mojo.Event.listen(this.MarkersList, Mojo.Event.listTap, this.MarkersListEventHandler);
+
+//setup MarkersList delete listener
+Mojo.Event.listen(this.MarkersList, Mojo.Event.listDelete, this.DeleteMarkersListEventHandler);
 
 //setup Favorites list widget
 this.controller.setupWidget("FavoritesList",
@@ -118,7 +128,7 @@ this.controller.setupWidget("MyLocationList",
 	},
        this.MyLocationListModel = {
 		items : [ 
-				{name: $L("My Location"), address: $L("Unknown"), distance: $L("Loc: ") + this.Markers[2].place.geometry.location, place: this.Markers[2].place}
+				{name: $L("My Location"), address: $L("Unknown"), distance: $L("Loc: ") + MarkersArray[2].place.geometry.location, place: MarkersArray[2].place}
 				]
   }
 );
@@ -147,18 +157,18 @@ this.pop.action = null;
 
 
 //Geocode My Location to address
-this.GeocodeFromLatLng(this.Markers[2].place.geometry.location);	
+this.GeocodeFromLatLng(MarkersArray[2].place.geometry.location);	
 
 //Action is passed argument from main assistant, what to do
-this.Action = this.Markers.action;
-Mojo.Log.info("** ACTION *** %j", this.Markers.action);	
+this.Action = MarkersArray.action;
+Mojo.Log.info("** ACTION *** %j", MarkersArray.action);	
 
 //fill the lists
 this.UpdateList();
 
 //show containers, that contains markers
-if (this.Markers[0][0]) { $('NearbyContainer').show(); $('SortByContainer').show(); };
-if (this.Markers[1][0]) { $('PlacesContainer').show(); $('SortByContainer').show(); };
+if (MarkersArray[0][0]) { $('NearbyContainer').show(); $('SortByContainer').show(); };
+if (MarkersArray[1][0]) { $('PlacesContainer').show(); $('SortByContainer').show(); };
   
 if(this.isTouchPad()){
 
@@ -225,11 +235,11 @@ handleSortBy: function(SortBy) {
 	switch (SortBy) {
 
         case 'sort-relevance':
-			this.Markers[0].sort(function(a, b){
+			MarkersArray[0].sort(function(a, b){
 			 return a.place.relevance - b.place.relevance; //sort ascending
 			}.bind(this));
 			
-			this.Markers[1].sort(function(a, b){
+			MarkersArray[1].sort(function(a, b){
 			 return a.place.relevance - b.place.relevance; //sort ascending
 			}.bind(this));  
 			 
@@ -240,11 +250,11 @@ handleSortBy: function(SortBy) {
 			this.SortedBy = SortBy;
             break;
         case 'sort-distance':
-			this.Markers[0].sort(function(a, b){
+			MarkersArray[0].sort(function(a, b){
 			 return a.place.distance - b.place.distance; //sort ascending
 			}.bind(this));
 			
-			this.Markers[1].sort(function(a, b){
+			MarkersArray[1].sort(function(a, b){
 			 return a.place.distance - b.place.distance; //sort ascending
 			}.bind(this));
 			
@@ -255,14 +265,14 @@ handleSortBy: function(SortBy) {
 			this.SortedBy = SortBy;
             break;
         case 'sort-rating':
-			this.Markers[0].sort(function(a, b){
+			MarkersArray[0].sort(function(a, b){
 					 var ratingA = a.place.rating, ratingB = b.place.rating;
 					 if (!a.place.rating) {ratingA = 0}; //unrated places will be bottom
 					 if (!b.place.rating) {ratingB = 0}; //unrated places will be bottom
 					 return ratingB - ratingA; //sort descending
 			}.bind(this));
 			
-			this.Markers[1].sort(function(a, b){
+			MarkersArray[1].sort(function(a, b){
 					 var ratingA = a.place.rating, ratingB = b.place.rating;
 					 if (!a.place.rating) {ratingA = 0}; //unrated places will be bottom
 					 if (!b.place.rating) {ratingB = 0}; //unrated places will be bottom
@@ -296,29 +306,31 @@ FillFavorites: function (model) {
 
 FillIndexList: function(index, model) {
 	
-	for (var i = 0; i < this.Markers[index].length; i++) {
+	var i = 0;
+	for (var k = 0; k < MarkersArray[index].length; k++) {
 		
+		if (MarkersArray[index][k].tobedeleted != true) {	
+					
 			var ratingElement = '';
 			var distanceElement = '';
 			var favoriteElement = '';
-			
-			//Mojo.Log.info("** Marker image %j ***", this.Markers[index].place.formatted_phone_number);
-	
-			if (this.Markers[index][i].place.rating) {
-				ratingElement = '<div class="rating_bar"><div id="ratingstar" style="width: ' + this.Markers[index][i].place.rating*20 + '%;"></div></div>';
+
+			if (MarkersArray[index][k].place.rating) {
+				ratingElement = '<div class="rating_bar"><div id="ratingstar" style="width: ' + MarkersArray[index][k].place.rating*20 + '%;"></div></div>';
 			};
 			
-			if (this.Markers[index][i].place.distance) {
-				distanceElement = this.getDistanceInCorrectUnits(this.Markers[index][i].place.distance);
-				//distanceElement = (this.Markers[index][i].place.distance/1000).toFixed(2) + " km ";
+			if (MarkersArray[index][k].place.distance) {
+				distanceElement = this.getDistanceInCorrectUnits(MarkersArray[index][k].place.distance);
+				//distanceElement = (MarkersArray[index][i].place.distance/1000).toFixed(2) + " km ";
 			};
 			
-			if (this.Markers[index][i].place.favorite) {
+			if (MarkersArray[index][k].place.favorite) {
 				favoriteElement = "<img src='images/star-favorite.png'></img>";
 			};
 				
-				model.items[i] = {name: this.Markers[index][i].place.name, address: this.Markers[index][i].place.vicinity, distance: distanceElement, rating: ratingElement, favorite: favoriteElement, place: this.Markers[index][i].place };
-			
+			model.items[i] = {name: MarkersArray[index][k].place.name, address: MarkersArray[index][k].place.vicinity, distance: distanceElement, rating: ratingElement, favorite: favoriteElement, place: MarkersArray[index][k].place };
+			i++;
+		};
 	};
 	
 },
@@ -499,6 +511,23 @@ updateFavorites: function (markerindex) {
 	this.UpdateList();
 },
 
+MarkersListDelete: function (event) {
+	Mojo.Log.info("** To Be deleted: %j ***", event.item.place.id);	
+	for (var type = 0; type < MarkersArray.length; type++) {
+			for (var k = 0; k < MarkersArray[type].length; k++) {			
+				if (MarkersArray[type][k].place && MarkersArray[type][k].place.id != undefined) {
+					if (event.item.place.id == MarkersArray[type][k].place.id) {
+						MarkersArray[type][k].tobedeleted = true;
+					};
+				} else if (MarkersArray[type][k].id != undefined) {
+					if (event.item.place.id == MarkersArray[type][k].id) {
+						MarkersArray[type][k].tobedeleted = true;
+					};
+				};			
+			};
+	};	
+},
+
 cleanup: function() {
 		
 		// Stop all listeners
@@ -506,6 +535,7 @@ cleanup: function() {
 		Mojo.Event.stopListening(this.MarkersDrawer, Mojo.Event.tap, this.MarkersDrawerEventHandler);
 		Mojo.Event.stopListening(this.NearbyMarkersList, Mojo.Event.listTap, this.NearbyMarkersListEventHandler);
 		Mojo.Event.stopListening(this.MarkersList, Mojo.Event.listTap, this.MarkersListEventHandler);
+		Mojo.Event.stopListening(this.MarkersList, Mojo.Event.listDelete, this.DeleteMarkersListEventHandler);
 		Mojo.Event.stopListening(this.MyLocationList, Mojo.Event.listTap, this.MyLocationListEventHandler);
 		Mojo.Event.stopListening(this.SortButton, Mojo.Event.tap, this.SortButtonEventHandler);
 		

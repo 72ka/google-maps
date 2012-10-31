@@ -2,9 +2,9 @@ html, body {
 	width:100%;
  	height:100%;
 }
-
-#map_canvas img{
-	overflow: visible !important;
+/* Disable shadow of infowindow - issues on Touchpad */
+#map_canvas img[src*="iws3.png"] {
+    display: none;
 }
 
 #map_canvas {
@@ -672,6 +672,8 @@ div#urlbar-title {
 /* INFOBUBLE */
 
 .infobubble {
+	position: absolute;
+	z-Index: 10002;
 	opacity: 0.9;
 }
 
@@ -877,7 +879,7 @@ div#urlbar-title {
 	height: 50px;
 	width: 50px;
 	position: absolute;
-	z-Index:10001;
+	z-Index: 10000;
 	opacity: 0;
 	-webkit-transition-property: opacity;
 	-webkit-animation: pulsation 1s ease-in;

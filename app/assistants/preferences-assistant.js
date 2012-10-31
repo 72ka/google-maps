@@ -173,7 +173,7 @@ this.controller.setupWidget("LangList",
 			{code:"vi",name:$L("Vietnamese")},
 			{code:"zh-CN",name:$L("Chinese (Simplified)")},
 			{code:"zh-TW",name:$L("Chinese (Traditional)")},
-			{code:"zh-HK",name:$L("Chinese (Hong Kong)")},
+			{code:"zh-HK",name:$L("Chinese (Hong Kong)")}
 				]
   }
 );

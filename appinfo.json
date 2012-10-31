@@ -1,8 +1,10 @@
 {
 	"id": "cz.72ka.googlemaps",
-	"version": "0.2.5",
+	"version": "0.2.6",
 	"vendor": "72ka",
 	"type": "web",
+	"noDeprecatedStyles": true,
+	"theme": "light",
 	"main": "index.html",
 	"title": "Google Maps",
 	"icon": "icon.png",

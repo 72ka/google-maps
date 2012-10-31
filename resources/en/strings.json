@@ -1,4 +1,5 @@
 {
+	"ZERO_RESULTS_NEARBY": "No result was found for this request.",
 	"ZERO_RESULTS": "No route could be found between the origin and destination.",
 	"UNKNOWN_ERROR": "A directions request could not be processed due to a server error. The request may succeed if you try again.",
 	"OVER_QUERY_LIMIT": "The application has gone over the requests limit in too short a period of time."

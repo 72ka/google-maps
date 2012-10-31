@@ -11,6 +11,7 @@ this.PrefsCookie = arg.Cookies.PrefsCookie;
 var markers = [];
 var infoBubbles = [];
 var Favorites = [];
+var MarkersArray = [];
 
 // open SQLite database
 var db = new Mojo.Depot({name:"MainDB", version:1, replace:false},
@@ -22,8 +23,8 @@ MainAssistant.prototype = {
 	setup: function() {
 
 //Check internet connectivity at first
-this.checkConnectivity();
-//Mojo.Log.info("**** ZAPNOUT INTERNET CHECK ******");
+//this.checkConnectivity();
+Mojo.Log.info("**** ZAPNOUT INTERNET CHECK ******");
 
 /* DEBUG FUNCTION */
 this.cevent = [];
@@ -1134,11 +1135,14 @@ if (this.devfakegps) {
 	};
 },
 
-StreetView: function() {
+StreetView: function(position) {
 	
 	this.setStatusPanel($L("Loading StreetView..."));
+
 	this.WebOS2Events("stop");
-	var position = this.map.getCenter();
+	if (!position) {
+		var position = this.map.getCenter();
+	};
 	this.controller.stageController.pushScene({'name': 'street', disableSceneScroller: true, transition: Mojo.Transition.none}, position);
 
 },
@@ -1306,7 +1310,7 @@ handlePopMenu: function(Case) {
             this.getMarkerFromList("info");
             break;	  
          case 'do-street':
-            this.StreetView();
+            this.streetSelect();
             break;
          case 'do-direct':
 			this.Directions();
@@ -1432,6 +1436,10 @@ activate: function(args) {
   			if(this.isTouchPad() == true){
 						google.maps.event.trigger(this.map, "resize");
 				}
+				
+	/* Update the markers (deleted, etc..) - perform at each activate */
+	this.updateMarkers();
+	
 	// hide status panel after activate
 	this.hideStatusPanel();
 },
@@ -2087,12 +2095,10 @@ this.searching = false;
 	this.controller.get('MainSearchField').blur();
 
 	 var place = this.Mainautocomplete.getPlace();
-			//Mojo.Log.info("** PLACE %j***", this.Mainautocomplete.getPlace());
 
           try {
             this.map.fitBounds(place.geometry.viewport);
           } catch (error) {
-            //this.map.setCenter(place.geometry.location);
             this.map.setZoom(17);
           };
 
@@ -2106,7 +2112,6 @@ this.searching = false;
                         place.address_components[2].short_name || '')
                       ].join(' ');
           }
-          //Mojo.Log.info("** PLACE %j***", place);
 
 		 try {
 			 if (this.isTouchPad()) {
@@ -2135,7 +2140,6 @@ SearchPaste: function(event) {
 	
 	(function(){
 				var input = this.controller.get('MainSearchField').value;
-				//Mojo.Log.info("** PASTE *** %j", input);
 				this.controller.get('MainSearchField').value = "";
 				this.controller.get('MainSearchField').blur();
 				this.controller.get('MainSearchField').value = input;
@@ -2343,8 +2347,8 @@ if (input.indexOf("@")>-1) {
 this.SearchNearbyPlaces(input, radius);
 
           //update the view menu text
-          this.feedMenuModel.items[1].items[1].label = input + $L(" within ") + radius + $L("m");
-          this.controller.modelChanged(this.feedMenuModel);
+          //this.feedMenuModel.items[1].items[1].label = input + $L(" within ") + radius + $L("m");
+          //this.controller.modelChanged(this.feedMenuModel);
           
           //start the listener for keypress
           this.controller.listen(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
@@ -2467,7 +2471,7 @@ PlaceMarker: function (args) {
 		map: this.map,
 		//content: '<div id="bubble" class="phoneytext">' + args.title + '<div class="phoneytext2">' + args.subtitle + '</div></div>',
 		content: '<div id="bubble" class="phoneytext">' + args.title + '<div class="phoneytext2">' + args.subtitle + '<br>' + ratingcontainer + '</div>',
-		shadowStyle: 1,
+		shadowStyle: 0,
 		padding: 0,
 		backgroundColor: 'rgb(57,57,57)',
 		borderRadius: 4*this.ImageRatio,
@@ -2511,9 +2515,10 @@ PlaceMarker: function (args) {
 			}).bind(this).delay(1);
 	};
 
-	//Add it to the array	
-	marker.place = place; //add place array to the marker, because of pushing to other scenes
+	//Add it to the array		
 	infoBubble.id = place.id; //mark the infoBubble with the same ID as marker for further removing
+	marker.place = place; //add place array to the marker, because of pushing to other scenes
+	marker.infoBubble = infoBubble; //add infoBubble array to the marker, because of pushing to other scenes
 	
 	google.maps.event.addListener(marker,"click",this.toggleInfoBubble.bind(this, infoBubble, marker));
 	
@@ -2696,7 +2701,7 @@ clearNearbyMarkers: function () {
 		this.Nearbymarkers[e].setMap(null);
 	}
 
-	//--> Deletes ALL DirectinfoBubbles
+	//--> Deletes ALL NearbyinfoBubbles
 	for (e=0; e<this.NearbyinfoBubbles.length; e++){
 		this.NearbyinfoBubbles[e].setMap(null);
 	}
@@ -3124,7 +3129,7 @@ PlaceDirectionMarker: function (args) {
 	var infoBubble = new InfoBubble({
 		map: this.map,
 		content: '<div id="bubble" class="phoneytextwithoutbutton">' + args.title + '<div class="phoneytext2">' + args.subtitle + '</div></div>',
-		shadowStyle: 1,
+		shadowStyle: 0,
 		padding: 0,
 		backgroundColor: 'rgb(57,57,57)',
 		borderRadius: 4*this.ImageRatio,
@@ -3197,7 +3202,7 @@ handlemarkerBubbleTap: function (command) {
 	      switch (command) {
          case 'do-street':
 			this.setStatusPanel($L("Loading StreetView..."));
-            this.StreetView();
+            this.StreetView(this.clickedMarker.marker.getPosition());
             break;
          case 'do-marker-info':
 			this.setStatusPanel($L("Loading marker info..."));
@@ -3268,21 +3273,34 @@ markerRemove: function (markertoremove) {
 	
 	//hide them on map
 	markertoremove.marker.setMap(null);
-	markertoremove.infoBubble.setMap(null);
 	
-	//remove from array
+	
+	//remove from markers array
 	for (e=0; e<markers.length; e++){
 		if (markertoremove.marker.place.id == markers[e].place.id) {
 					//Mojo.Log.info("Removing marker from array: ", e);
 					markers.remove(e);	
 				};
 	};
-
-	for (e=0; e<infoBubbles.length; e++){
-			if (markertoremove.marker.place.id == infoBubbles[e].id) {
-					//Mojo.Log.info("Removing infoBubble from array: ", e);
-					infoBubbles.remove(e);	
+	
+	//remove from nearbymarkers array
+	for (e=0; e<this.Nearbymarkers.length; e++){
+		if (markertoremove.marker.place.id == this.Nearbymarkers[e].place.id) {
+					//Mojo.Log.info("Removing marker from array: ", e);
+					this.Nearbymarkers.remove(e);	
 				};
+	};
+	
+	if (markertoremove.infoBubble) {
+		//hide them on map
+		markertoremove.infoBubble.setMap(null);
+		
+		for (e=0; e<infoBubbles.length; e++){
+				if (markertoremove.marker.place.id == infoBubbles[e].id) {
+						//Mojo.Log.info("Removing infoBubble from array: ", e);
+						infoBubbles.remove(e);	
+					};
+		};
 	};
 	
 	//remove from favorites
@@ -3534,7 +3552,6 @@ FullscreenOff: function() {
 SearchNearbyPlaces: function (keyword, radius) {
 	
 	var request = {
-    //location: this.MyLocation,
     location: this.map.getCenter(), //search poi from actual map center
     radius: radius,
     //rankBy: google.maps.places.RankBy.DISTANCE,
@@ -3545,7 +3562,13 @@ SearchNearbyPlaces: function (keyword, radius) {
 this.NearbyService = new google.maps.places.PlacesService(this.map);
 
 this.NearbyService.search(request, function(results, status) {
+			
 			if (status == google.maps.places.PlacesServiceStatus.OK) {
+				
+				//update the view menu text
+				this.feedMenuModel.items[1].items[1].label = request.keyword + $L(" within ") + request.radius + $L("m");
+				this.controller.modelChanged(this.feedMenuModel);
+          
 				// clear previous nearby markers
 				this.clearNearbyMarkers();
 				//place all new markers
@@ -3556,7 +3579,9 @@ this.NearbyService.search(request, function(results, status) {
 				};
 				//fit the map to the all nearby markers bounds
 				this.MarkersFitBounds(this.Nearbymarkers);
-			}
+			} else {
+				this.ShowInfoDialog('"' + request.keyword + '"' + $L(" within ") + request.radius + $L("m"), $L(status + "_NEARBY"), $L("OK"));
+			};
 		}.bind(this));
 
 },
@@ -3585,10 +3610,11 @@ PlaceNearbyMarker: function(place) {
 	google.maps.event.addListener(marker,"click",this.toggleNearbyInfoBubble.bind(this, marker, place));
 
 	this.MayNearbyBubblePop = true;
-	//Add it to the array	
-	marker.place = place; //add place array to the marker, because of pushing to other scenes
-	this.Nearbymarkers.push(marker);
 
+	//Add it to the array		
+	marker.place = place; //add place array to the marker, because of pushing to other scenes
+	
+	this.Nearbymarkers.push(marker);
 
 },
 
@@ -3642,10 +3668,12 @@ if (place.infoBubble == undefined) {
 		place.infoBubble = infoBubble;
 		
 		place.infoBubble.open(this.map, marker);
-
+		
+		//set id to the infoBubble as the place id
+		infoBubble.id = place.id;
 
 		//Add it to the array
-
+		
 		this.NearbyinfoBubbles.push(infoBubble);
 
 	} else {
@@ -3657,6 +3685,9 @@ if (place.infoBubble == undefined) {
 			}else {
 				place.infoBubble.close();
 				place.infoBubble.setMap(null);
+				Mojo.Log.info("ID:", place.id);
+				//Mojo.Log.info("INDEX bubble:", this.NearbyinfoBubbles.indexOf(place.id));
+				
 				this.MayNearbyBubblePop = false;
 			};
 		};
@@ -3706,13 +3737,12 @@ getMarkerFromList: function (action) {
 	this.MyLocationMarker.place.name = $L("My Location");
 	this.MyLocationMarker.place.vicinity = "";
 
-	var MarkersArray = [];
 	MarkersArray.action = action;
 	
-	MarkersArray[0] = this.Nearbymarkers; //nearby markers
-	MarkersArray[1] = markers; //markers - found places
-	MarkersArray[2] = this.MyLocationMarker; //My Location marker
-	MarkersArray[3] = this.Favorites //favorites markers
+	MarkersArray[0] = this.Nearbymarkers; 		//nearby markers
+	MarkersArray[1] = markers; 					//markers - found places
+	MarkersArray[2] = this.MyLocationMarker; 	//My Location marker
+	MarkersArray[3] = Favorites 				//favorites markers
 
 	
 	this.controller.stageController.pushScene({'name': 'markers-list', transition: Mojo.Transition.none}, MarkersArray, this.Preferences);
@@ -4335,9 +4365,113 @@ getApiVersion: function () {
    return api;
 },
 
+ShowInfoDialog: function (title, message, label) {
+	
+	this.controller.showAlertDialog({
+	            onChoose: function(value) {
+	            },
+	            title: title,
+	            message: message,
+	            choices: [{
+	               label: label,
+	               value: ""
+	            }]
+	 });
+	        
+},
+
+streetLayer: function(action) {
+
+	switch (action) {
+        case true:
+			var imageMapTypeOptions = {
+				getTileUrl: function(coord,zoom){
+					  return "https://mts2.google.com/mapslt?lyrs=svv&x=" + coord.x + "&y=" + coord.y + "&z=" + zoom + "&w=256&h=256&hl=en&style=40,18";
+			},
+			 tileSize: new google.maps.Size(256, 256),
+			 isPng: true,
+			 opacity: 1
+			};
+			var tiledImageMap = new google.maps.ImageMapType(imageMapTypeOptions);
+			this.map.overlayMapTypes.setAt(2,tiledImageMap);
+            break;
+            
+        case false:
+			this.map.overlayMapTypes.setAt(2, null);
+			break;
+	};	
+},
+
+OSMLayer: function(action) {
+
+	switch (action) {
+        case true:
+			var imageMapTypeOptions = {
+				getTileUrl: function(coord,zoom){
+					  return "http://tile.openstreetmap.org/" + zoom + "/" + coord.x + "/" + coord.y + ".png";
+			},
+			 tileSize: new google.maps.Size(256, 256),
+			 isPng: true,
+			 opacity: 1
+			};
+			var tiledImageMap = new google.maps.ImageMapType(imageMapTypeOptions);
+			this.map.overlayMapTypes.setAt(1,tiledImageMap);
+            break;
+            
+        case false:
+			this.map.overlayMapTypes.setAt(1,null);
+			break;
+	};	
+},
+
+streetSelect: function () {
+		
+	this.streetLayer(true);	
+	this.setStatusPanel($L("Tap on the desired street."));
+	this.StreetMapTapEventHandler = this.StreetMapTap.bindAsEventListener(this);
+	Mojo.Event.listen(this.MapTap, Mojo.Event.tap, this.StreetMapTapEventHandler);
+
+},
+
+StreetMapTap: function (event) {	 
+			var point = new google.maps.Point(event.down.x, event.down.y);
+			var taplatlng = this.overlay.getProjection().fromContainerPixelToLatLng(point);
+			/* Do the streetview only if the finger not moved more than 5px*/
+			if (Math.abs(event.down.x - event.up.x) < 5 && Math.abs(event.down.y - event.up.y) < 5) {
+				Mojo.Event.stopListening(this.MapTap, Mojo.Event.tap, this.StreetMapTapEventHandler);
+				this.streetLayer(false);
+				this.StreetView(taplatlng);
+			};
+},
+
+updateMarkers: function () {
+
+this.setStatusPanel($L("Updating markers..."));
+
+var markertoremove = [];
+
+	for (var type = 0; type < MarkersArray.length; type++) {
+			for (var k = 0; k < MarkersArray[type].length; k++) {
+				if (MarkersArray[type][k].tobedeleted == true) {	
+					Mojo.Log.info("REMOVING: %j", MarkersArray[type][k].place.id);
+					markertoremove.marker = MarkersArray[type][k];
+					markertoremove.infoBubble = MarkersArray[type][k].infoBubble;
+					this.markerRemove(markertoremove);
+					k = -1; /** k -1 is important: because the markerRemove function shrinks the MarkersArray after removing **/
+				};			
+			};
+	};
+	
+	/** Close ALL NearbyinfoBubbles - ToDo: delete the right bubble **/
+	for (e=0; e<this.NearbyinfoBubbles.length; e++){
+		this.NearbyinfoBubbles[e].setMap(null);
+	};
+	
+	this.hideStatusPanel();
+},
 
 //EXPERIMENTAL ODTUD
-
+ 
 Debug: function() {
 	
 	/*
@@ -4353,6 +4487,22 @@ Debug: function() {
 	*/
   
 	//Mojo.Log.info("USER AGENT: ", navigator.userAgent);
+	
+
+	this.streetLayer(false);
+      
+	/*
+    this.map.mapTypes.set("Google", new google.maps.ImageMapType({
+                getTileUrl: function(coord, zoom) {
+                    //return "http://tile.openstreetmap.org/" + zoom + "/" + coord.x + "/" + coord.y + ".png";
+                    return "https://mts2.google.com/mapslt?lyrs=svv&x=" + coord.x + "&y=" + coord.y + "&z=" + zoom + "&w=256&h=256&hl=en&style=40,18";
+                    
+                },
+                tileSize: new google.maps.Size(256, 256),
+                name: "OpenStreetMap",
+                maxZoom: 18
+            }));
+    */
 
 }
 
