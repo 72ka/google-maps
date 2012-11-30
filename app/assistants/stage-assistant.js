@@ -16,6 +16,7 @@ var DefaultPreferences = {
 		Weather: false,
 		Cloud: false,
 		Night: false,
+		OSM: false,
 		LastLoc: {lat: 37.39281, lng: -122.04046199999999, zoom: 2},
 		LengthUnits: "metric",
 		Temperature: "celsius",

@@ -7,8 +7,11 @@
 <script src="/usr/palm/frameworks/mojo/mojo.js" type="text/javascript" x-mojo-version="1"></script>
 <link href="stylesheets/maps.css" media="screen" rel="stylesheet" type="text/css" />
 <link rel="stylesheet" href="javascript/kalendae/kalendae.css" type="text/css" charset="utf-8">
-<script>
-	
+<script type="text/javascript">   
+    document.documentElement.ontouchstart=null;
+    window.ontouchstart = null;
+</script>
+<script>	
 		var MapsLocale = "en-us"; //default locale
 		var gAPI = "?v=3"; //default Google API
 		if (typeof(PalmSystem) !== "undefined" && PalmSystem.localeRegion){

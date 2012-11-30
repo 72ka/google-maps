@@ -1,6 +1,6 @@
 {
 	"id": "cz.72ka.googlemaps",
-	"version": "0.2.6",
+	"version": "0.2.7",
 	"vendor": "72ka",
 	"type": "web",
 	"noDeprecatedStyles": true,
@@ -12,7 +12,9 @@
 	"uiRevision": "2",
 	"mimeTypes": [	{"scheme": "mapto"},
 					{"scheme": "maploc"},
-					{"scheme": "telenav"}
+					{"scheme": "telenav"},
+					{"urlPattern": "^mapto:"},
+					{"urlPattern": "^maploc:"}
     ],	
 	"universalSearch":{
 			  	"search" :  {

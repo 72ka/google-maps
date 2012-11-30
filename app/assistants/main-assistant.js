@@ -23,15 +23,14 @@ MainAssistant.prototype = {
 	setup: function() {
 
 //Check internet connectivity at first
-//this.checkConnectivity();
-Mojo.Log.info("**** ZAPNOUT INTERNET CHECK ******");
+this.checkConnectivity();
+//Mojo.Log.info("**** ZAPNOUT INTERNET CHECK ******");
 
 /* DEBUG FUNCTION */
 this.cevent = [];
 this.cevent.magHeading = 0;
 this.debug = false;
 this.devfakegps = false;
-	
 
 /* SETUP UI WIDGETS */
 
@@ -388,6 +387,16 @@ this.setStatusPanel($L("Loading Maps..."));
 	//setup map
 	this.MyLocation = new google.maps.LatLng(37.39281, -122.04046199999999);
 	
+	//this style hides the google map
+	this.MapOffStyle =[
+    {
+        featureType: "all",
+        elementType: "all",
+        stylers: [
+              { visibility: "off" }
+        ]
+    }];
+    
 	//if this is enabled, the poi's on the map are disabled
 	var mapStyles =[
     {
@@ -483,13 +492,14 @@ Mojo.Log.info("*************************************");
         mapTypeId: google.maps.MapTypeId.ROADMAP,
         disableDefaultUI: true,
         scaleControl: true,
+        rotateControl: false,
         maxZoom: 20,
         minZoom: 1,
         //styles: mapStyles,
         keyboardShortcuts: false,
       	draggable: false	
     };
-
+    
     this.map = new google.maps.Map(this.controller.get("map_canvas"), myOptions);
 
 	this.MapType = this.MapCookie.get();
@@ -598,6 +608,9 @@ Mojo.Log.info("*************************************");
 	this.haveCompass = false;
 	this.blockpulse = false;
 	this.routeIndex = 0;
+	this.imagery = 0;
+	this.imageryHeading = 0;
+	this.cmdMenuStyle = "normal";
 
 	// map doesn't follow GPS as default
 	this.followMap = false;
@@ -670,6 +683,18 @@ Mojo.Log.info("*************************************");
 		};
 			this.map.setOptions(styleoptions);
 	};
+	
+	//Setup OSM Layer
+	this.OSMVisibile = this.Preferences.OSM;
+	
+	if (this.OSMVisibile) {
+		var styleoptions = {
+			styles: this.MapOffStyle
+		};
+			this.OSMLayer(true);
+			this.map.setOptions(styleoptions);
+	};
+	
 	
 	//Setup Transit layer as hidden by default
 	this.TransitVisibile = false;
@@ -809,6 +834,9 @@ handleCommand: function(event) {
                         }
                         if (event.command == 'debug') {
                         								this.Debug();
+                        }
+                        if (event.command == 'imagery-rotate') {
+                        								this.ImageryRotate();
                         }
                         if (event.command == 'MyLoc') {	
 														this.setStatusPanel($L("Moving to My Location..."));
@@ -1265,6 +1293,9 @@ handlePopMapType: function(MapType) {
         case 'do-night':
             this.Night();
         	break;
+        case 'do-osm':
+            this.OSM();
+        	break;
         case 'do-more':
             this.moreMapLayers();
         	break;
@@ -1282,8 +1313,8 @@ moreMapLayers: function (event) {
 			  //placeX: 250,
               //placeY: 200,
 			  items: [
+				  {secondaryIconPath:'images/OSMlogo.png', label: "OSM " + $L('map'), command: 'do-osm', chosen: this.OSMVisibile},
 			      {secondaryIconPath:'images/night.png', label: $L('Night'), command: 'do-night', chosen: this.NightVisibile},
-			      //{secondaryIconPath:'images/traffic-icon.png', label: $L('Traffic'), command: 'do-traffic', chosen: this.TrafficVisibile},
 			      {secondaryIconPath:'images/transit.png', label: $L('Transit'), command: 'do-transit', chosen: this.TransitVisibile},
 			      {secondaryIconPath:'images/bike.png', label: $L('Bike'), command: 'do-bike', chosen: this.BikeVisibile},
 			      {secondaryIconPath:'images/weather.png', label: $L('Weather'), command: 'do-weather', chosen: this.WeatherVisibile},
@@ -1618,6 +1649,21 @@ MapIdle: function() {
 		
 		//hides the status panel when idle
 		this.hideStatusPanel();
+		
+		//check the tilt availability
+		var getTilt = this.map.getTilt();
+		if (getTilt != this.imagery) {
+			this.imagery = getTilt;
+			   switch (getTilt) {
+					case 0:
+						this.ChangeCmdMenu(this.cmdMenuStyle);
+						this.imageryHeading = 0;
+					break;
+					case 45:
+						this.ChangeCmdMenu("imagery");
+					break;
+				};
+		};
 },
 
 MapTilesLoaded: function () {
@@ -1791,6 +1837,34 @@ var options;
   		this.map.setOptions(options);
   		this.NightVisibile = false;
   		this.Preferences.Night = false;
+		this.PrefsCookie.put(this.Preferences);
+  	};
+
+},
+
+OSM: function() {
+
+var options;
+
+		if (this.OSMVisibile == false) {
+		options = {
+			styles: this.MapOffStyle
+		};
+		this.setStatusPanel($L("Enable") + " " + $L("OSM") + "...", 2);
+		this.map.setOptions(options);
+		this.OSMLayer(true);
+  		this.OSMVisibile = true;
+  		this.Preferences.OSM = true;
+		this.PrefsCookie.put(this.Preferences);
+  	} else {
+		options = {
+		styles: null
+		};
+		this.setStatusPanel($L("Disable") + " " + $L("OSM") + "...", 2);
+  		this.map.setOptions(options);
+  		this.OSMLayer(false);
+  		this.OSMVisibile = false;
+  		this.Preferences.OSM = false;
 		this.PrefsCookie.put(this.Preferences);
   	};
 
@@ -2976,6 +3050,7 @@ CalcRoute: function() {
           destination: this.destination,
           unitSystem: this.getGoogleUnitSystem(this.Preferences.LengthUnits),
           provideRouteAlternatives: this.routeAlternatives,
+          durationInTraffic: true,
           avoidHighways: this.avoidHighways,
 		  avoidTolls: this.avoidTolls,
 		  transitOptions: this.transitOptions,
@@ -3353,7 +3428,6 @@ markerInfo: function (marker) {
 
 ChangeCmdMenu: function(action) {
 
-
 switch (action) {
 	case "directions":
     	this.cmdMenuModel.items[1].items = [
@@ -3366,11 +3440,22 @@ switch (action) {
         this.controller.modelChanged( this.cmdMenuModel );
         this.MayBubblePop = true;
         this.toggleDirectInfoBubble(this.DirectinfoBubbles[0], this.Directmarkers[0]);
+        this.cmdMenuStyle = action;
 	break;
 	case "normal":
 		this.cmdMenuModel.items[1].items = [
 			{label: $L('Minus'), iconPath:'images/zoomout.png', command:'zoomOut'},
             {label: $L(''), iconPath:'images/list-view-icon.png', command:'PopMenu'},
+            {label: $L('Plus'), iconPath:'images/zoomin.png', command:'zoomIn'}
+            ];
+		this.controller.modelChanged( this.cmdMenuModel );
+		this.cmdMenuStyle = action;
+	break;
+	case "imagery":
+		this.cmdMenuModel.items[1].items = [
+			{label: $L('Minus'), iconPath:'images/zoomout.png', command:'zoomOut'},
+            {label: $L(''), iconPath:'images/list-view-icon.png', command:'PopMenu'},
+            {icon:'refresh', command:'imagery-rotate'},
             {label: $L('Plus'), iconPath:'images/zoomin.png', command:'zoomIn'}
             ];
 		this.controller.modelChanged( this.cmdMenuModel );
@@ -4470,39 +4555,65 @@ var markertoremove = [];
 	this.hideStatusPanel();
 },
 
+ImageryRotate: function () {
+	this.imageryHeading = this.imageryHeading - 90;
+	this.map.setHeading(this.imageryHeading);
+},
+
 //EXPERIMENTAL ODTUD
  
 Debug: function() {
-	
-	/*
-    var latlng = new google.maps.LatLng(37., -95.5);
-    var imageBounds = new google.maps.LatLngBounds(
-        new google.maps.LatLng(24.0,-125.0),
-        new google.maps.LatLng(50.0,-66.0));
+    
+    /** gaming with touch event generating **/
+    try {
+    //var targetElement = document.elementFromPoint(55, 155);
+    //Mojo.Log.info(targetElement);
+    var targetElement = document;
+    var evt = document.createEvent('UIEvent');
+    evt.initUIEvent('touchstart', true, true);
 
-    var oldmap = new google.maps.GroundOverlay(
-        "http://sites.google.com/site/3davel/home/light-pollution/lp2001/gmap_images/lp2001_v5_trans.png?attredirects=0&d=1",
-        imageBounds);
-    oldmap.setMap(this.map);
-	*/
-  
-	//Mojo.Log.info("USER AGENT: ", navigator.userAgent);
-	
+    evt.view = window;
+    evt.altKey = false;
+    evt.ctrlKey = false;
+    evt.shiftKey = false;
+    evt.metaKey = false;
+    
+    evt.screenX = 160;
+	evt.screenY = 230;
+	evt.pageX = 160;
+	evt.pageY = 230;
+	evt.clientX = 160;
+	evt.clientY = 230;
 
-	this.streetLayer(false);
-      
-	/*
-    this.map.mapTypes.set("Google", new google.maps.ImageMapType({
-                getTileUrl: function(coord, zoom) {
-                    //return "http://tile.openstreetmap.org/" + zoom + "/" + coord.x + "/" + coord.y + ".png";
-                    return "https://mts2.google.com/mapslt?lyrs=svv&x=" + coord.x + "&y=" + coord.y + "&z=" + zoom + "&w=256&h=256&hl=en&style=40,18";
-                    
-                },
-                tileSize: new google.maps.Size(256, 256),
-                name: "OpenStreetMap",
-                maxZoom: 18
-            }));
-    */
+    targetElement.dispatchEvent(evt);
+	} catch (except){
+		Mojo.Log.info(except);
+	};
+	
+	try {
+    //var targetElement = document.elementFromPoint(55, 155);
+    //Mojo.Log.info(targetElement);
+    var targetElement = document;
+    var evt = document.createEvent('UIEvent');
+    evt.initUIEvent('touchend', true, true);
+
+    evt.view = window;
+    evt.altKey = false;
+    evt.ctrlKey = false;
+    evt.shiftKey = false;
+    evt.metaKey = false;
+    
+    evt.screenX = 160;
+	evt.screenY = 230;
+	evt.pageX = 160;
+	evt.pageY = 230;
+	evt.clientX = 160;
+	evt.clientY = 230;
+
+    targetElement.dispatchEvent(evt);
+	} catch (except){
+		Mojo.Log.info(except);
+	};
 
 }
 
