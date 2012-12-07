@@ -493,8 +493,9 @@ Mojo.Log.info("*************************************");
         disableDefaultUI: true,
         scaleControl: true,
         rotateControl: false,
-        maxZoom: 20,
-        minZoom: 1,
+        maxZoom: this.maxZoom,
+        minZoom: this.minZoom,
+        mapMaker: false, //ToDo feature
         //styles: mapStyles,
         keyboardShortcuts: false,
       	draggable: false	
@@ -554,17 +555,29 @@ Mojo.Log.info("*************************************");
 	this.getFavorites();
 	
 	
-    // Na pozdeji implementace jinych mapovych podkladu napr. openstreetmaps
-    /*
-    this.map.mapTypes.set("Google", new google.maps.ImageMapType({
+		/* Openstreetmaps custom map type set */
+		this.map.mapTypes.set("OSM", new google.maps.ImageMapType({
                 getTileUrl: function(coord, zoom) {
                     return "http://tile.openstreetmap.org/" + zoom + "/" + coord.x + "/" + coord.y + ".png";
+                    //return "http://maps.mytopo.com/groundspeak/tilecache.py/1.0.0/topoG/" + zoom + "/" + coord.x + "/" + coord.y + ".png";
                 },
                 tileSize: new google.maps.Size(256, 256),
+                isPng: true,
                 name: "OpenStreetMap",
+                credit: 'OpenStreetMap',
                 maxZoom: 18
-            }));
-    */
+        }));
+        
+        /* Nokia custom map type set */
+        this.map.mapTypes.set("NOKIA", new google.maps.ImageMapType({
+                getTileUrl: function(coord, zoom) {
+                    return "http://maptile.maps.svc.ovi.com/maptiler/maptile/newest/normal.day/" + zoom + "/" + coord.x + "/" + coord.y + "/256/png8";
+                },
+                tileSize: new google.maps.Size(256, 256),
+				isPng: true,
+				maxZoom: 17,
+				name: "NOKIA"
+        }));
 
     	// setup autocompleter for main search
 		this.MainInput = "";
@@ -611,6 +624,11 @@ Mojo.Log.info("*************************************");
 	this.imagery = 0;
 	this.imageryHeading = 0;
 	this.cmdMenuStyle = "normal";
+	this.maxZoom = 20;
+	this.minZoom = 0;
+	this.dontForgetToEnableZoomIn = false;
+	this.dontForgetToEnableZoomOut = false;
+	this.gps;
 
 	// map doesn't follow GPS as default
 	this.followMap = false;
@@ -684,18 +702,6 @@ Mojo.Log.info("*************************************");
 			this.map.setOptions(styleoptions);
 	};
 	
-	//Setup OSM Layer
-	this.OSMVisibile = this.Preferences.OSM;
-	
-	if (this.OSMVisibile) {
-		var styleoptions = {
-			styles: this.MapOffStyle
-		};
-			this.OSMLayer(true);
-			this.map.setOptions(styleoptions);
-	};
-	
-	
 	//Setup Transit layer as hidden by default
 	this.TransitVisibile = false;
 	
@@ -720,6 +726,7 @@ Mojo.Log.info("*************************************");
  	new google.maps.event.addListener(this.map, 'tilesloaded', this.MapTilesLoaded.bind(this));
  	new google.maps.event.addListener(this.map, 'bounds_changed', this.MapCenterChanged.bind(this));
  	new google.maps.event.addListener(this.map, 'overlaycomplete', this.OverlayComplete.bind(this));
+ 	new google.maps.event.addListener(this.map, 'zoom_changed', this.zoomChanged.bind(this));
  
  	this.CenterChanged = true;
 
@@ -794,14 +801,10 @@ handleCommand: function(event) {
     };
                 if (event.type === Mojo.Event.command) {
                         if (event.command == 'zoomOut') {
-										this.blockGPSFix = true;
-										this.setStatusPanel($L("Zooming out..."));
-                                        this.map.setZoom(this.map.getZoom() - 1);
+										this.zoom("out");
                         }
                         if (event.command == 'zoomIn') {
-										this.blockGPSFix = true;
-										this.setStatusPanel($L("Zooming in..."));
-                                        this.map.setZoom(this.map.getZoom() + 1);
+										this.zoom("in");
                         }
                         if ((event.command == 'forward-step') || (event.command == 'back-step')) {
 										this.setStatusPanel($L("Moving to next point..."));
@@ -993,7 +996,7 @@ this.feedMenuModel = {
 		  {},
           { label: $L("Google Maps"), command: 'searchPlaces', width: this.restmenuwidth},
           { iconPath: "images/layers.png", command: 'maptype', label: $L('M')},
-          {label: $L('MyLoc'), iconPath:'images/menu-icon-mylocation.png', command:'MyLoc'},
+          {label: $L('MyLoc'), iconPath:'images/menu-icon-mylocation.png', command:'MyLoc', disabled: true},
           {}
       ]
       },
@@ -1020,8 +1023,8 @@ firstFixSuccess: function(gps) {
 	if (gps.latitude != undefined) {
 		
 		Mojo.Log.info("** FIRST GPS FIX ***");
-
-	this.MyLocation = Mylatlng;
+		this.gps = gps;
+		this.MyLocation = Mylatlng;
 
 
 	//Mojo.Log.info("** MyLocation ***", this.MyLocation);
@@ -1053,10 +1056,16 @@ firstFixSuccess: function(gps) {
 				});
 				
 				this.setDefaultMyLocMarker();
+				/* Bind the accuracy circle for the firs time */
+				this.circle.bindTo('center', this.MyLocMarker, 'position');
 
 
 				this.GPSFix = true;
 				this.map.setCenter(this.MyLocation);
+				
+				/* Enable MyLocation button in view menu */
+				this.feedMenuModel.items[1].items[3].disabled = false;
+				this.controller.modelChanged(this.feedMenuModel);
 
 				/* v pripade spusteni s argumentem maploc chceme zustat na markeru a ne prejit na polohu */
 				if (this.maploc == undefined) {
@@ -1091,6 +1100,8 @@ gpsUpdate: function(gps) {
 
 	// tady je to nutne, aby GPS nedavala nedefinovane souradnice
 	if (gps.latitude != undefined && gps.longitude != undefined && !this.blockGPSFix) {
+		
+	this.gps = gps;
 		
 /** FAKE GPS HEADING and VELOCITY FOR EMULATOR **/
 
@@ -1129,7 +1140,7 @@ if (this.devfakegps) {
 			this.SetTopMenuText($L("Google Maps"));
 		};
 	} else {
-		this.pulseDot(this.MyLocation);
+		this.pulseDot(this.MyLocation); //checked that this is not a memory eater
 		};
 
 	this.accuracy = gps.horizAccuracy;
@@ -1139,7 +1150,6 @@ if (this.devfakegps) {
 	}
 	try {
 			this.MyLocMarker.setPosition(this.MyLocation); //update markeru
-			this.circle.bindTo('center', this.MyLocMarker, 'position');
 		} catch (error) {
 			Mojo.Log.info("Warning: MyLocMarker not defined");
 		};
@@ -1175,8 +1185,64 @@ StreetView: function(position) {
 
 },
 
-zoom: function() {
-  this.map.setZoom(7);
+zoom: function(action) {
+
+switch (action) {
+
+        case 'in':
+			this.blockGPSFix = true;
+			this.setStatusPanel($L("Zooming in..."));
+			this.map.setZoom(this.map.getZoom() + 1);
+            break;
+        case 'out':
+			this.blockGPSFix = true;
+			this.setStatusPanel($L("Zooming out..."));
+			this.map.setZoom(this.map.getZoom() - 1);
+            break;
+		};     
+},
+
+zoomChanged: function (event) {
+	
+	/* Check MAX zoom */
+	if (this.map.getZoom() >= this.maxZoom) {			
+				for (var z = 0; z < this.cmdMenuModel.items[1].items.length; z++) {
+					if (this.cmdMenuModel.items[1].items[z].label == $L('Plus')) {
+						this.cmdMenuModel.items[1].items[z].disabled = true;
+					};
+				};
+			this.dontForgetToEnableZoomIn = true;
+			this.controller.modelChanged(this.cmdMenuModel);		
+	}
+	else if (this.dontForgetToEnableZoomIn) {
+		for (var z = 0; z < this.cmdMenuModel.items[1].items.length; z++) {
+			if (this.cmdMenuModel.items[1].items[z].label == $L('Plus')) {
+				this.cmdMenuModel.items[1].items[z].disabled = false;
+			};
+		};
+	this.dontForgetToEnableZoomIn = false;
+	this.controller.modelChanged(this.cmdMenuModel);
+	};
+		
+	/* Check MIN zoom */	
+	if (this.map.getZoom() <= this.minZoom) {			
+				for (var z = 0; z < this.cmdMenuModel.items[1].items.length; z++) {
+					if (this.cmdMenuModel.items[1].items[z].label == $L('Minus')) {
+						this.cmdMenuModel.items[1].items[z].disabled = true;
+					};
+				};
+			this.dontForgetToEnableZoomOut = true;
+			this.controller.modelChanged(this.cmdMenuModel);		
+	}
+	else if (this.dontForgetToEnableZoomOut) {
+		for (var z = 0; z < this.cmdMenuModel.items[1].items.length; z++) {
+			if (this.cmdMenuModel.items[1].items[z].label == $L('Minus')) {
+				this.cmdMenuModel.items[1].items[z].disabled = false;
+			};
+		};
+	this.dontForgetToEnableZoomOut = false;
+	this.controller.modelChanged(this.cmdMenuModel);
+	};		
 },
 
 mylocation: function() {
@@ -1250,30 +1316,38 @@ handlePopMapType: function(MapType) {
         case 'Roadmap':
 			this.setStatusPanel($L("Setting map type: ") + $L('Roadmap'));
             this.map.setMapTypeId(google.maps.MapTypeId.ROADMAP);
+            this.maxZoom = 20;
             this.ClearMapType();
             this.ActualMapType[0] = true;
             this.MapCookie.put(MapType);
+            google.maps.event.trigger(this.map, "zoom_changed");
             break;
         case 'Hybrid':
 			this.setStatusPanel($L("Setting map type: ") + $L('Hybrid'));
             this.map.setMapTypeId(google.maps.MapTypeId.HYBRID);
+            this.maxZoom = 20;
             this.ClearMapType();
             this.ActualMapType[1] = true;
             this.MapCookie.put(MapType);
+            google.maps.event.trigger(this.map, "zoom_changed");
             break;
         case 'Terrain':
 			this.setStatusPanel($L("Setting map type: ") + $L('Terrain'));
             this.map.setMapTypeId(google.maps.MapTypeId.TERRAIN);
+            this.maxZoom = 15;
             this.ClearMapType();
             this.ActualMapType[2] = true;
             this.MapCookie.put(MapType);
+            google.maps.event.trigger(this.map, "zoom_changed");
             break;
         case 'Satellite':
 			this.setStatusPanel($L("Setting map type: ") + $L('Satellite'));
             this.map.setMapTypeId(google.maps.MapTypeId.SATELLITE);
+            this.maxZoom = 20;
             this.ClearMapType();
             this.ActualMapType[3] = true;
             this.MapCookie.put(MapType);
+            google.maps.event.trigger(this.map, "zoom_changed");
             break;
         case 'do-traffic':
             this.Traffic();
@@ -1294,7 +1368,14 @@ handlePopMapType: function(MapType) {
             this.Night();
         	break;
         case 'do-osm':
-            this.OSM();
+            this.setStatusPanel($L("Setting map type: ") + $L('Openstreetmaps'));
+            this.map.setMapTypeId("OSM");
+            //this.map.setMapTypeId("NOKIA");
+            this.maxZoom = 18;
+            this.ClearMapType();
+            this.ActualMapType[4] = true;
+            this.MapCookie.put(MapType);
+            google.maps.event.trigger(this.map, "zoom_changed");
         	break;
         case 'do-more':
             this.moreMapLayers();
@@ -1313,7 +1394,7 @@ moreMapLayers: function (event) {
 			  //placeX: 250,
               //placeY: 200,
 			  items: [
-				  {secondaryIconPath:'images/OSMlogo.png', label: "OSM " + $L('map'), command: 'do-osm', chosen: this.OSMVisibile},
+				  {secondaryIconPath:'images/OSMlogo.png', label: "OSM " + $L('map'), command: 'do-osm', chosen: this.ActualMapType[4]},
 			      {secondaryIconPath:'images/night.png', label: $L('Night'), command: 'do-night', chosen: this.NightVisibile},
 			      {secondaryIconPath:'images/transit.png', label: $L('Transit'), command: 'do-transit', chosen: this.TransitVisibile},
 			      {secondaryIconPath:'images/bike.png', label: $L('Bike'), command: 'do-bike', chosen: this.BikeVisibile},
@@ -1356,7 +1437,6 @@ handlePopMenu: function(Case) {
 activate: function(args) {
 	
 	//Mojo.Log.info("*** ACTIVATE *** %j", args);
-	//Mojo.Log.info("*** DPI 1  *** %j", screen.deviceXDPI);
 
 	this.setViewPortWidth(480);
 	
@@ -1837,34 +1917,6 @@ var options;
   		this.map.setOptions(options);
   		this.NightVisibile = false;
   		this.Preferences.Night = false;
-		this.PrefsCookie.put(this.Preferences);
-  	};
-
-},
-
-OSM: function() {
-
-var options;
-
-		if (this.OSMVisibile == false) {
-		options = {
-			styles: this.MapOffStyle
-		};
-		this.setStatusPanel($L("Enable") + " " + $L("OSM") + "...", 2);
-		this.map.setOptions(options);
-		this.OSMLayer(true);
-  		this.OSMVisibile = true;
-  		this.Preferences.OSM = true;
-		this.PrefsCookie.put(this.Preferences);
-  	} else {
-		options = {
-		styles: null
-		};
-		this.setStatusPanel($L("Disable") + " " + $L("OSM") + "...", 2);
-  		this.map.setOptions(options);
-  		this.OSMLayer(false);
-  		this.OSMVisibile = false;
-  		this.Preferences.OSM = false;
 		this.PrefsCookie.put(this.Preferences);
   	};
 
@@ -2562,14 +2614,6 @@ PlaceMarker: function (args) {
 			//--> Start the marker bouncing so they know it was clicked
 			marker.setAnimation(google.maps.Animation.BOUNCE);
 			this.markerBubbleTap({marker: marker, infoBubble: infoBubble, title: args.title, subtitle: args.subtitle, place: place});
-			/*
-			//--> Fire off the next display
-			(function(){
-				var e = {};
-				e.item = params;
-				this.listTapHandler(e);
-			}).bind(this).delay(0.75);
-			*/
 
 			//--> Stop bouncing the marker after 2 second
 			(function(){
@@ -2577,8 +2621,6 @@ PlaceMarker: function (args) {
 			}).bind(this).delay(2);
 		}.bind(this)
 	});
-
-	//google.maps.event.addListener(marker,"click",this.toggleInfoBubble.bind(this, infoBubble, marker));
 
 	// show the bubble after 1 second
 	this.MayBubblePop = true;
@@ -2599,8 +2641,6 @@ PlaceMarker: function (args) {
 	//Add it to the array
 	infoBubbles.push(infoBubble);
 	markers.push(marker);
-
-	//this.hideStatusPanel();
 
 },
 
@@ -2699,9 +2739,7 @@ showAllVisibileBubbles: function(bubbles) {
 	for (b=0; b<VisibileBubbles.length; b++){
 				VisibileBubbles[b].open();
 	};
-		
-		//this.MayBubblePop = false;
-	
+
 },
 
 mapClear: function() {
@@ -3042,9 +3080,7 @@ CalcRoute: function() {
 		   };
           break;
       };
-      
-      //Mojo.Log.info("** POCITAM ***" + this.transitTime);
-      
+     
   		var request = {
           origin: this.origin,
           destination: this.destination,
@@ -3435,7 +3471,7 @@ switch (action) {
 			{label: $L('Minus'), iconPath:'images/zoomout.png', command:'zoomOut'},
             {label: $L(''), iconPath:'images/list-view-icon.png', command:'PopMenu'},
             {label: $L('Plus'), iconPath:'images/zoomin.png', command:'zoomIn'},
-            {icon:'forward', command:'forward-step'}		
+            {icon:'forward', command:'forward-step'}	
 			];
         this.controller.modelChanged( this.cmdMenuModel );
         this.MayBubblePop = true;
@@ -3830,7 +3866,7 @@ getMarkerFromList: function (action) {
 	MarkersArray[3] = Favorites 				//favorites markers
 
 	
-	this.controller.stageController.pushScene({'name': 'markers-list', transition: Mojo.Transition.none}, MarkersArray, this.Preferences);
+	this.controller.stageController.pushScene({'name': 'markers-list', transition: Mojo.Transition.none}, MarkersArray, this.Preferences, this.gps);
 },
 
 OriginMarkersButtonTap: function (event) {
@@ -3900,12 +3936,9 @@ MapHold: function (event) {
 	Mojo.Log.info("** DOWN X*** %j", event.down.x);
 	Mojo.Log.info("** DOWN Y*** %j", event.down.y);
 	this.setStatusPanel($L("Dropping a pin..."));
-	
-	//var MarkerPoint = this.overlay.getProjection().fromLatLngToContainerPixel(latlng);
+
 	var point = new google.maps.Point(event.down.x, event.down.y);
-	//Mojo.Log.info("** POINT*** %j", point);
 	var taplatlng = this.overlay.getProjection().fromContainerPixelToLatLng(point);
-	//var taplatlng = this.overlay.getProjection().fromDivPixelToLatLng(point);
 	this.inputstring = taplatlng.toUrlValue(4);
 	this.setTopBarText(this.inputstring);
 	this.holdaction = "droppin";
@@ -4086,14 +4119,16 @@ firstGPSfix: function () {
 },
 
 startTracking: function() {
-		
-	this.trackingHandle = this.controller.serviceRequest('palm://com.palm.location', {
-		method: 'startTracking',
-		parameters: {"subscribe":true},
-		onSuccess : this.gpsUpdate.bind(this),
-		onFailure : function (e){ Mojo.Log.info("startTracking failure, results="+JSON.stringify(e)); }
-	}); 
 	
+	if (!this.trackingHandle) {	//Fixed mem. leaks, start only when not started before
+		this.trackingHandle = this.controller.serviceRequest('palm://com.palm.location', {
+			method: 'startTracking',
+			parameters: {"subscribe":true},
+			onSuccess : this.gpsUpdate.bind(this),
+			onFailure : function (e){ Mojo.Log.info("startTracking failure, results="+JSON.stringify(e)); }
+		});
+	};
+
 },
 
 stopTracking: function() {
@@ -4483,28 +4518,6 @@ streetLayer: function(action) {
             
         case false:
 			this.map.overlayMapTypes.setAt(2, null);
-			break;
-	};	
-},
-
-OSMLayer: function(action) {
-
-	switch (action) {
-        case true:
-			var imageMapTypeOptions = {
-				getTileUrl: function(coord,zoom){
-					  return "http://tile.openstreetmap.org/" + zoom + "/" + coord.x + "/" + coord.y + ".png";
-			},
-			 tileSize: new google.maps.Size(256, 256),
-			 isPng: true,
-			 opacity: 1
-			};
-			var tiledImageMap = new google.maps.ImageMapType(imageMapTypeOptions);
-			this.map.overlayMapTypes.setAt(1,tiledImageMap);
-            break;
-            
-        case false:
-			this.map.overlayMapTypes.setAt(1,null);
 			break;
 	};	
 },

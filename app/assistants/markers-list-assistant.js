@@ -1,6 +1,7 @@
-function MarkersListAssistant(Markers, Preferences) {
+function MarkersListAssistant(Markers, Preferences, gps) {
 	// place is response from google place service
 	this.Preferences = Preferences;
+	this.gps = gps;
 }
 
 MarkersListAssistant.prototype = {
@@ -117,6 +118,20 @@ this.FavoritesList = this.controller.get('FavoritesList');
 Mojo.Event.listen(this.FavoritesList, Mojo.Event.listTap, this.FavoritesListEventHandler);
 
 //setup My Location list widget
+var AltUnit = "";
+switch (this.Preferences.LengthUnits) {
+        case "metric": //meter
+            AltUnit = "m";
+            break;
+        case "imperial": //feet
+			AltUnit = "ft";
+			break;
+	};
+if (this.gps.vertAccuracy > 0) {
+	this.AltAddString = $L("Alt") + ": " + this.getAltDistanceInCorrectUnits(this.gps.altitude) + "±" + this.getAltDistanceInCorrectUnits((this.gps.vertAccuracy/2).toFixed(0)) + AltUnit;
+} else {
+	this.AltAddString = $L("Alt") + ": " + $L("Vertical fix not available");
+	};
 this.controller.setupWidget("MyLocationList",
 	{
 		itemTemplate: 'markers-list/listentry',
@@ -348,6 +363,19 @@ getDistanceInCorrectUnits: function (distance) {
 	
 },
 
+getAltDistanceInCorrectUnits: function (distance) {
+	
+	switch (this.Preferences.LengthUnits) {
+        case "metric": //meter
+            return distance;
+            break;
+        case "imperial": //feet
+			return (distance*3.2808399).toFixed(0);
+			break;
+	};
+	
+},
+
 toggleNearbyDrawer: function(){
 
 this.drawer = this.controller.get('NearbyDrawer');
@@ -402,6 +430,7 @@ GeocodeFromLatLng: function(latlng) {
 			this.MyLocationListModel.items[0].place.formatted_address = results[1].formatted_address;
 			this.MyLocationListModel.items[0].place.geometry.location = latlng;
 		    this.MyLocationListModel.items[0].distance = LocationString;
+		    this.MyLocationListModel.items[0].rating = this.AltAddString;
 		    
 			this.controller.modelChanged(this.MyLocationListModel);
           return results[1];
