@@ -11,7 +11,7 @@
 				<td><div class="place-title" id="name" x-mojo-element="TextField">
 					</div>
 					<br>
-				<div id="SmallHint">Tap and hold to rename</div></td></tr>
+				<div id="SmallHint" class="small-hint">Tap and hold to rename</div></td></tr>
 			</table> 
 		</div>
 	</div>
@@ -55,6 +55,43 @@
 		<div class="palm-body-text" id="website">
 		</div>   
 	</div>
+	
+<div id="PhotosContainer" style="display: none">
+	
+		<table class="palm-divider collapsible" id="Photos" x-mojo-touch-feedback="delayed">
+			<tr>
+				<td class="left">
+				
+				</td>
+				<td class="label" id="LabelPhotosText">
+					Photos
+				</td>
+				<td class="line" width="100%">
+				</td>
+				<td>
+					<div id="PhotosButArrow" class="palm-arrow-closed arrow_button">
+					</div>
+				</td>
+				<td class="right">
+				</td>
+			</tr>
+		</table>
+
+	<div id="PhotosDrawer"  x-mojo-element="Drawer">
+		<div class="palm-group">
+			<div class="palm-group-title" id="PhotosText">
+					Photos
+			</div>
+				<div>
+					<div id="photo" class="photo"></div>
+				</div>
+			<div id="photo-magnify"><img src="images/change_photo.png"></img></div>
+		</div>
+	</div>
+</div>
+
+
+	
 	
 <div id="UserReviewContainer" style="display: none">
 	

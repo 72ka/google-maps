@@ -1,10 +1,8 @@
 function MainAssistant(arg) {
-this.maploc = arg.maploc;
-this.mapto = arg.mapto;
-this.LaunchArg = arg;
 this.MapCookie = arg.Cookies.MapCookie;
 this.TrafficCookie = arg.Cookies.TrafficCookie;
 this.PrefsCookie = arg.Cookies.PrefsCookie;
+this.launchParams = arg.launchParams;
 }
 
 // define global variables
@@ -24,7 +22,7 @@ MainAssistant.prototype = {
 
 //Check internet connectivity at first
 this.checkConnectivity();
-//Mojo.Log.info("**** ZAPNOUT INTERNET CHECK ******");
+//Mojo.Log.info("**** ZAPNOUT INTERNET CHECK ******");  
 
 /* DEBUG FUNCTION */
 this.cevent = [];
@@ -112,7 +110,6 @@ this.TransitDateField.observe(Mojo.Event.tap, this.TransitDateFieldEventHandler)
 
 //externi kalendae
 this.kalendae = new Kalendae("Kalendae", {
-	//this.kalendae = new Kalendae(document.body, {
 		months: 1,
 		mode: 'single',
 		weekStart: 1,
@@ -581,13 +578,11 @@ Mojo.Log.info("*************************************");
 
     	// setup autocompleter for main search
 		this.MainInput = "";
-		this.MainInput = document.getElementById("MainSearchField");
-        this.Mainautocomplete = new google.maps.places.Autocomplete(this.MainInput);
-        this.Mainautocomplete.bindTo('bounds', this.map);
-
-        new google.maps.event.addListener(this.Mainautocomplete, 'place_changed', this.SelectedPlace.bind(this));
-
-
+		this.MainInput = document.getElementById("MainSearchField");	
+        this.MainAutocomplete = new google.maps.places.Autocomplete(this.MainInput);
+        this.MainAutocomplete.bindTo('bounds', this.map);
+        new google.maps.event.addListener(this.MainAutocomplete, 'place_changed', this.SelectedAutocomplete.bind(this));
+        
         // setup autocompleter for origin search
 		this.OriginInput = "";
 		this.OriginInput = document.getElementById("OriginSearchField");
@@ -612,7 +607,6 @@ Mojo.Log.info("*************************************");
 	this.Nearbymarkers = [];
 	this.NearbyStep = 0;
 	this.blockTPPan = false;
-	//this.isdragging = false;
 	this.wasflicked = false;
 	this.isNavit = false;
 	this.blockGPSFix = false;
@@ -629,6 +623,7 @@ Mojo.Log.info("*************************************");
 	this.dontForgetToEnableZoomIn = false;
 	this.dontForgetToEnableZoomOut = false;
 	this.gps;
+	this.parsedParams = null;
 
 	// map doesn't follow GPS as default
 	this.followMap = false;
@@ -795,7 +790,6 @@ Mojo.Log.info("*************************************");
 },
 
 handleCommand: function(event) {
-	//Mojo.Log.info("**** EVENT CMDMENU  %j ****", event.count);
 	if(event.type == Mojo.Event.commandEnable && (event.command == Mojo.Menu.helpCmd || event.command == Mojo.Menu.prefsCmd)) {
       event.stopPropagation();
     };
@@ -1075,14 +1069,6 @@ firstFixSuccess: function(gps) {
 		    				this.map.setZoom(14);
 		  					}
   			};
-
-				/* po zjisteni polohy spusti dalsi scenu s directions*/
-				if (this.LaunchArg.Action == "mapto") {
-
-					this.handleMapTo();
-					//and close the GPS wait dialog
-					this.GPSdialog.mojo.close();
-				};
 				
 				this.startTracking();
 				
@@ -1370,7 +1356,6 @@ handlePopMapType: function(MapType) {
         case 'do-osm':
             this.setStatusPanel($L("Setting map type: ") + $L('Openstreetmaps'));
             this.map.setMapTypeId("OSM");
-            //this.map.setMapTypeId("NOKIA");
             this.maxZoom = 18;
             this.ClearMapType();
             this.ActualMapType[4] = true;
@@ -1457,36 +1442,10 @@ activate: function(args) {
 				//resize the map after each focus back
 				google.maps.event.trigger(this.map, "resize");
 
-
-		if (this.LaunchArg.Action != undefined) {
-			
-				// decode unicode from JustType and unescape possibile HTML
-				this.maploc = decodeURIComponent(this.maploc);
-				this.mapto = decodeURIComponent(this.mapto);
-				this.maploc = this.maploc.unescapeHTML();
-				this.mapto = this.mapto.unescapeHTML();
-			
-				// Override mapto -> maploc if set in Preferences
-				if (this.LaunchArg.Action == "mapto" && this.Preferences.MaptoOverride) {
-					this.LaunchArg.Action = "maploc";
-					this.maploc = this.mapto;
-					this.mapto = undefined;
-				Mojo.Log.info("*** LAUNCH MAPTO DIRECTIONS AND OVERRIDING TO MAPLOC ***", this.maploc);
-				//this.handleMapLoc();
-				};
-				
-				// byla aplikace spustena jako hledani mista?
-				if (this.LaunchArg.Action == "maploc" || this.maploc != undefined) {
-				this.handleMapLoc();
-				};
-
-				// byla aplikace spustena jako navigace na misto?
-				if (this.LaunchArg.Action == "mapto" || this.mapto != undefined) {
-				Mojo.Log.info("*** LAUNCH MAPTO DIRECTIONS ***", this.mapto);
-				this.handleMapTo();
-				};
-				//remove variable
-				this.LaunchArg.Action = undefined;
+		//start handle launch parameters for standard new launch
+		if (this.launchParams) {
+			this.handleLaunch(this.launchParams);
+			this.launchParams = null;
 		};
 
 		this.WebOS2Events('start');
@@ -1495,10 +1454,7 @@ activate: function(args) {
 		if (args != undefined) {
 			//Mojo.Log.info("*** ACTION IN ACTIVATE ***", args.action);
 				switch (args.action) {
-
-					case "mapto-from-active":
-						this.handleMapTo();
-					break;		
+	
 					case "info":
 						this.map.panTo(args.place.geometry.location);
 						this.map.setZoom(17);
@@ -1606,22 +1562,6 @@ getMarkerFromID: function (id) {
 	
 },
 
-handleMapLoc: function(maploc) {
-
-	maploc = decodeURIComponent(maploc);
-	
-	if (this.maploc == undefined) { //this occurs when the app is relanuching with parameter
-		this.maploc = maploc;
-		google.maps.event.trigger(this.map, "idle");
-	};
-
-	if (this.maploc != undefined) {
-		this.maploc = decodeURIComponent(this.maploc);
-		Mojo.Log.info("*** LAUNCH MAPLOC PLACES ***", this.maploc);
-	};
-
-},
-
 WebOS2Events: function (action) {
 
 	if (Mojo.Environment.DeviceInfo.platformVersionMajor == "2" && Mojo.Environment.DeviceInfo.platformVersionMinor == "2") {
@@ -1630,7 +1570,7 @@ WebOS2Events: function (action) {
 		 switch (action) {
          case 'start':
          
-         //map_canvas is commont element to listen
+         //map_canvas is the common element to listen
          this.ListeningElement = this.controller.get('map_canvas');
          
          //setup dragStart listener      
@@ -1712,20 +1652,18 @@ MapIdle: function() {
 			this.blockpulse = false;
 		};
 		
-		this.LoadingSpinner("stop");
-		//this.ActualCenter = this.map.getCenter();
+		//Stop the spinner if it is spinning
+		if (this.LoadApiModel.spinning) {
+			this.LoadingSpinner("stop");
+			if (this.parsedParams) {
+				this.launchParamsAction(this.parsedParams);
+				this.parsedParams = null;
+			};
+		};
 		(function(){
 					this.ActualCenter = this.map.getCenter();
 					this.CenterChanged = true; //for sure if bounds_changed fails, the map was unmovable
-					//Mojo.Log.info("ActualCenter IDLE: ", this.ActualCenter);
 				}).bind(this).delay(1);
-				
-		// for Just type integration, call search after map idle
-		if (this.maploc != undefined) { //this occurs when the app is relanuching with parameter
-			this.Search(this.maploc);
-			this.maploc = undefined;
-		};
-		//Mojo.Log.info("IDLE: ");
 		
 		//hides the status panel when idle
 		this.hideStatusPanel();
@@ -2088,6 +2026,8 @@ dragStart: function(event) {
 	$("pulse").hide();
 	this.blockpulse = true;
 	this.oldevent = event.down;
+	this.CenterChanged = true;
+	event.stop();
 },
 
 dragging: function(event) {
@@ -2111,49 +2051,6 @@ click: function(event) {
 //Mojo.Log.info("*** CLICK **** ");
 },
 
-handleMapTo: function(event) { // tato funkce odchytne, pokud byla aplikace spustena s parametrem mapto
-
-				// Override mapto -> maploc if set in Preferences
-				if (this.Preferences.MaptoOverride) {
-					this.LaunchArg.Action = "maploc";
-					this.handleMapLoc(event);
-					event = undefined;
-					this.mapto = undefined;
-					Mojo.Log.info("*** LAUNCH MAPTO DIRECTIONS RELAUNCH AND OVERRIDING TO MAPLOC ***", this.maploc);
-
-				};
-				
-              // if the event exists, the app was relaunched with parameter mapto
-              if (event) {
-				  this.LaunchArg.Action = "mapto";
-				  this.mapto = event;
-				  };
-				// musim pockat na zamereni na GPSFix = true;
-				if (this.GPSFix == false && this.LaunchArg.Action == 'mapto') {
-					 this.GPSdialog = this.controller.showAlertDialog({
-	            onChoose: function(value) {
-	               this.LaunchArg.Action = null; //reset promenne ze spusteni
-	               this.LaunchArg.mapto = null; //reset promenne ze spusteni
-	            },
-	            title: $L("Waiting for your location..."),
-	            message: $L("Please wait for GPS fix or press Cancel."),
-	            choices: [{
-	               label: $L("Cancel"),
-	               value: ""
-	            }]
-	         });
-         };
-         if (this.GPSFix == true && this.LaunchArg.Action == 'mapto') {
-           this.LaunchArg.Action = null; //reset promenne ze spusteni
-		// workaround at this time, needs some delay to autocompleter is initialized
-           	(function(){
-				this.Directions({destination: this.mapto});
-			}).bind(this).delay(2);
-         };
-
-
-},
-
 mousedownHandler: function() {
 
 	this.controller.setMenuVisible(Mojo.Menu.commandMenu, true);
@@ -2164,63 +2061,62 @@ mousedownHandler: function() {
 Search: function(address) {
 
 
-this.setViewPortWidth(320);
+	this.setViewPortWidth(320);
 
-this.WebOS2Events('stop');
+	this.WebOS2Events('stop');
 
-//stop listen to keypress
-this.controller.stopListening(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
+	//stop listen to keypress
+	this.controller.stopListening(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
 
-this.searching = true;
-this.IsSet = false;
+	this.searching = true;
+	this.IsSet = false;
 
-/* Hide the menu instead of toggle, fixes the sometimes hidden menu */
-this.controller.setMenuVisible(Mojo.Menu.viewMenu, false);
-this.controller.setMenuVisible(Mojo.Menu.commandMenu, false);
+	/* Hide the menu instead of toggle, fixes the sometimes hidden menu */
+	this.controller.setMenuVisible(Mojo.Menu.viewMenu, false);
+	this.controller.setMenuVisible(Mojo.Menu.commandMenu, false);
 
+	$('searchScrim').show();
 
-$('searchScrim').show();
+	if(address != undefined) {
 
+					this.controller.get('MainSearchField').value = "";
+					this.controller.get('MainSearchField').blur();
+					this.controller.get('MainSearchField').value = address;
+					this.controller.get('MainSearchField').blur();
+					this.controller.get('MainSearchField').focus();
+					address = undefined;
+	} else {
 
+		this.controller.get('MainSearchField').focus();
+		this.controller.get('MainSearchField').select();
 
-if(address != undefined) {
-
-				this.controller.get('MainSearchField').value = "";
-				this.controller.get('MainSearchField').blur();
-				this.controller.get('MainSearchField').value = address;
-				this.controller.get('MainSearchField').blur();
-				this.controller.get('MainSearchField').focus();
-				address = undefined;
-
-} else {
-
-	this.controller.get('MainSearchField').focus();
-	this.controller.get('MainSearchField').select();
-
-	};
+		};
 
 },
 
-SelectedPlace: function (event) {
+SelectedAutocomplete: function (event) {
 
-this.WebOS2Events('start');
+	//get actual map bounds
+	var NorthEast = this.map.getBounds().getNorthEast();
+	var SouthWest = this.map.getBounds().getSouthWest();
 
-this.setViewPortWidth(480);
+	this.WebOS2Events('start');
 
-this.controller.setMenuVisible(Mojo.Menu.viewMenu, true);
-this.controller.setMenuVisible(Mojo.Menu.commandMenu, true);
+	this.setViewPortWidth(480);
+
+	this.controller.setMenuVisible(Mojo.Menu.viewMenu, true);
+	this.controller.setMenuVisible(Mojo.Menu.commandMenu, true);
 
 
-$('searchScrim').hide();
+	$('searchScrim').hide();
 
-this.searching = false;
-
+	this.searching = false;
 	this.IsSet = true;
 
 	// loose focus
 	this.controller.get('MainSearchField').blur();
 
-	 var place = this.Mainautocomplete.getPlace();
+	 var place = this.MainAutocomplete.getPlace();
 
           try {
             this.map.fitBounds(place.geometry.viewport);
@@ -2245,19 +2141,33 @@ this.searching = false;
 				this.ActualCenter = place.geometry.location;
 				};
 				
-			  //Mojo.Log.info("** PLACE ID %j***", place.id);
 			  //place marker
 			  this.PlaceMarker({position: place.geometry.location, title: place.name, subtitle: address, place: place, popbubble: true});
 
 			  //update the view menu text
 			  this.feedMenuModel.items[1].items[1].label = place.name;
 			  this.controller.modelChanged(this.feedMenuModel);
-		  } catch (error) {};
-          
-          //start the listener for keypress
-          this.controller.listen(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
+			  
+			  //start the listener for keypress
+			  this.controller.listen(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
+			  
+		  } catch (error) { /** Start the nearby text search if the one place search failed **/
+			  
+				//default radius in meters from actual map bounds
+				var radius = Math.round(google.maps.geometry.spherical.computeDistanceBetween(NorthEast, SouthWest)/2);
+				var input = place.name;
 
+				if (radius > 50000) {radius = 50000};
+					
+				//if user write the @, do split to input and radius
+				if (place.name.indexOf("@")>-1) {
+					var request = place.name.split("@");
 
+					radius = request[1];
+					input = request[0];
+				}; 
+			  this.SearchNearbyPlaces(input, radius);
+			};
 },
 
 SearchPaste: function(event) {
@@ -2281,7 +2191,10 @@ SearchKeypress: function (event) {
 	var dropdown = document.getElementsByClassName('pac-container')[0];
 	this.ns.checktimes = 0;
 	var inp = document.getElementById('MainSearchField');
-	//Mojo.Log.info("** KEY ***", event.keyCode);
+
+	
+	/* DEPRECATED - new textSearch supports the coordinations directly
+	 * 
 	if (event.keyCode == Mojo.Char.enter) {
 		//Mojo.Log.info("** ENTER ***");
 		event.stop();
@@ -2297,6 +2210,7 @@ SearchKeypress: function (event) {
           this.controller.listen(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
           
 	};
+	*/
 	
 	 if (this.ns.checkTimer) {
                     clearTimeout(this.ns.checkTimer);
@@ -2308,6 +2222,9 @@ SearchKeypress: function (event) {
 },
 
 isThereCoordinates: function(input) {
+	
+		/** DEPRECATED - No more needed, new textSearch service supports the coordinates **/
+		
 		/* This function recognize type of coordinates format and return latlng
 		 * Don't ask me how I can regonzie it... it was horrible to make this function :)
 		 * It could be recognized by more elegant way... ToDo*/
@@ -2395,12 +2312,7 @@ isThereCoordinates: function(input) {
 },
 
 ConvertDMSToDD: function(days, minutes, seconds, direction) {
-	
-	//Mojo.Log.info("** DAYS ***", days);
-	//Mojo.Log.info("** MINUTES ***", minutes);
-	//Mojo.Log.info("** SECONDS ***", seconds);
-	//Mojo.Log.info("** DIRECTION ***", direction);
-	
+
 	days = parseFloat(days);
     minutes = parseFloat(minutes);
     seconds = parseFloat(seconds);
@@ -2433,57 +2345,6 @@ PlaceDroppedPin: function (place) {
     this.holdaction = undefined;
 },
 
-EnterSubmittedPlace: function (input) {
-	
-this.setViewPortWidth(480);
-	
-this.WebOS2Events('start');
-
-this.controller.toggleMenuVisible(Mojo.Menu.viewMenu);
-this.controller.toggleMenuVisible(Mojo.Menu.commandMenu);
-
-
-this.searching = false;
-
-this.IsSet = true;
-
-// loose focus
-this.controller.get('MainSearchField').blur();
-
-
-
-//default radius in meters from actual map bounds
-
-	var NorthEast = this.map.getBounds().getNorthEast();
-	var SouthWest = this.map.getBounds().getSouthWest();
-	var radius = Math.round(google.maps.geometry.spherical.computeDistanceBetween(NorthEast, SouthWest)/2);
-	//Mojo.Log.info("** RADIUS ***", radius);
-	
-	if (radius > 5000) {radius = 5000};
-	
-
-//if user write the @, do split to input and radius
-if (input.indexOf("@")>-1) {
-	var request = input.split("@");
-
-	radius = request[1];
-	input = request[0];
-};
-
-this.SearchNearbyPlaces(input, radius);
-
-          //update the view menu text
-          //this.feedMenuModel.items[1].items[1].label = input + $L(" within ") + radius + $L("m");
-          //this.controller.modelChanged(this.feedMenuModel);
-          
-          //start the listener for keypress
-          this.controller.listen(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
-          
-          $('searchScrim').hide();
-
-
-},
-
 CheckSearchInput: function (dropdown, inp) {
 	
              	if (document.getElementById('MainSearchField').value == "") {
@@ -2491,36 +2352,24 @@ CheckSearchInput: function (dropdown, inp) {
 				};
            
                 if (inp && this.ns.checktimes < 20) { // check at most 10 seconds
-                	//Mojo.Log.info("** DALSI ***");
-                	
-                	
-                if (dropdown.style.display == '') {
-                    //msg.innerHTML = 'has results? true';
-                    //Mojo.Log.info("** TRUE ***");
-                    this.ns.checkTimer = null;
-                	};
-                if (inp && dropdown.style.display == 'none' && this.ns.checktimes > 1) {
-                    //msg.innerHTML = 'has results? false';
-                    //Mojo.Log.info("** FALSE ***");
-                    dropdown.style.display = 'block';
-                    dropdown.style.top = "44px";
-                    //var child = dropdown.appendChild(child);
-
-                    
-                    dropdown.innerHTML = "<div class='pac-item'>" + $L("No results") + "...</div>";
-                    this.ns.checkTimer = null;
-                };
-                	
-                	
-                	
-                    this.ns.checktimes++;
-                    this.ns.checkTimer = setTimeout(function () {
-                        this.CheckSearchInput(dropdown, inp);
-                    }.bind(this), 500);
-                };
-			
+					if (dropdown.style.display == '') {
+						this.ns.checkTimer = null;
+						};
+					if (inp && dropdown.style.display == 'none' && this.ns.checktimes > 1) {
+						dropdown.style.display = 'block';
+						dropdown.style.top = "44px";
+						dropdown.innerHTML = "<div class='pac-item'>" + $L("No results") + "...</div>";
+						this.ns.checkTimer = null;
+					};
+						
+						
+						
+						this.ns.checktimes++;
+						this.ns.checkTimer = setTimeout(function () {
+							this.CheckSearchInput(dropdown, inp);
+						}.bind(this), 500);
+                };		
 },
-
 
 SelectedOriginPlace: function (event) {
 
@@ -2589,14 +2438,16 @@ PlaceMarker: function (args) {
 	};
 	
 	if (place.rating) {
-		ratingcontainer = '<div class="rating-container" id="rating-container" style="padding-right: 7px; padding-left: 0px; margin-top: 5px; float:left;"><div class="rating_bar"><div id="ratingstar" style="width:' + place.rating*20 + '%"></div></div></div>';
+		ratingcontainer = '<div class="rating-container" id="rating-container" style="padding-right: 7px; padding-left: 0px; margin-top: 5px;"><div class="rating_bar"><div id="ratingstar" style="width:' + place.rating*20 + '%"></div></div></div>';
 		};
+		
+	args.subtitle = place.vicinity || this.getVicinityFromFormattedAddress(place.formatted_address);
+	place.vicinity = place.vicinity || place.formatted_address;
 
  	//--> Define the infoBubble
 	var infoBubble = new InfoBubble({
 		map: this.map,
-		//content: '<div id="bubble" class="phoneytext">' + args.title + '<div class="phoneytext2">' + args.subtitle + '</div></div>',
-		content: '<div id="bubble" class="phoneytext">' + args.title + '<div class="phoneytext2">' + args.subtitle + '<br>' + ratingcontainer + '</div>',
+		content: '<div id="bubble" class="phoneytext truncating-text">' + '<div class="truncating-text">' + args.title + '</div>' + '<div class="phoneytext2 truncating-text">' + args.subtitle + '</div>' + ratingcontainer + '</div>',
 		shadowStyle: 0,
 		padding: 0,
 		backgroundColor: 'rgb(57,57,57)',
@@ -2862,8 +2713,8 @@ handleBackSwipe: function (event) {
 			// toggle back the scrim
 			$('searchScrim').toggle();
 
-			this.controller.toggleMenuVisible(Mojo.Menu.viewMenu);
-			this.controller.toggleMenuVisible(Mojo.Menu.commandMenu);
+			this.controller.setMenuVisible(Mojo.Menu.viewMenu, true);
+			this.controller.setMenuVisible(Mojo.Menu.commandMenu, true);
 
 			// loose focus
 			//this.controller.get('MainSearchField').mojo.blur();
@@ -2886,12 +2737,12 @@ handleBackSwipe: function (event) {
 			try {
 				//update directions in infobubbles for alternative routes
 				this.updateDirectionsResponse(this.directionsResponse);
-			} catch (error) {};
+			} catch (error) {Mojo.Log.info(error)};
 
 			$('directionsScrim').toggle();
 
-			this.controller.toggleMenuVisible(Mojo.Menu.viewMenu);
-			this.controller.toggleMenuVisible(Mojo.Menu.commandMenu);
+			this.controller.setMenuVisible(Mojo.Menu.viewMenu, true);
+			this.controller.setMenuVisible(Mojo.Menu.commandMenu, true);
 
 			this.directing = false;
 			
@@ -2910,10 +2761,9 @@ handleBackSwipe: function (event) {
 },
 
 Keypress: function (event) {
-	
-	// do action only if the pressed key isn`t Escape(swipeback)
-	if (event.keyCode != 27) {
-		//Mojo.Log.info("** BACK ***", event.keyCode);
+
+	// do action only if the pressed key isn`t Escape, Enter, select and meta
+	if (event.keyCode != 27 && event.keyCode != 13 && event.keyCode != 129 && event.keyCode != 231) {
 		this.controller.stopListening(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
 		this.KeyWasPressed = true;
 		this.Search();
@@ -2925,7 +2775,7 @@ Keypress: function (event) {
 		};
 },
 
-Directions: function (position) {
+Directions: function (route) {
 
 	this.setViewPortWidth(320);
 	this.WebOS2Events('stop');
@@ -2961,15 +2811,16 @@ Directions: function (position) {
 		this.controller.get('OriginSearchField').focus();
 	};
 
-	if (this.GPSFix && position) {
-				this.controller.get('DestinationSearchField').value = "";
-				this.controller.get('DestinationSearchField').blur();
-				this.controller.get('DestinationSearchField').value = position.destination;
-				this.controller.get('DestinationSearchField').blur();
-				this.controller.get('DestinationSearchField').focus();
-				address = undefined;
-				this.mapto = undefined;
-	};
+	try {
+		if (route.endAddress) {
+					this.controller.get('DestinationSearchField').value = route.endAddress;
+					route.endAddress = null;
+		};
+		if (route.startAddress) {
+					this.controller.get('OriginSearchField').value = route.startAddress;
+					route.startAddress = null;
+			};
+	} catch (error) {};
 	
 	//update the list height
     this.updateDirectListHeight();
@@ -2979,13 +2830,7 @@ Directions: function (position) {
 DirectType: function (event) {
 	
 	this.TravelMode = event.value;
-	
-	/* Update the actual time to the Date and Timepicker */
-	//this.TransitDateModel.time = new Date();
-	//this.controller.modelChanged(this.TransitDateModel);
-		
-	
-	
+
 	switch (event.value) {
          case 'driving':
            this.travel = google.maps.DirectionsTravelMode.DRIVING;
@@ -3027,8 +2872,6 @@ GetDirectionsButtonTap: function (event) {
 			$('DirectionsPanel').hide();
         break;
 	};
-
-
 },
 
 IsRouted: function (state) {
@@ -3254,7 +3097,8 @@ PlaceDirectionMarker: function (args) {
 		backgroundClassNameClicked: 'phoney-clicked',
 		arrowStyle: 2,
 		onClick: function(){
-			//nothing to do for this time
+			//Show directions panel on the bubble tap
+			this.Directions();
 		}.bind(this)
 	});
 
@@ -3439,8 +3283,6 @@ markerInfo: function (marker) {
 	this.InfoService.getDetails(request, function(place, status) {
 			//Mojo.Log.info("** INFOSERVICE STATUS %j ***", status);
 			if (status == google.maps.places.PlacesServiceStatus.OK) {
-				
-				//Mojo.Log.info("** RESULT %j ***", place.reviews);
 				//save favorite mark to result if is favorite
 				if (marker.place.favorite) place.favorite = marker.place.favorite;
 				place.id = marker.place.id; //set the id always from previous marker
@@ -3673,37 +3515,49 @@ FullscreenOff: function() {
 SearchNearbyPlaces: function (keyword, radius) {
 	
 	var request = {
-    location: this.map.getCenter(), //search poi from actual map center
+    location: this.map.getCenter(), //search from actual map center
     radius: radius,
     //rankBy: google.maps.places.RankBy.DISTANCE,
     //types: ['store']
-    keyword: keyword
+    query: keyword
   };
 
 this.NearbyService = new google.maps.places.PlacesService(this.map);
 
-this.NearbyService.search(request, function(results, status) {
+this.NearbyService.textSearch(request, function(results, status) {
 			
 			if (status == google.maps.places.PlacesServiceStatus.OK) {
+				if (results.length > 1) { //More than one marker
 				
-				//update the view menu text
-				this.feedMenuModel.items[1].items[1].label = request.keyword + $L(" within ") + request.radius + $L("m");
-				this.controller.modelChanged(this.feedMenuModel);
-          
-				// clear previous nearby markers
-				this.clearNearbyMarkers();
-				//place all new markers
-				for (var i = 0; i < results.length; i++) {
-				  var place = results[i];
-				  place.distance = google.maps.geometry.spherical.computeDistanceBetween(request.location, place.geometry.location);
-				  this.PlaceNearbyMarker(results[i]);
+					//update the view menu text
+					this.feedMenuModel.items[1].items[1].label = request.query + $L(" within ") + request.radius + $L("m"); 
+					this.controller.modelChanged(this.feedMenuModel);
+			  
+					// clear previous nearby markers
+					this.clearNearbyMarkers();
+					//place all new markers
+					for (var i = 0; i < results.length; i++) {
+					  var place = results[i];
+					  place.distance = google.maps.geometry.spherical.computeDistanceBetween(request.location, place.geometry.location);
+					  this.PlaceNearbyMarker(results[i]);
+					};
+					//fit the map to the all nearby markers bounds
+					this.MarkersFitBounds(this.Nearbymarkers);
+				  
+				} else if (results.length == 1){ //Only one marker to place
+				
+					this.PlaceMarker({position: results[0].geometry.location, title: results[0].name, subtitle: results[0].formatted_address, place: results[0], popbubble: true});
+					//update the view menu text
+					this.feedMenuModel.items[1].items[1].label = results[0].name;
 				};
-				//fit the map to the all nearby markers bounds
-				this.MarkersFitBounds(this.Nearbymarkers);
+
 			} else {
-				this.ShowInfoDialog('"' + request.keyword + '"' + $L(" within ") + request.radius + $L("m"), $L(status + "_NEARBY"), $L("OK"));
+				this.ShowInfoDialog('"' + request.query + '"' + $L(" not found!"), $L(status + "_NEARBY"), $L("OK"));
 			};
 		}.bind(this));
+		
+		//start the listener for keypress
+	    this.controller.listen(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
 
 },
 
@@ -3734,6 +3588,7 @@ PlaceNearbyMarker: function(place) {
 
 	//Add it to the array		
 	marker.place = place; //add place array to the marker, because of pushing to other scenes
+	marker.place.vicinity = marker.place.vicinity || this.getVicinityFromFormattedAddress(marker.place.formatted_address); //if the vicinity isn't available, set vicinity as address
 	
 	this.Nearbymarkers.push(marker);
 
@@ -3746,10 +3601,10 @@ toggleNearbyInfoBubble: function(marker, place){
 			}).bind(this).delay(0.5);
 
 //add calculated distance information to each poi infobubble
-var formateddistance = "<div class='phoneytext2'>(" + (place.distance/1000).toFixed(2) + "km) ";
+var formateddistance = "<div class='phoneytext2'>(" + (place.distance/1000).toFixed(2) + "km) </div>";
 
 if (place.rating) {
-	var formateddistance = "<div class='phoneytext2' style='height: 18px; margin-top: 7px;'>(" + (place.distance/1000).toFixed(2) + "km) ";
+	var formateddistance = "<div class='phoneytext2' style='height: 18px; margin-top: 7px;'>(" + (place.distance/1000).toFixed(2) + "km) </div>";
 	var ratingcontainer = '<div class="rating-container" id="rating-container" style="padding-right: 7px; padding-left: 0px; margin-top: 5px; float:left;"><div class="rating_bar"><div id="ratingstar" style="width:' + place.rating*20 + '%"></div></div></div>' + formateddistance;
 } else {
 	var ratingcontainer = formateddistance;
@@ -3759,9 +3614,10 @@ if (place.rating) {
 			
 if (place.infoBubble == undefined) {	
 			
+		place.vicinity = place.vicinity || this.getVicinityFromFormattedAddress(place.formatted_address);
 		var infoBubble = new InfoBubble({
 			map: this.map,
-			content: '<div id="bubble" class="phoneytext">' + place.name + '<div class="phoneytext2">' + place.vicinity + ratingcontainer,
+			content: '<div id="bubble" class="phoneytext truncating-text">' + '<div class="truncating-text">' + place.name + '</div>' + '<div class="phoneytext2 truncating-text">' + place.vicinity + '</div>' + ratingcontainer + '</div>',
 			shadowStyle: 1,
 			padding: 0,
 			backgroundColor: 'rgb(57,57,57)',
@@ -3813,6 +3669,11 @@ if (place.infoBubble == undefined) {
 			};
 		};
 
+},
+
+getVicinityFromFormattedAddress: function(formatted_address) {
+	/* This function removes the country from the end of the string */
+	return formatted_address.substring(0,formatted_address.lastIndexOf(","));
 },
 
 MarkersFitBounds: function(MarkersArray) {
@@ -3933,8 +3794,6 @@ checkConnectivity: function (callback) {
 
 MapHold: function (event) {
 	
-	Mojo.Log.info("** DOWN X*** %j", event.down.x);
-	Mojo.Log.info("** DOWN Y*** %j", event.down.y);
 	this.setStatusPanel($L("Dropping a pin..."));
 
 	var point = new google.maps.Point(event.down.x, event.down.y);
@@ -4075,8 +3934,8 @@ dbAddFail: function(transaction,result) {
 
 setViewPortWidth: function(width) {
 
-// do this only for Pre3 device
-if(this.isPre3()){
+	// do this only for Pre3 device
+	if(this.isPre3()){
 	if (width == 480) {this.ImageRatio = 1.5} else {this.ImageRatio = 1};
   
 		var metatags = document.getElementsByTagName('meta');
@@ -4084,7 +3943,7 @@ if(this.isPre3()){
 		var element = metatags[cnt];
 		if(element.getAttribute('name') == 'viewport') {
 
-		element.setAttribute('content','width='+width+'px; initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, height=device-height');
+		element.setAttribute('content','width='+width+'px; initial-scale=2.0, minimum-scale=1.0, maximum-scale=3.0, user-scalable=yes, height=device-height');
 		//document.body.style['max-width'] = width+'px';
    }
   }
@@ -4375,14 +4234,15 @@ handleAvoidTolls: function (event) {
 
 updateDirectionsResponse: function (response) {
 	
+	if (this.routeIndex != this.directionsDisplay.getRouteIndex()) { /* update the route only if it was switched */
 	  //update Route index
       this.routeIndex = this.directionsDisplay.getRouteIndex();
-
 	  this.DirectStep = 0;
 	  this.clearDirectPoints();
 	  this.DirectionMarkers({start: this.origin, end: this.destination, start_title: response.routes[this.routeIndex].legs[0].start_address, end_title: response.routes[this.routeIndex].legs[0].end_address});
 	  this.makeDirectMarkers(response);
 	  this.SetTopMenuText(response.routes[this.routeIndex].legs[0].distance.text + "; " + response.routes[this.routeIndex].legs[0].duration.text);
+  };
 },
 
 setTransitDatePickers: function (date) {
@@ -4573,11 +4433,161 @@ ImageryRotate: function () {
 	this.map.setHeading(this.imageryHeading);
 },
 
-//EXPERIMENTAL ODTUD
+/** This app is able to resolve all the same cross-app parameters as Bing maps **/
+
+/*
+ * query: The query used to search for places or location.
+ * address: The address location used to center the map view.
+ * location:
+ * 			lat: The latitude of the location used to center the map view.
+ * 			lng: The longitde of the location used to center the map view.
+ * route:
+ * 			startAddress: The address of the starting waypoint for a route.
+ * 			endAddress:   The address of the ending waypoint for a route.
+ * zoom: The zoom level of the map view.
+ * mapType: The map type of the map view.  Valid map types are aerial, auto, birdseye, collinsBart, mercator, ordnanceSurvey and road.
+ * target: mapto or maploc with address in URL encoded format, e.g. mapto://303%20Second%20Street%2C%20San%20Francisco
+ */
  
+handleLaunch: function (launchParams) {
+	//Mojo.Log.info("handleLAUNCH: %j", launchParams);
+	var parsedParams = {};
+	
+	try {
+		if (launchParams.target) {
+			parsedParams = this.parseTargetOrQuery(launchParams);
+			Mojo.Log.info("TARGET: Parsed params: %j", parsedParams);
+		};
+		
+		if (launchParams.query) {
+			parsedParams.query = launchParams.query;
+			Mojo.Log.info("QUERY: Parsed params: %j", parsedParams);
+		};
+		
+		if (launchParams.address) {
+			parsedParams.address = launchParams.address;
+			Mojo.Log.info("ADDRESS: Parsed params: %j", parsedParams);
+		};
+		
+		if (launchParams.zoom) {
+			parsedParams.zoom = launchParams.zoom;
+			Mojo.Log.info("ZOOM: Parsed params: %j", parsedParams);
+		};
+		
+		if (launchParams.mapType) {
+			parsedParams.mapType = launchParams.mapType;
+			Mojo.Log.info("MAPTYPE: Parsed params: %j", parsedParams);
+		};
+		
+		if (launchParams.location) {
+			parsedParams.location = launchParams.location;
+			Mojo.Log.info("LOCATION: Parsed params: %j", parsedParams);
+		};
+		
+		if (launchParams.route) {
+			parsedParams.route = launchParams.route;
+			Mojo.Log.info("ROUTE: Parsed params: %j", parsedParams);
+		};
+		
+		/* If the app is running (spinner is not spinning), go to the launchParamsAction() immediatelly, otherwise wait for mapidle */
+		if (this.LoadApiModel.spinning) {
+			this.parsedParams = parsedParams; 
+		} else {
+			this.launchParamsAction(parsedParams);
+		};
+		
+	} catch (error) {
+		Mojo.Controller.errorDialog($L("Wrong cross app parameters"));
+		Mojo.Log.info(error);
+	};
+},
+
+launchParamsAction: function (parsedParams) {
+	
+	/* Fills the main search field */
+	if (parsedParams.address) {
+		this.Search(parsedParams.address);
+	};
+	
+	if (parsedParams.route) {
+		this.Directions(parsedParams.route);
+	};
+	
+	if (parsedParams.zoom) {
+		this.map.setZoom(parsedParams.zoom);
+	};
+	
+	/** ToDo: other launch parameters **/
+	
+},
+
+parseTargetOrQuery: function (params) {
+      var parsedParams = {};
+      if (params.query && params.query.match(/@-?\d+\.\d+,-?\d+\.\d+$/)) {  //in case of yelp adding the coords at the end of the request
+        var query = params.query;
+        parsedParams.query = query.replace(/@-?\d+\.\d+,-?\d+\.\d+$/, '')
+      }
+      if (params.target) {
+        var target = decodeURIComponent(params.target);
+        if (target.match(/^mapto:\/*/) && this.Preferences.MaptoOverride) {
+            parsedParams.address = target.replace(/^mapto:\/*/, '');
+        }
+        if (target.match(/^mapto:\/*/) && !this.Preferences.MaptoOverride) {
+          parsedParams.route = {
+            "startAddress": "",
+            "endAddress": target.replace(/^mapto:\/*/, '')
+          }
+        }
+        if (target.match(/^maploc:\/*/)) {
+          parsedParams.address = target.replace(/^maploc:\/*/, '');
+        }
+        if (target.match(/^(http|https):\/\/maps\.google\./i)) {
+          var googleurl = new GoogleURL(target);
+          if (googleurl.search) {
+            parsedParams.query = googleurl.search;
+          }
+          if (googleurl.coordinates) {
+            parsedParams.coordinates = googleurl.coordinates;
+          }
+          if (googleurl.near) {
+            parsedParams.near = googleurl.near;
+          }
+          if (googleurl.routeRequest) {
+            parsedParams.route = {
+              "startAddress": googleurl.routeRequest.start,
+              "endAddress": googleurl.routeRequest.end
+            };
+          }
+        }
+      }
+      if (params.route && !params.route.startAddress) {
+        parsedParams.route.startAddress = "";
+      }
+      if (params.route && !params.route.endAddress) {
+        parsedParams.route.endAddress = "";
+      }
+      return parsedParams;
+},
+
+/** HIDDEN EXPERIMENTAL STUFF FROM HERE - ONLY FOR MY DEV. PURPOSES **/
+fireEnterOnElement: function (element) {
+	
+	// Create new event
+	var e = document.createEvent('KeyboardEvent');
+	// Init key event
+	e.initKeyboardEvent('keydown', true, true, window, false, false, false, false, "Q", 0);
+	// Dispatch event into document
+	element.dispatchEvent(e);
+},
+
 Debug: function() {
     
-    /** gaming with touch event generating **/
+    this.fireEnterOnElement($('MainSearchField'));
+    //this.controller.get('MainSearchField').submit();
+    
+    /*
+    
+
     try {
     //var targetElement = document.elementFromPoint(55, 155);
     //Mojo.Log.info(targetElement);
@@ -4627,7 +4637,7 @@ Debug: function() {
 	} catch (except){
 		Mojo.Log.info(except);
 	};
-
+*/
 }
 
 };

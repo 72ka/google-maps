@@ -67,6 +67,43 @@ html, body {
 	padding: -20px 0px -20px 0px;
 }
 
+.photo {
+	border-width: 7px 10px 12px 6px;
+	-webkit-border-image: url(../images/photo-bg.png) 7 10 12 6 stretch stretch;
+	-webkit-box-sizing: border-box;
+	padding: 0px 0px 0px 0px;
+}
+
+.photo-img {
+	max-width: 100%;
+}
+
+#photo-magnify {
+	margin-top: -35px;
+	padding-left: 85%;
+}
+
+.photos-body {
+	background-color: black;
+}
+
+#photos-header-text-left {
+	float: left;
+	text-overflow: ellipsis;
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    vertical-align: center;
+}
+
+#photos-header-text-left.img {
+	margin-top: 10px;
+}
+
+#photos-header-text-right {
+	float: right;
+}
+
 .gmnoprint {
 	//overflow: visible !important;
 }
@@ -162,7 +199,7 @@ html, body {
 	padding: 0;
 }
 
-#SmallHint {
+.small-hint {
 	font-size: 12px;
 	color: #1f75bf;
 	text-shadow: #ffffff 0px 1px 0px;
@@ -672,9 +709,9 @@ div#urlbar-title {
 /* INFOBUBLE */
 
 .infobubble {
-	position: absolute;
-	z-Index: 10002;
-	opacity: 0.9;
+	//position: absolute;
+	//z-Index: 10002;
+	//opacity: 0.9;
 }
 
 .phoney {
@@ -695,7 +732,7 @@ div#urlbar-title {
 }
 .phoneytab {
 	text-shadow: 0 -1px 0 #000; color: #fff; font-family: Helvetica Neue, Helvetica, arial;	font-size: 18px;
-	background: rgb(112,112,112) !important;
+	background: rgb(112,112,112);
 }
 
 /* MARKERS LIST */
@@ -931,3 +968,26 @@ div#urlbar-title {
 	//font-size: 12px;
 }
 
+/* a hacky way to change start and destination in the directions panel result and other stuff around directions panel */
+
+#adp-placemark img, .adp-placemark img {
+   display:none;
+}
+#adp-placemark {
+   font-weight: bold;
+   padding: 5px 5px 5px 30px;
+   background: #eaeaea url(../images/bubble/flagA.png) no-repeat left center;
+   border-radius: 15px;
+}
+.adp-placemark {
+   font-weight: bold;
+   padding: 5px 5px 5px 30px;
+   background: #eaeaea url(../images/bubble/flagB.png) no-repeat left center;
+   border-radius: 15px;
+}
+
+.adp-summary {
+   font-weight: bold;
+   font-size: 16px;
+   color: blue;
+}

@@ -47,6 +47,26 @@ this.controller.setupWidget("UserReviewList",
   }
 );
 
+//setup Photos collapsible
+this.controller.setupWidget("PhotosDrawer",
+  this.attributes = {
+      modelProperty: 'open',
+      unstyled: true
+  },
+  this.PhotosDrawerModel = {
+      open: false
+  }
+); 
+
+//setup Photos collapsible arrow listener
+this.PhotosDrawerEventHandler = this.togglePhotosDrawer.bindAsEventListener(this);
+this.PhotosDrawer = this.controller.get('PhotosButArrow');
+Mojo.Event.listen(this.PhotosDrawer, Mojo.Event.tap, this.PhotosDrawerEventHandler);
+
+//Observe a Photo for event
+this.PhotoTapHandler = this.PhotoTap.bindAsEventListener(this);
+this.controller.get('photo').observe(Mojo.Event.tap, this.PhotoTapHandler);
+
 //setup Call button
 this.controller.setupWidget("CallButton",
   this.attributes = {
@@ -185,6 +205,24 @@ if (this.place.opening_hours != undefined) {
 };
 if (this.place.url) { $("url").innerHTML = "<a href='" + this.place.url + "'>" + $L("Show full Google page") + "</a>"; };
 if (this.place.website) { $("website").innerHTML = $L("Home page") + ":<br>" + "<a href='" + this.place.website + "'>" + this.place.website + "</a>"; };
+
+//Place photos
+if (this.place.photos) {
+	$("PhotosContainer").show();
+	$("LabelPhotosText").innerHTML = $L("Photos (" + this.place.photos.length + ")");
+	
+					try {
+				//Mojo.Log.info("** PHOTOS getURL %j ***", place.photos[0].getUrl({'maxWidth': 35, 'maxHeight': 35}));
+				Mojo.Log.info("** PHOTOS getURL %j ***", place.photos[0]);
+				} catch (error) {
+					Mojo.Log.info(error);
+				};
+	
+	//var url = this.place.photos[0].getUrl({'maxWidth': 35, 'maxHeight': 35});
+	//var url = this.place.photos[0].getUrl();
+	//Mojo.Log.info("PHOTOS: %j", url);
+	//$("photo").innerHTML = "<img width='" + (this.controller.window.innerWidth - 40) + "' height='" + (this.controller.window.innerWidth/1.33 - 40) + "' src='" + this.place.photos[0].raw_reference.fife_url + "'>";
+};
 
 //User reviews
 
@@ -537,6 +575,30 @@ if (this.drawer.mojo.getOpenState() == true)
 
 },
 
+togglePhotosDrawer: function(){
+
+this.drawer = this.controller.get('PhotosDrawer');
+
+/* Insert and image for the first time when opened */
+if (!this.drawer.mojo.getOpenState() && $("photo").innerHTML == "") {
+	$("photo").innerHTML = "<img class='photo-img' src='" + this.place.photos[0].raw_reference.fife_url + "'>";	
+};
+
+//this will toggle the drawers state
+this.drawer.mojo.setOpenState(!this.drawer.mojo.getOpenState());
+
+if (this.drawer.mojo.getOpenState() == true)
+	{
+		this.controller.get('PhotosButArrow').removeClassName('palm-arrow-closed').addClassName('palm-arrow-expanded');
+
+	} else {
+		
+		this.controller.get('PhotosButArrow').removeClassName('palm-arrow-expanded').addClassName('palm-arrow-closed');
+
+	};
+
+},
+
 FillUserReviewList: function(reviews) {
 
 	for (var i = 0; i < reviews.length; i++) {
@@ -612,6 +674,11 @@ timeDifference: function(current, previous) {
     }
 
     return " (" + new Template($L(timestring)).evaluate({ago: time}) + ")"; 
+},
+
+PhotoTap: function (event) {
+	Mojo.Log.info("** PHOTO TAP *** %j ", this.place.id);
+	this.controller.stageController.pushScene({'name': 'photos', transition: Mojo.Transition.none}, this.place);
 },
  
 isTouchPad: function(){

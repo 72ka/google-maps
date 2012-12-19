@@ -1,6 +1,7 @@
 var maploc;
 var mapto;
 var LaunchAction;
+var appLaunchParams;
 
 //setup the variable Cookie models
 var Cookies = [];
@@ -27,8 +28,9 @@ var DefaultPreferences = {
 
 
 function AppAssistant(appController) {
-    this.controller = appController;
-    
+    AppAssistant.appController = appController; 
+	AppAssistant.instance = this;
+	this.appController = appController;   
 }
     
 AppAssistant.prototype.setup = function() {
@@ -48,65 +50,43 @@ AppAssistant.prototype.setup = function() {
 	
 };
 
-AppAssistant.prototype.handleLaunch = function(appLaunchParams) {
+AppAssistant.prototype.handleLaunch = function(launchParams){
 	
-	// focus the stage controller if we have one
-	if (Mojo.Controller && Mojo.Controller.stageController) {	
-			Mojo.Controller.stageController.activate();
-			this.resolveLaunch(appLaunchParams);
-		 switch (LaunchAction) {
-			 case 'maploc':
-			   this.controller.getStageController("").delegateToSceneAssistant('handleMapLoc', maploc);
-			   break;
-			 case 'mapto':
-			  this.controller.getStageController("").delegateToSceneAssistant('handleMapTo', mapto);
-			  break;
-      };
-			
-	}
-	
-	// if there are any launch params
-	if (appLaunchParams.target != undefined && appLaunchParams.target != "") {
-		this.resolveLaunch(appLaunchParams);
-	}
-
+   Mojo.Log.info("********* APP LAUNCH *************");
+   var cardStageController = Mojo.Controller.stageController;
+   Mojo.Log.info("Controller is: " + cardStageController);
+ 
+   appLaunchParams = launchParams;
+   if (!launchParams) {
+      // FIRST LAUNCH or TAP on Icon when minimized
+      if (cardStageController) {
+         // Application already running (scenario 2)
+         Mojo.Log.info("Relaunch!");
+         cardStageController.activate();
+      }
+      else {
+         // Need to launch the stage and scene (scenario 1) - standard launch
+         Mojo.Log.info("Launching new stage!");
+      }
+   }
+   else {
+      if (cardStageController) {
+		cardStageController.activate();
+		Mojo.Controller.stageController.delegateToSceneAssistant('handleLaunch', launchParams);
+	  };
+   }
 };
 
-AppAssistant.prototype.resolveLaunch = function(appLaunchParams) {
-
-Mojo.Log.info("** appLaunchParams *** %j", appLaunchParams);
+function StageAssistant(stageController) {
 	
-	
-// if there are any launch params
-	if (appLaunchParams.target != undefined && appLaunchParams.target != "") {
-		
-		var foundIndex = appLaunchParams.target.indexOf("mapto:");
-		if (foundIndex >= 0) {
-			mapto = appLaunchParams.target.substr(foundIndex + "mapto:".length);
-			LaunchAction = "mapto";
-		}
-		else {
-			foundIndex = appLaunchParams.target.indexOf("maploc:"); //toto je co me zajima!
-			if (foundIndex >= 0) {
-				maploc = appLaunchParams.target.substr(foundIndex + "maploc:".length);
-				LaunchAction = "maploc";
-			}
-			else {
-				LaunchAction = undefined;
-			}
-		}
-	}
-
-};
-
-function StageAssistant() {
+	AppAssistant.stageController = stageController;
+	this.stageController = stageController;
 }
 
 StageAssistant.prototype.setup = function() {
-
 // push the main scene
-this.controller.pushScene({name: "main", disableSceneScroller: true}, { Action: LaunchAction, maploc: maploc, mapto: mapto, Cookies: Cookies});
-this.controller.setWindowOrientation("free");
+this.stageController.pushScene({name: "main", disableSceneScroller: true}, { Action: LaunchAction, maploc: maploc, mapto: mapto, Cookies: Cookies, launchParams: appLaunchParams});
+this.stageController.setWindowOrientation("free");
 };
 
 // Array Remove - By John Resig (MIT Licensed)

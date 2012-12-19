@@ -29,7 +29,11 @@
     {
         "source": "app/assistants/preferences-assistant.js", 
         "scenes": "preferences"
-    }, 
+    },
+    {
+        "source": "app/assistants/photos-view-assistant.js", 
+        "scenes": "photos"
+    },  
     {
     	"source": "javascript/infobubble/infobubble-compiled.js"
     },
