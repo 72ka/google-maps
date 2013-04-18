@@ -15,6 +15,7 @@ $("DeatilsText").innerHTML = $L("Details");
 $("SmallHint").innerHTML = $L("Tap and hold to rename");
 $("LabelReviewsText").innerHTML = $L("More details");
 $("UserReviewsText").innerHTML = $L("User reviews");
+$("PhotosText").innerHTML = $L("Photos");
 
 
 //setup UserReview collapsible
@@ -167,16 +168,41 @@ this.controller.setupWidget(Mojo.Menu.commandMenu,
 // Show everything available from place on this scene
 if (this.place.icon) { $("place-icon").innerHTML = "<img width='48' height='48' src='" + this.place.icon + "'>";  };
 //if (this.place.name) { $("name").innerHTML = this.place.name; };
-if (this.place.formatted_address) { $("formatted_address").innerHTML = $L("Address") + ":<br>" + this.place.formatted_address; };
-$("loc").innerHTML = $L("Loc") + ":<br>" + this.place.geometry.location.toUrlValue(8);
+if (this.place.formatted_address) { $("formatted_address").innerHTML = "<span class='bold-text'>" + $L("Address") + ":</span><br>" + this.place.formatted_address; };
+$("loc").innerHTML = "<span class='bold-text'>" + $L("Loc") + ":</span><br>" + this.place.geometry.location.toUrlValue(8);
 if (this.place.formatted_phone_number) {
 	 $("CallButton").show();
 	 $("CallButtonLabel").innerHTML = this.place.formatted_phone_number;
 	  };
 if (this.place.rating) {
 	$("rating-container").show();
-	$("rating").innerHTML = $L("Rating") + ":<br>" + this.place.rating;
+	$("rating").show();
+	$("rating").innerHTML = "<span class='bold-text'>" + $L("Rating") + ":</span><br>" + this.place.rating;
 	document.getElementById("ratingstar").style.width = this.place.rating*20 + "%";
+	};
+	
+if (this.place.price_level) {
+	
+	var level;
+	switch (this.place.price_level) {
+         case 0:
+			level = $L("Free");
+            break;
+         case 1:
+			level = $L("Inexpensive");
+            break;
+         case 2:
+			level = $L("Moderate");
+            break;
+         case 3:
+			level = $L("Expensive");
+            break;
+         case 4:
+			level = $L("Very expensive");
+            break;
+      };    
+    $("price_level").show();
+	$("price_level").innerHTML = "<span class='bold-text'>" + $L("Price level") + ":</span>   " + level + "<img src='images/moneybag.png'>";
 	};
 	
 if (this.place.opening_hours != undefined) {
@@ -185,7 +211,7 @@ if (this.place.opening_hours != undefined) {
 	var n = d.getDay()-1;
 	var daynames = [$L("Monday"),$L("Tuesday"),$L("Wednesday"),$L("Thursday"),$L("Friday"),$L("Saturday"),$L("Sunday")]
 	$("opening_hours").show();
-	$("OpenhoursText").innerHTML = $L("Open hours:");
+	$("OpenhoursText").innerHTML = "<span class='bold-text'>" + $L("Open hours:") + "</span>";
 	this.openhoursNote = $L("Open hours:") + "\n";
 	
 	/* Fills the open hours week schedule */
@@ -203,25 +229,19 @@ if (this.place.opening_hours != undefined) {
 				  
 	};
 };
-if (this.place.url) { $("url").innerHTML = "<a href='" + this.place.url + "'>" + $L("Show full Google page") + "</a>"; };
-if (this.place.website) { $("website").innerHTML = $L("Home page") + ":<br>" + "<a href='" + this.place.website + "'>" + this.place.website + "</a>"; };
+if (this.place.url) { 
+	$("url").show();
+	$("url").innerHTML = "<a href='" + this.place.url + "'>" + $L("Show full Google page") + "</a>";
+	 };
+if (this.place.website) { 
+	$("website").show();
+	$("website").innerHTML = "<span class='bold-text'>" + $L("Home page") + ":</span><br>" + "<a href='" + this.place.website + "'>" + this.place.website + "</a>";
+	 };
 
 //Place photos
 if (this.place.photos) {
 	$("PhotosContainer").show();
-	$("LabelPhotosText").innerHTML = $L("Photos (" + this.place.photos.length + ")");
-	
-					try {
-				//Mojo.Log.info("** PHOTOS getURL %j ***", place.photos[0].getUrl({'maxWidth': 35, 'maxHeight': 35}));
-				Mojo.Log.info("** PHOTOS getURL %j ***", place.photos[0]);
-				} catch (error) {
-					Mojo.Log.info(error);
-				};
-	
-	//var url = this.place.photos[0].getUrl({'maxWidth': 35, 'maxHeight': 35});
-	//var url = this.place.photos[0].getUrl();
-	//Mojo.Log.info("PHOTOS: %j", url);
-	//$("photo").innerHTML = "<img width='" + (this.controller.window.innerWidth - 40) + "' height='" + (this.controller.window.innerWidth/1.33 - 40) + "' src='" + this.place.photos[0].raw_reference.fife_url + "'>";
+	$("LabelPhotosText").innerHTML = $L("Photos") + " (" + this.place.photos.length + ")";
 };
 
 //User reviews
@@ -311,8 +331,10 @@ var Address = "<br><b>" + $L("Address") + ":</b> " + this.place.formatted_addres
 if (this.place.url) gURL = "<br><b>" + $L("Google Maps URL") + ": </b><a href='" + this.place.url + "'>" + this.place.url + "</a>";
 if (this.place.website) website = "<br><b>" + $L("Home page") + ":</b> " + "<a href='" + this.place.website + "'>" + this.place.website + "</a>";
 if (this.place.formatted_phone_number) phone = "<br><b>" + $L("Phone") + ":</b> " + this.place.formatted_phone_number;
-openhoursEmail = this.openhoursNote.split("\n");
-openhoursEmailText = "<br><b>" + openhoursEmail[0] + "</b><br>" + openhoursEmail[1] + "<br>" + openhoursEmail[2] + "<br>" + openhoursEmail[3] + "<br>" + openhoursEmail[4] + "<br>" + openhoursEmail[5] + "<br>" + openhoursEmail[6] + "<br>" + openhoursEmail[7] + "<br>";
+if (this.openhoursNote) {
+	openhoursEmail = this.openhoursNote.split("\n");
+	openhoursEmailText = "<br><b>" + openhoursEmail[0] + "</b><br>" + openhoursEmail[1] + "<br>" + openhoursEmail[2] + "<br>" + openhoursEmail[3] + "<br>" + openhoursEmail[4] + "<br>" + openhoursEmail[5] + "<br>" + openhoursEmail[6] + "<br>" + openhoursEmail[7] + "<br>";
+};
 
 var EmailText = "<b>" + $L("Name") + ":</b> " + this.place.name + Address + "<br><b>" + $L("Location") + ":</b> " + this.place.geometry.location + gURL + phone + website + openhoursEmailText + "</p><i><h6><font color='grey'>" + $L("-- Sent from") + " <a href='http://www.webosnation.com/google-maps-72ka'>" + $L("homebrew Google Maps</a> application for WebOS") + "</font><h6></i>";
 				
@@ -581,7 +603,7 @@ this.drawer = this.controller.get('PhotosDrawer');
 
 /* Insert and image for the first time when opened */
 if (!this.drawer.mojo.getOpenState() && $("photo").innerHTML == "") {
-	$("photo").innerHTML = "<img class='photo-img' src='" + this.place.photos[0].raw_reference.fife_url + "'>";	
+	$("photo").innerHTML = "<img class='photo-img' src='" + this.place.photos[0].getUrl({'maxWidth': this.controller.window.innerWidth, 'maxHeight': this.controller.window.innerWidth}) + "'>";	
 };
 
 //this will toggle the drawers state

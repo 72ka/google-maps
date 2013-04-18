@@ -44,6 +44,11 @@ document.getElementById("ExperimentalTitleText").innerHTML = $L("Experimental fe
 document.getElementById("MapHeadingText").innerHTML = $L("Map Heading");
 document.getElementById("MapHeadingInfoText").innerHTML = $L("When enabled and following map is active, the map is rotated to the actual heading if the velocity is higher than 3km/h.<br><br>");
 document.getElementById("UnitsTitleText").innerHTML = $L("Units");
+document.getElementById("MapCacheTitleText").innerHTML = $L("OSM Map cache (UNSTABLE)");
+document.getElementById("MapCacheText").innerHTML = $L("Smart caching (OSM Map only)");
+document.getElementById("MapCacheInfoText").innerHTML = $L("Enables smart caching, tiles are loaded from local storage and every new tile is saved to local storage for future use. Needs restart.");
+document.getElementById("MapCachePathText").innerHTML = $L("Use MappingTool cache");
+document.getElementById("MapCachePathInfoText").innerHTML = $L("If enabled, the map use the MappingTool cache in /media/internal/.MapTool directory");
 
 // Fullscreen toggle button
 this.controller.setupWidget("FullscreenToggle",
@@ -88,6 +93,46 @@ this.controller.setupWidget("MaptoToggle",
 this.handleMaptoToggleHandler = this.handleMaptoToggle.bindAsEventListener(this);
 Mojo.Event.listen(this.controller.get("MaptoToggle"), Mojo.Event.propertyChange, this.handleMaptoToggleHandler);
 
+// MapCache toggle button
+this.controller.setupWidget("MapCacheToggle",
+  this.MapCacheToggleAttributes = {
+      trueValue: true,
+      falseValue: false
+  },
+  this.MapCacheToggleModel = {
+      value: false,
+      disabled: false
+  }
+);
+this.handleMapCacheToggleHandler = this.handleMapCacheToggle.bindAsEventListener(this);
+Mojo.Event.listen(this.controller.get("MapCacheToggle"), Mojo.Event.propertyChange, this.handleMapCacheToggleHandler);
+
+// MapCachePath toggle button
+this.controller.setupWidget("MapCachePathToggle",
+  this.MapCachePathToggleAttributes = {
+      trueValue: true,
+      falseValue: false
+  },
+  this.MapCachePathToggleModel = {
+      value: false,
+      disabled: false
+  }
+);
+this.handleMapCachePathToggleHandler = this.handleMapCachePathToggle.bindAsEventListener(this);
+Mojo.Event.listen(this.controller.get("MapCachePathToggle"), Mojo.Event.propertyChange, this.handleMapCachePathToggleHandler);
+
+//setup MapCahePath collapsible
+this.controller.setupWidget("MapCachePathDrawer",
+  this.MapCachePathDrawerAttributes = {
+      modelProperty: 'open',
+      unstyled: true
+  },
+  this.MapCachePathDrawerModel = {
+      open: false
+  }
+); 
+
+
 //Observe a text element with Language settings
 this.LangOverrideFieldHandler = this.handleLangOverrideField.bindAsEventListener(this);
 this.controller.get('LangOverrideField').observe(Mojo.Event.tap, this.LangOverrideFieldHandler);
@@ -104,11 +149,6 @@ this.controller.setupWidget("LangDrawer",
       open: false
   }
 ); 
-
-//setup Nearby places collapsible arrow listener
-//this.LangDrawerEventHandler = this.toggleLangDrawer.bindAsEventListener(this);
-//this.LangDrawer = this.controller.get('NearbyButArrow');
-//Mojo.Event.listen(this.LangDrawer, Mojo.Event.tap, this.NearbyDrawerEventHandler);
 
 //setup Lang list widget
 this.controller.setupWidget("LangList",
@@ -263,11 +303,19 @@ checkAllPreferences: function(Preferences) {
 	};
 },
 
+activate: function() {
+	this.controller.get('MapCachePathDrawer').mojo.setOpenState(this.MapCacheToggleModel.value);
+	this.controller.getSceneScroller().mojo.scrollTo(0,0);
+},
+
 setPrefsWidgets: function(Preferences) {
 	
 	/* Set the widgets to their values */
   this.FullscreenToggleModel.value = Preferences.Fullscreen;
   this.RotateToggleModel.value = Preferences.MapRotate;
+  this.MapCacheToggleModel.value = Preferences.MapCache;
+  this.MapCachePathToggleModel.value = Preferences.MapCacheExternal;
+  
   this.MaptoToggleModel.value = Preferences.MaptoOverride;
   var a = this.containsCode(this.LangListModel.items, Preferences.APILang.code);
   this.controller.get('LangOverrideField').innerHTML = $L(this.LangListModel.items[a].name);
@@ -308,6 +356,17 @@ handleRotateToggle: function(event) {
 
 handleMaptoToggle: function(event) {
 	this.Preferences.MaptoOverride = event.model.value;
+	this.PrefsCookie.put(this.Preferences);
+},
+
+handleMapCacheToggle: function(event) {
+	this.Preferences.MapCache = event.model.value;
+	this.PrefsCookie.put(this.Preferences);
+	this.controller.get('MapCachePathDrawer').mojo.setOpenState(event.model.value);
+},
+
+handleMapCachePathToggle: function(event) {
+	this.Preferences.MapCacheExternal = event.model.value;
 	this.PrefsCookie.put(this.Preferences);
 },
 
@@ -361,7 +420,7 @@ cleanup: function() {
 	Mojo.Event.stopListening(this.controller.get("FullscreenToggle"), Mojo.Event.propertyChange, this.handleFullscreenToggleHandler);
 	Mojo.Event.stopListening(this.controller.get("RotateToggle"), Mojo.Event.propertyChange, this.handleRotateToggleHandler);
 	Mojo.Event.stopListening(this.controller.get("MaptoToggle"), Mojo.Event.propertyChange, this.handleMaptoToggleHandler);
-	
-	
+	Mojo.Event.stopListening(this.controller.get("MapCacheToggle"), Mojo.Event.propertyChange, this.handleMapCacheToggleHandler);
+	Mojo.Event.stopListening(this.controller.get("MapCachePathToggle"), Mojo.Event.propertyChange, this.handleMapCachePathToggleHandler);
 	}
 };

@@ -5,7 +5,6 @@ this.position = argFromPusher;
 
 StreetAssistant.prototype = {
 	setup: function() {
-		//Ares.setupSceneAssistant(this);
 
 		if (Mojo.Environment.DeviceInfo.platformVersionMajor == "2" && Mojo.Environment.DeviceInfo.platformVersionMinor == "2") {
 			this.SdragStartHandler = this.SdragStart.bindAsEventListener(this);
@@ -67,10 +66,10 @@ this.streetViewCheck.getPanoramaByLocation(this.position, 50, function(result, s
     }else{
         this.streetViewAvailable = true;
         if (Mojo.Environment.DeviceInfo.platformVersionMajor == "2" && Mojo.Environment.DeviceInfo.platformVersionMinor == "1") {
-			this.FullPanorama = false;
-			this.Panorama21();  //panorama pro webos 2.1
+			//this.Panorama21();  //panorama pro webos 2.1
+			/* Looks like the new API supports finally the webOS 2.1 webkit */
+			this.Panorama();
 		} else {
-			this.FullPanorama = true;
 			this.Panorama();  //vsechny webos krome 2.1
 		};
   
@@ -118,12 +117,8 @@ this.controller.get('StreetSpinner').mojo.stop(); //stop spinner
 $('overlay-scrim').hide();
 
 try {
-				//$("street_canvas").parentNode.style.width = this.controller.window.innerWidth + "px;";
-				//$("street_canvas").parentNode.style.height = this.controller.window.innerHeight + "px;";
 				this.panorama = new google.maps.StreetViewPanorama(document.getElementById("street_canvas"), panoramaOptions);
 				this.panorama.setVisible(true);
-				//$("street_canvas").style.height = this.controller.window.innerHeight + "px;";
-				//Mojo.Log.info("** PARENT HEIGHT ***", $("street_canvas").style.height);
 				}
 			catch (error) {
 				Mojo.Log.info("Cannot initiate StreetView - system error", error);
@@ -133,7 +128,7 @@ try {
 
 },
 
-
+/* DEPRECATED */
 Panorama21: function() {
 	
 		var width = Mojo.Environment.DeviceInfo.screenWidth;
@@ -161,9 +156,6 @@ Panorama21: function() {
               worldSize: new google.maps.Size(width*4, height),
               centerHeading: 45,
               getTileUrl: function(pano, zoom, tileX, tileY) {
-				  //Mojo.Log.info("tileX %j:", tileX);
-				  //Mojo.Log.info("tileY %j:", tileY);
-				  //Mojo.Log.info("zoom %j:", zoom);
 				  if (tileX < 4) {
 					  return "http://maps.googleapis.com/maps/api/streetview?size=" + width + "x" + height + "&location=" + this.position + " &heading="+ tileX*90 +"&fov=90&pitch=0&sensor=false";
 					  }
@@ -225,6 +217,5 @@ cleanup: function() {
 		};
 		this.panorama.setVisible(true);
 		this.panorama = null;
-		//Ares.cleanupSceneAssistant(this);
 	}
 };

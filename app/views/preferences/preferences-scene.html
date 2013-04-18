@@ -55,6 +55,23 @@
 </div>
 
 <div class="palm-group">
+    <div class="palm-group-title"><span id="MapCacheTitleText">OSM Map cache (UNSTABLE)</span></div>
+           <div class="palm-list">
+				<div class="palm-row multi-line last">
+						   <div x-mojo-element="ToggleButton" id="MapCacheToggle"></div>
+						   <div class="title left" id="MapCacheText">Smart caching (OSM Map only)</div>
+						   <div class="palm-info-text" id="MapCacheInfoText">Enables smart caching, tiles are loaded from local storage and every new tile is saved to local storage for future use. Needs restart.<br><br></div>
+						   <div id="MapCachePathDrawer"  x-mojo-element="Drawer">
+							   <div x-mojo-element="ToggleButton" id="MapCachePathToggle"></div>
+							   <div class="title left" id="MapCachePathText">Use MappingTool cache</div>
+							   <div class="palm-info-text" id="MapCachePathInfoText">If enabled, the map use the MappingTool cache in /media/internal/.MapTool directory<br><br></div>
+						   </div>
+				</div>
+         	
+    </div>
+</div>
+
+<div class="palm-group">
     <div class="palm-group-title"><span id="ExperimentalTitleText">Experimental features (UNSTABLE)</span></div>
            <div class="palm-list">
 				<div class="palm-row multi-line last">

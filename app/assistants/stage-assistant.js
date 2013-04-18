@@ -12,6 +12,8 @@ var DefaultPreferences = {
 		Fullscreen: false,
 		MapRotate: false,
 		MaptoOverride: false,
+		MapCache: false,
+		MapCacheExternal: false,
 		APILang: {code:"",name:"DEFAULT"},
 		Bike: false,
 		Weather: false,

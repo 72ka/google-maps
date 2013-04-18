@@ -138,22 +138,28 @@
 	</div>
 	
 <div id="compass" style="display: none">
+	<div id="compass_rotate" style="">
 		<div id="needle" style="display: none"></div>
+	</div>
 </div>
 
 
 <div class="pulse" id="pulse" style="display: none"></div>
 
+<div id="devlabel" style="display: none">!! DEVELOPMENT SNAPSHOT !!</div>
 
 
 <div id="trick_container">
 	<div id="map_canvas" class="maps" allowtouchdefault="1"></div>
-	<div id="map_trick_canvas"></div>
-	<div class="status-panel" id="status-panel">
-		<div x-mojo-element="Spinner" id="StatusPanelSpinner" style="float: left;"></div>
-		<div id="status-panel-text" style="float: left;"></div>
-	</div>
+	<div id="map_scrim" class="maps" style="display: none"></div>
+	<div id="map_trick_canvas" class="maps"></div>
 </div>
+
+<div class="status-panel" id="status-panel">
+	<div x-mojo-element="Spinner" id="StatusPanelSpinner" style="float: left;"></div>
+	<div id="status-panel-text" style="float: left;"></div>
+</div>
+
 	
 <div class="palm-scrim" id="busy-overlay-scrim">
 	<div x-mojo-element="Spinner" id="LoadingSpinner" class="spinnerClass" />

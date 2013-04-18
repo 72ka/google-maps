@@ -31,7 +31,8 @@ PhotosAssistant.prototype = {
                 this.controller.setupWidget('imageViewer', this.viewerAttributes, this.viewerModel);
                 
                 for (var k = 0; k < this.place.photos.length; k++) {
-					this.photosurl[k+1] = this.place.photos[k].raw_reference.fife_url;
+					/* Size two times bigger for some zoom possibilities */
+					this.photosurl[k+1] = this.place.photos[k].getUrl({'maxWidth': this.controller.window.innerWidth*2, 'maxHeight': this.controller.window.innerHeight*2});
 					this.captions[k+1] = (k+1) + "/" + this.place.photos.length;
 				};
 				

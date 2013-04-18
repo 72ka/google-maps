@@ -33,7 +33,10 @@
     {
         "source": "app/assistants/photos-view-assistant.js", 
         "scenes": "photos"
-    },  
+    },
+    {
+        "source": "app/assistants/osm-map-assistant.js"
+    },   
     {
     	"source": "javascript/infobubble/infobubble-compiled.js"
     },

@@ -4,13 +4,6 @@ http://maps.gstatic.com/
 http://maps.google.com/maps/api/
 http://maps.google.com/maps/api/js?v=3&sensor=true&libraries=places,weather,panoramio,geometry
 
-CACHE MANIFEST
-
-http://maps.gstatic.com/
-http://maps.google.com/maps/api/
-
-NETWORK:
-
 http://maps.gstatic.com/
 
 
@@ -32,10 +25,28 @@ http://mt2.googleapis.com/
 http://mt3.googleapis.com/
 
 
+http://mts0.googleapis.com/
+
+
+http://mts1.googleapis.com/
+
+
+http://mts2.googleapis.com/
+
+
+http://mts3.googleapis.com/
+
+
 http://khm0.googleapis.com/
 
 
 http://khm1.googleapis.com/
+
+
+http://khms0.googleapis.com/
+
+
+http://khms1.googleapis.com/
 
 
 http://cbk0.googleapis.com/
@@ -48,4 +59,13 @@ http://www.google-analytics.com/
 
 
 http://gg.google.com/
+
+CACHE MANIFEST
+
+http://maps.gstatic.com/
+http://maps.google.com/maps/api/
+
+NETWORK:
+
+
 

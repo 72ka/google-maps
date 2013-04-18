@@ -7,10 +7,18 @@ html, body {
     display: none;
 }
 
+/* My Location marker */
+#map_canvas img[src*="blue_dot_on.png"]{
+		//display:none;
+		//-webkit-transform: scale(1, 1) !important;
+}
+
 #map_canvas {
 	position: absolute;
 	width:100%;
  	height:100%;
+ 	//width:320px;
+ 	//height:440px;
  	//-webkit-transform-origin-x: 0px !important;
  	//-webkit-transform-origin-y: 0px !important;
  	//-webkit-transform-origin: top left !important;
@@ -20,14 +28,18 @@ html, body {
  	//-webkit-transition: all 2s ease-in-out !important;
  	//-webkit-transform-style: preserve-3d;
  	// -webkit-user-drag: element;
- 	cursor:pointer;
+ 	//-webkit-transform: rotate(-30deg) skewX(30deg) skewY(0deg) scaleY(0.87);
+ 	cursor: none;
  	font-size: 14px; //InfoWindow font size
  	//-webkit-user-select: none;
  	z-Index:10000;
  	//overflow: visible !important;
- 	background: none;
- 	border-width: 2px;
+ 	//background: none;
+ 	//background-color: white;
+ 	//border-width: 2px;
  	// -webkit-transform: matrix(1, -0.2, -0.2, 1, 0, 0);
+ 	-webkit-backface-visibility: hidden;
+	//-webkit-perspective: 1000;
 }
 
 #map_trick_canvas {
@@ -37,8 +49,21 @@ html, body {
  	-webkit-user-select: none;
  	//z-Index: 10001;
  	z-Index: 9999;
- 	display: none;
+ 	//display: none;
+ 	//background: none;
+}
+
+#map_scrim {
+	position: absolute;
+	width:100%;
+ 	height:100%;
+ 	-webkit-user-select: none;
+ 	//z-Index: 10001;
+ 	z-Index: 10002;
+ 	//display: none;
  	//background: black;
+ 	background-color: rgb(229, 227, 223);
+ 	//-webkit-transform: translateZ(0); 
 }
 
 #trick_container {
@@ -65,6 +90,16 @@ html, body {
 	-webkit-border-image: url(../images/list-gradient.png) 0 1 0 1 stretch stretch;
 	-webkit-box-sizing: border-box;
 	padding: -20px 0px -20px 0px;
+}
+
+#devlabel {
+	color: red;
+	position: absolute;
+	opacity: 0.3;
+	width: 100%;
+	text-align: center;
+	bottom: 2px;
+	z-Index: 10002;
 }
 
 .photo {
@@ -106,6 +141,9 @@ html, body {
 
 .gmnoprint {
 	//overflow: visible !important;
+	z-Index: 1000500 !important;
+	position: absolute !important;
+	//font-size: 16px !important;
 }
 
 .palm-account-icon {
@@ -173,9 +211,10 @@ html, body {
 
 		margin: -20px 0 5px 0;
 		position: absolute; 
-		z-index: 1000000000000; 
+		z-index: 10010; 
 		width: 84%; 
-		right: 25px;
+		right: auto;
+		left: 25px;
 		top: 65px;
 		border-width: 5px 5px 5px 5px;
 		-webkit-border-image: url(../images/map-bubble-background.png) 22 18 22 18 stretch stretch;
@@ -881,33 +920,44 @@ div#urlbar-title {
 #compass {
 	position: absolute;
 	z-Index:10001;
-	top: 85px;
-	//display: none;
+	top: 45px;
 	height:160px;
 	width:160px;
 	margin-left:5px;
 	margin-right:auto;	
-	background:url(../images/compass.png) center center no-repeat;
-	-webkit-transition-property: scale translate;
+	-webkit-transition-property: all;
 	-webkit-transition-duration: 0.5s;
 	-webkit-transition-timing-function: linear;
-	-webkit-transform:  scale(0.5) translateX(-80px) translateY(-80px);
-	//-webkit-transform: translateX(-20px);
+	-webkit-transform-origin: 0% 0%;
+	-webkit-transform: scale(0.5);
+	display:-webkit-box;
+	-webkit-box-pack: center;
+	-webkit-box-align: center;
 }
 
 #compass.active {
-	-webkit-transform:  scale(1) translateX(0) translateY(0);
-	//-webkit-transform: translateX(0);
+	-webkit-transform: scale(1);
+}
+
+#compass_rotate {
+	background:url(../images/compass.png) center center no-repeat;
+	height:100%;
+	width:100%;
+	display:-webkit-box;
+	-webkit-box-pack: center;
+	-webkit-box-align: center;
+	-webkit-transition-property: all;
+	-webkit-transition-duration: 1s;
+	-webkit-transition-timing-function: linear;
+	//-webkit-transform-origin: 0% 0%;
 }
 
 #needle {
 	height:130px;
 	width:15px;
-	top: 83px;
-	margin-top: 14px;
-	margin-left:73px;
-	margin-right:auto;
-	background:url(../images/needle.png) center center no-repeat;
+	margin-top: -1px;
+	margin-left:4px; //small offset to fix
+	background: url(../images/needle.png) center center no-repeat;
 }
 
 /* Pulsating GPS dot */
@@ -990,4 +1040,14 @@ div#urlbar-title {
    font-weight: bold;
    font-size: 16px;
    color: blue;
+}
+
+.bold-text {
+	font-weight: bold;
+}
+
+@media only screen and (max-device-width:480px), 
+only screen and (-webkit-min-device-pixel-ratio: 1.5)
+{ /* Pre 3 css stuff can be here too (1.5 pixel ratio) */
+
 }

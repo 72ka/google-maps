@@ -27,6 +27,7 @@ this.checkConnectivity();
 /* DEBUG FUNCTION */
 this.cevent = [];
 this.cevent.magHeading = 0;
+this.devversion = false;
 this.debug = false;
 this.devfakegps = false;
 
@@ -45,6 +46,8 @@ this.controller.setupWidget("DirectionsPanelScroller",
   }
 );
 
+//detect HP Touchpad
+
 if (this.isTouchPad()) {
 	// set height of scroller for TP
 	var listheight = Math.round(this.controller.window.innerHeight*0.84) + "px";
@@ -58,6 +61,19 @@ if (this.isTouchPad()) {
 	// Older WebOS devices doesn't support optimized markers in newest gAPI v3
 	this.optimizedmarkers = false;
 	};
+
+//detect touch enabled engine
+if ("ontouchstart" in document.documentElement)
+	{
+	  // It's a touch screen device.
+	  this.touch = true;
+	}
+else {
+  // Others devices.
+  this.touch = false;
+};
+
+Mojo.Log.info("**** Touch enable webkit: %j", this.touch);
 
 //setup radio button directions type
 
@@ -262,6 +278,9 @@ this.MapTap = this.controller.get('map_canvas');
 //define mousedown follow listener
 this.mousedownInterruptsFollowHandler = this.mousedownInterruptsFollow.bindAsEventListener(this);
 
+//define mousedown stop pan listener
+this.panMousedownHandler = this.panMousedown.bindAsEventListener(this);
+
 //setup TP Back buttons
 
 this.controller.setupWidget("TPBackButton",
@@ -316,6 +335,11 @@ this.controller.get('SwapButton').observe(Mojo.Event.tap, this.SwapDirectionsHan
 this.setLocalizedHTML();
 
 this.setStatusPanel($L("Loading Maps..."));
+
+//Set development label
+if (this.devversion) {	
+	$("devlabel").show();
+};
 
 // --- test EVENETS help function for me
 /*
@@ -480,7 +504,7 @@ this.mapStyleNight = [
 ];
 
 Mojo.Log.info("*************************************");
-Mojo.Log.info("* GOOGLE MAPS API VERSION: ", this.getApiVersion());
+Mojo.Log.info("* GOOGLE MAPS API VERSION: ", google.maps.version);
 Mojo.Log.info("*************************************");
 
     var myOptions = {
@@ -551,12 +575,14 @@ Mojo.Log.info("*************************************");
 	//Load a Favorites from Mojo.Depot
 	this.getFavorites();
 	
-	
-		/* Openstreetmaps custom map type set */
+	/* Openstreetmaps custom map type set - cached as Custom map type, non-cached as ImageMapType */
+	if (this.Preferences.MapCache) {
+		this.map.mapTypes.set('OSM', new OSMMapType(this.Preferences));	
+	} else {		
 		this.map.mapTypes.set("OSM", new google.maps.ImageMapType({
+			
                 getTileUrl: function(coord, zoom) {
-                    return "http://tile.openstreetmap.org/" + zoom + "/" + coord.x + "/" + coord.y + ".png";
-                    //return "http://maps.mytopo.com/groundspeak/tilecache.py/1.0.0/topoG/" + zoom + "/" + coord.x + "/" + coord.y + ".png";
+						return "http://tile.openstreetmap.org/" + zoom + "/" + coord.x + "/" + coord.y + ".png";
                 },
                 tileSize: new google.maps.Size(256, 256),
                 isPng: true,
@@ -564,6 +590,8 @@ Mojo.Log.info("*************************************");
                 credit: 'OpenStreetMap',
                 maxZoom: 18
         }));
+	};
+
         
         /* Nokia custom map type set */
         this.map.mapTypes.set("NOKIA", new google.maps.ImageMapType({
@@ -613,6 +641,7 @@ Mojo.Log.info("*************************************");
 	this.mapcanvasx = 0;
 	this.mapcanvasy = 0;
 	this.haveCompass = false;
+	this.compassactive = false;
 	this.blockpulse = false;
 	this.routeIndex = 0;
 	this.imagery = 0;
@@ -624,6 +653,14 @@ Mojo.Log.info("*************************************");
 	this.dontForgetToEnableZoomOut = false;
 	this.gps;
 	this.parsedParams = null;
+	this.idleCompassDeg = 0; 
+	this.idleNeedleDeg = 0; //portrait orientation expected at the start
+	this.kineting = false;
+	this.trickTime = 100; //default time to trick duration for non-touch devices
+	this.OSMPrefix = "http://tile.openstreetmap.org/";
+	this.existsCache = [];
+	this.refreshTimerCounting = false;
+	this.NewTilesHere = true;
 
 	// map doesn't follow GPS as default
 	this.followMap = false;
@@ -720,6 +757,7 @@ Mojo.Log.info("*************************************");
  	new google.maps.event.addListener(this.map, 'idle', this.MapIdle.bind(this));
  	new google.maps.event.addListener(this.map, 'tilesloaded', this.MapTilesLoaded.bind(this));
  	new google.maps.event.addListener(this.map, 'bounds_changed', this.MapCenterChanged.bind(this));
+ 	//new google.maps.event.addListener(this.map, 'center_changed', this.MapCenterChanged.bind(this));
  	new google.maps.event.addListener(this.map, 'overlaycomplete', this.OverlayComplete.bind(this));
  	new google.maps.event.addListener(this.map, 'zoom_changed', this.zoomChanged.bind(this));
  
@@ -729,12 +767,16 @@ Mojo.Log.info("*************************************");
  	
  	//key press listener
  	this.KeypresseventHandler = this.Keypress.bindAsEventListener(this);
-	this.controller.listen(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
+ 	if (!this.debug) {
+		this.controller.listen(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
+	};
 	this.KeyWasPressed = false;
 	
 	//searchfield key press listener
  	this.SearchKeypresseventHandler = this.SearchKeypress.bindAsEventListener(this);
-	this.controller.listen(document.getElementById('MainSearchField'), 'keydown', this.SearchKeypresseventHandler);
+ 	if (!this.debug) {
+		this.controller.listen(document.getElementById('MainSearchField'), 'keydown', this.SearchKeypresseventHandler);
+	};
 	this.SearchKeyWasPressed = false;
 	
 	//searchfield onpaste listener
@@ -750,6 +792,7 @@ Mojo.Log.info("*************************************");
 	//Setup map interaction listeners
 	this.DragStartEventHandler = this.dragStart.bindAsEventListener(this);
     this.DraggingEventHandler = this.dragging.bindAsEventListener(this);
+    this.DragEndEventHandler = this.dragEnd.bindAsEventListener(this);
     this.FlickEventHandler = this.flick.bindAsEventListener(this);
 	
 	//card minimize and maximize listeners
@@ -774,19 +817,7 @@ Mojo.Log.info("*************************************");
 	//Mojo.Event.listen(this.controller.get("map_canvas"), 'mousedown', this.mousedownHandler.bind(this));
 	
 	//Check if Navit is installed, needs FileMgr service
-	new Mojo.Service.Request('palm://ca.canucksoftware.filemgr', {
- 				method: 'exists',
- 				parameters: {
- 					file: "/media/cryptofs/apps/usr/palm/applications/org.webosinternals.navit"
- 				},
- 				onSuccess: function(payload) {
- 					this.isNavit = payload.exists;
- 					Mojo.Log.info("**** Navit installed:  %j ****", this.isNavit);
- 				}.bind(this),
- 				onFailure: function(err) {
- 					Mojo.Log.info('FileMgrs service is probably not installed or returns error');
- 				}
- 			});
+	this.checkNavit();
 },
 
 handleCommand: function(event) {
@@ -836,7 +867,6 @@ handleCommand: function(event) {
                         								this.ImageryRotate();
                         }
                         if (event.command == 'MyLoc') {	
-														this.setStatusPanel($L("Moving to My Location..."));
                         								this.mylocation();
                         }
                         if (event.command == 'PopMenu') {
@@ -893,6 +923,9 @@ handleCommand: function(event) {
 
 
 cleanup: function() {
+	
+		/* Stop the GPS tracking */
+		this.stopTracking();
 
 		//Save last location and zoom
 		this.Preferences.LastLoc.lat = this.map.getCenter().lat();
@@ -1081,6 +1114,8 @@ firstFixSuccess: function(gps) {
 },
 
 gpsUpdate: function(gps) {
+	
+	
 
 	var Mylatlng = new google.maps.LatLng(gps.latitude, gps.longitude);
 
@@ -1092,7 +1127,7 @@ gpsUpdate: function(gps) {
 /** FAKE GPS HEADING and VELOCITY FOR EMULATOR **/
 
 if (this.devfakegps) {
-
+		//Mojo.Log.info("gps update");
 		gps.heading = this.devpreviousheading;
 		if (this.MyLocation != undefined) {
 			this.Heading = this.GetHeadingFromLatLng(this.MyLocation, Mylatlng);
@@ -1105,9 +1140,8 @@ if (this.devfakegps) {
 				gps.heading = this.devpreviousheading;
 				};
 		};
-
-		gps.velocity = 10;
-		//Mojo.Log.info("** HEADING ***", gps.heading);
+		//meters per seconds velocity
+		gps.velocity = google.maps.geometry.spherical.computeDistanceBetween(this.MyLocation, Mylatlng);
 };
 
 /** END OF FAKE GPS HEADING and VELOCITY FOR EMULATOR **/	
@@ -1147,7 +1181,7 @@ if (this.devfakegps) {
 			
 			//follow the map
 			if (gps.heading != -1 && this.followMap && (gps.velocity > 0.83)) {
-				if (this.Preferences.MapRotate) { this.MapHeadingRotate(-gps.heading)};
+				if (this.Preferences.MapRotate) { this.MapHeadingRotate(gps)};
 				this.setScoutMarker(Math.round(gps.heading));
 			};
 			//set marker arrow based on heading for velocity > 2km/h
@@ -1189,6 +1223,17 @@ switch (action) {
 },
 
 zoomChanged: function (event) {
+	
+	/* back to the scale 1 */
+	if (this.TilesContainer) {
+		this.TilesContainer.style["-webkit-transform"] = "scale(1,1)";
+		
+		/* Infobubbles size stuff - back to the scale 1 */
+		for (var k = 0; k < this.elementsToScale.length; k++) {
+			this.elementsToScale[k].style["-webkit-transform"] =  "scale(1,1)";
+		};
+		
+	};
 	
 	/* Check MAX zoom */
 	if (this.map.getZoom() >= this.maxZoom) {			
@@ -1233,7 +1278,9 @@ zoomChanged: function (event) {
 
 mylocation: function() {
 
-								if (this.GPSFix == true) {
+								if (this.GPSFix) {
+									
+									this.setStatusPanel($L("Moving to My Location..."));
 									
 									//block screen timeout
 									this.BlockScreenTimeout(true);
@@ -1241,12 +1288,18 @@ mylocation: function() {
 									// change the icon as "follow map is active"
 									this.feedMenuModel.items[1].items[3].iconPath = 'images/menu-icon-mylocation-follow.png';
 									this.controller.modelChanged(this.feedMenuModel);
+									
+									/* get all elements to be not scaled to this.elementsToScale array */
+									this.getElementsToScale();
+									
+									this.NewTilesHere = true;
+	
 									this.followMap = true;
 
 									//start the mousedown listener
 									Mojo.Event.listen(this.controller.get("map_canvas"), 'mousedown', this.mousedownInterruptsFollowHandler);
 
-									this.map.panTo(this.MyLocation);
+									this.map.setCenter(this.MyLocation);
 									//set the zoom level to the circle's size
 									this.map.fitBounds(this.circle.getBounds());
 									if ( this.map.getZoom() > 16 ) {
@@ -1254,7 +1307,7 @@ mylocation: function() {
 									};
 										
 									//start the mousedown listener
-									Mojo.Event.listen(this.controller.get("map_canvas"), 'mousedown', this.mousedownInterruptsFollowHandler);
+									//Mojo.Event.listen(this.controller.get("map_canvas"), 'mousedown', this.mousedownInterruptsFollowHandler);
 									
 									//Mojo.Log.info("** MyLocation BUTTON ***", this.MyLocation);
 								} else {Mojo.Controller.errorDialog($L("Wait for GPS fix!"));}
@@ -1266,8 +1319,28 @@ mousedownInterruptsFollow: function () {
 	Mojo.Event.stopListening(this.controller.get("map_canvas"), 'mousedown', this.mousedownInterruptsFollowHandler);
 
 	//rotate the map to the default heading
-	//this.ContainerToRotate = this.getGoogleTiles();
-	this.MapHeadingRotate(0); 
+	var gps = [];
+	gps.heading = 0;
+	gps.velocity = 0;
+	this.MapHeadingRotate(gps);
+	
+	//remove the animations
+	(function(){
+		this.TilesContainer.style["-webkit-transition"] = "";
+		this.TilesContainer.style["-webkit-transform"] = "";
+		this.removeTransforms();
+	}).bind(this).delay(1);
+	
+	
+	// rotate back all the other elements
+	/*
+	try {
+		for (var k = 0; k < this.elementsToScale.length; k++) {
+			this.elementsToScale[k].style["-webkit-transform"] = "";
+		};
+	} catch (error){};
+	*/
+	//this.removeTransforms();
 	
 	this.followMap = false;
 	
@@ -1280,6 +1353,9 @@ mousedownInterruptsFollow: function () {
 	
 	//set default text to the top menu
 	this.SetTopMenuText($L("Google Maps"));
+	
+	//turn back the compass
+	this.compassRotate(this.idleCompassDeg);
 
 
 },
@@ -1414,6 +1490,7 @@ handlePopMenu: function(Case) {
             break;
          case 'do-clearmap':
             this.mapClear();
+            this.mapClear(); //ToDo: temporary fix, sometimes one marker persist after map clear, thus I do it twice time
          	break;
       }
 
@@ -1456,7 +1533,7 @@ activate: function(args) {
 				switch (args.action) {
 	
 					case "info":
-						this.map.panTo(args.place.geometry.location);
+						this.map.setCenter(args.place.geometry.location);
 						this.map.setZoom(17);
 						
 						//block TP pan
@@ -1528,7 +1605,16 @@ updateFavorites: function(args) {
 	try {
 	//Set the apropriate icon for marker
 	var icon = (markers[markerindex].place.favorite ? 'images/' + this.ImagePathAdd + 'Map-Marker-Push-Pin-2-Right-Red-icon-fav.png' : 'images/' + this.ImagePathAdd + 'Map-Marker-Push-Pin-2-Right-Red-icon.png');
-	markers[markerindex].setIcon(icon);
+	
+	var image = {
+			url: icon,
+			size: new google.maps.Size(64*this.ImageRatio, 64*this.ImageRatio),
+			origin: new google.maps.Point(0, 0), // origin
+			anchor: new google.maps.Point(31*this.ImageRatio, 62*this.ImageRatio), // anchor
+			scaledSize: new google.maps.Size(48*this.ImageRatio, 48*this.ImageRatio) //scaled size
+		};
+		
+	markers[markerindex].setIcon(image);
 
 	//create new content of InfoBubble and set them
 	var newBubbleContent = '<div id="bubble" class="phoneytext">' + markers[markerindex].place.name + '<div class="phoneytext2">' + markers[markerindex].place.formatted_address + '</div></div>';
@@ -1579,6 +1665,9 @@ WebOS2Events: function (action) {
 		 //setup dragging listener
 		 Mojo.Event.listen(this.ListeningElement, Mojo.Event.dragging, this.DraggingEventHandler);
 		 
+		 //setup dragEnd listener
+		 Mojo.Event.listen(this.ListeningElement, Mojo.Event.dragEnd, this.DragEndEventHandler);
+		 
 		 //setup flick listener
 		 Mojo.Event.listen(this.ListeningElement, Mojo.Event.flick, this.FlickEventHandler);
 		 
@@ -1593,6 +1682,9 @@ WebOS2Events: function (action) {
            
 		   //stop the dragging listener
            Mojo.Event.stopListening(this.ListeningElement, Mojo.Event.dragging, this.DraggingEventHandler);
+           
+           //stop the dragEnd listener
+           Mojo.Event.stopListening(this.ListeningElement, Mojo.Event.dragEnd, this.DragEndEventHandler);
            
            //stop the flick listener
            Mojo.Event.stopListening(this.ListeningElement, Mojo.Event.flick, this.FlickEventHandler);
@@ -1652,8 +1744,9 @@ MapIdle: function() {
 			this.blockpulse = false;
 		};
 		
-		//Stop the spinner if it is spinning
+		//Stop the spinner if it is spinning - at the app start
 		if (this.LoadApiModel.spinning) {
+			
 			this.LoadingSpinner("stop");
 			if (this.parsedParams) {
 				this.launchParamsAction(this.parsedParams);
@@ -1689,12 +1782,47 @@ MapTilesLoaded: function () {
 	this.NewTilesHere = true;
 	//Mojo.Log.info("TILES LOADED: ");
 	
+	/* refresh the offline cache tiles*/
+	//if (this.refreshCache) {
+	//	this.refreshTiles();
+	//	this.refreshCache = false;
+	//};
 	//hides the status panel when idle
 	this.hideStatusPanel();
 	
 },
 
-MapCenterChanged: function () {	
+MapCenterChanged: function () {
+	
+	if (this.TilesContainer) {
+	//if (false) {
+		/* IMPORTANT: it needs to be ste the container to 0,0 here for invisible transition after translate */
+		//this.TilesContainer.style["-webkit-transform"] = "translate(0px,0px)";
+		//this.delta = Date.now() - this.setCenterTime;
+		//Mojo.Log.info("DELTA: %j", (Date.now() - this.setCenterTime) );
+		if (!this.touch) {
+			var Timer = setTimeout(function () {
+				//this.TilesContainer.style["-webkit-transform"] = "";
+				this.MapScrimContainer.hide();
+				this.TrickContainer.style.zIndex="9999";
+				this.TrickContainer.innerHTML = "";
+				//this.TrickContainer.style["-webkit-transform"] = "translate(" + this.addpanevent.kx + "px," + this.addpanevent.ky + "px)";
+				
+			}.bind(this), this.trickTime);
+		};
+	
+		this.TilesContainer.style["-webkit-transform"] = "";
+		
+		/* Elements size stuff */
+		if (this.elementsToScale) {
+			for (var k = 0; k < this.elementsToScale.length; k++) {
+				this.elementsToScale[k].style["-webkit-transform"] = "";
+			};
+		};
+		
+		this.TilesContainer = null;
+	};
+	
 	//indicates that the map was moved and allow events in dragging function
 	this.CenterChanged = true;
 },
@@ -1722,7 +1850,7 @@ Resize: function(event) {
 		Mojo.Log.info("** OTHER CHANGE ***");
 		this.blockTPPan = false;
 		(function(){
-				this.map.panTo(this.ActualCenter);
+				this.map.setCenter(this.ActualCenter);
 				
 			}).bind(this).delay(1);
 		};
@@ -1873,12 +2001,54 @@ handleGestureStart: function(e){
 	this.previouszoom = this.map.getZoom();
 	this.previousScale = e.scale;
 	this.previousS = 0;
+	
+	/* block the pulsation ring */
+	$("pulse").hide();
+	this.blockpulse = true;
+	
+	
+	this.oldeventg = e;
+	
+	this.TilesContainer = document.getElementById('map_canvas').firstChild.firstChild;
+	this.TilesContainer.style.overflow = "visible !important;";
+	this.TilesContainer.style["position"] = "absolute;"
+	//this.TilesContainer.style["-webkit-transition"] = "all 0.3s linear";
 
+	this.addpaneventg = [];
+	this.addpaneventg.cx = 0;
+	this.addpaneventg.cy = 0;
+	this.addpaneventg.oldcenter = this.overlay.getProjection().fromLatLngToContainerPixel(this.map.getCenter());
+	
+	/* get all elements to be not scaled to this.elementsToScale array */
+	this.getElementsToScale();
+	
 },
-handleGestureChange: function(e){
-	e.stop();
 
-	 	s = event.scale;
+handleGestureChange: function(e){
+	
+		e.stop();
+
+		/* ToDo: map rotate upon gesture works... needs to be more tested */
+		var rotation = 0;
+		
+
+		var rotate = "rotate3d(0,0,1," + rotation.toString() + "deg) ";
+
+		this.TilesContainer.style["-webkit-transform"] = rotate + "scale(" + e.scale + "," + e.scale + ")" + " translate(" + (-this.oldeventg.centerX + e.centerX)/e.scale + "px," + (-this.oldeventg.centerY + e.centerY)/e.scale + "px)";
+
+		this.addpaneventg.cx = this.addpaneventg.oldcenter.x + (this.oldeventg.centerX - e.centerX);
+		this.addpaneventg.cy = this.addpaneventg.oldcenter.y + (this.oldeventg.centerY - e.centerY);
+		
+		/* Infobubbles size stuff */
+		for (var k = 0; k < this.elementsToScale.length; k++) {
+			this.elementsToScale[k].style["-webkit-transform"] = "scale(" + 1/e.scale + "," + 1/e.scale + ") rotate3d(0,0,1," + (360-rotation).toString() + "deg) ";
+		};
+		
+		//rotation = e.rotation; //uncomment it to map rotate enable
+		//this.compassRotate(rotation); //uncomment it to map rotate enable
+
+	 	var s = e.scale;
+	 	var z = 0;
 	 	
 		if (s<=0.187) s = -3;
 	 	if (s>0.187 && s<=0.375) s = -2;
@@ -1891,18 +2061,39 @@ handleGestureChange: function(e){
 	 	
 	 	
 	 	if (this.previousS!=s) {
-			var z = this.previouszoom + s;
-			Mojo.Log.info("setzoom+: ", z);
+			this.z = this.previouszoom + s;
 			this.previousS = s;
-			this.setStatusPanel($L("Zooming to level ") + z);
-			this.map.setZoom(z);
-			
+			//z = (s>=0)? s*2 : 1/(Math.abs(s)*2);
+			//this.TilesContainer.style["-webkit-transform"] = "scale(" + z + "," + z + ")" + " translate(" + (-this.oldeventg.centerX + e.centerX)/e.scale + "px," + (-this.oldeventg.centerY + e.centerY)/e.scale + "px)";			
 		};
+		
+
 
 },
 handleGestureEnd: function(e){
 	e.stop();
-	//Mojo.Log.info("SCALE: ", e.scale);
+	this.TilesContainer.style["-webkit-transition"] = "";
+	
+	this.doTrick();
+	this.trickTime = 1000;
+	
+	this.map.setZoom(this.z);	
+	var point = new google.maps.Point(this.addpaneventg.cx, this.addpaneventg.cy);
+	/** Important, the setCenter here and container to 0,0 at bounds_changed event **/
+	this.map.setCenter(this.overlay.getProjection().fromContainerPixelToLatLng(point));
+},
+
+doTrick: function() {
+	if (!this.touch) { //do the more complicated trick only for non-touch API	
+		
+			this.TrickContainer = document.getElementById('map_trick_canvas');
+			this.MapScrimContainer = document.getElementById('map_scrim');
+			this.TrickContainer.innerHTML = this.TilesContainer.innerHTML;
+		
+			this.TrickContainer.style["-webkit-transform"] = this.TilesContainer.style["-webkit-transform"];
+			this.TrickContainer.style.zIndex="10002";
+			this.MapScrimContainer.show();
+	};
 },
 
 orientationChanged: function (orientation) {
@@ -1918,7 +2109,7 @@ orientationChanged: function (orientation) {
 	   };
 
 	    (function(){
-				this.map.panTo(this.ActualCenter);
+				this.map.setCenter(this.ActualCenter);
 			}).bind(this).delay(1);
 
 
@@ -1927,7 +2118,7 @@ orientationChanged: function (orientation) {
 
    		google.maps.event.trigger(this.map, "resize");
 
-		//Mojo.Log.info("Orientation changed to: ", orientation);
+	Mojo.Log.info("Orientation changed to: ", orientation);
 	   if( orientation === "right" || orientation === "left" ) {
 		  this.restmenuwidth = Mojo.Environment.DeviceInfo.screenHeight - this.heightadd;
 	   } else {
@@ -1937,6 +2128,23 @@ orientationChanged: function (orientation) {
 	   
 	   //update the list height
 	   this.updateDirectListHeight();
+	   
+	   //resolve an compass orientation	   
+	   	switch (orientation) {
+         case 'right':
+			this.idleNeedleDeg = 360-90;
+            break;
+         case 'left':
+			this.idleNeedleDeg = 90;
+            break;
+         case 'up':
+			this.idleNeedleDeg = 0;
+            break;
+         case 'down':
+			this.idleNeedleDeg = 180;
+            break;
+      };
+	   
    };
 
    this.feedMenuModel.items[1].items[1].width = this.restmenuwidth;
@@ -2022,37 +2230,163 @@ showElementsByClass: function(nameOfClass) {
 },
 
 dragStart: function(event) {
-	this.blockGPSFix = true;
-	$("pulse").hide();
-	this.blockpulse = true;
-	this.oldevent = event.down;
-	this.CenterChanged = true;
-	event.stop();
+	
+	//Mojo.Log.info("*** DRAGSTART **** ");
+	event.preventDefault();
+	
+	this.kineting = false;
+	
+	this.trickTime = 100;
+	
+	if (!this.dragging) {
+		this.dragging = true;
+		this.blockGPSFix = true;
+		$("pulse").hide();
+		this.blockpulse = true;		
+	};
+	
+		
+		if(!this.oldevent) {
+			this.oldevent = event.down;
+		} else {
+			this.oldevent.x = this.oldevent.x + event.down.x;
+			this.oldevent.y = this.oldevent.y + event.down.y;
+			};
+		this.CenterChanged = true;
+
+	this.TilesContainer = document.getElementById('map_canvas').firstChild.firstChild;
+	this.TilesContainer.style.overflow = "visible !important;";
+
+	this.addpanevent = [];
+	this.addpanevent.velocity = [];
+	this.addpanevent.cx = 0;
+	this.addpanevent.cy = 0;
+	this.addpanevent.fx = 0;
+	this.addpanevent.fy = 0;
+	this.addpanevent.kx = 0;
+	this.addpanevent.ky = 0;
+	this.addpanevent.sx = 0;
+	this.addpanevent.sy = 0;
+	
+	
+	this.addpanevent.timestamp = Date.now();
+	this.addpanevent.velocity.x = 0;
+	this.addpanevent.velocity.y = 0;
+	this.addpanevent.oldcenter = this.overlay.getProjection().fromLatLngToContainerPixel(this.map.getCenter());
+	
+	this.wasflicked = false;
+	
 },
 
 dragging: function(event) {
-		event.stop();
-		if (this.CenterChanged && this.oldevent.x != event.move.x && this.oldevent.y != event.move.y && !this.wasflicked) {
-			this.CenterChanged = false;
-			this.map.panBy((this.oldevent.x - event.move.x), (this.oldevent.y - event.move.y));
-			this.oldevent = event.move;
+	
+		event.preventDefault();
+		
+		if (!this.TilesContainer) {
+			this.TilesContainer = document.getElementById('map_canvas').firstChild.firstChild;
 		};
+		this.TilesContainer.style["-webkit-transform"] = "translate(" + (-this.oldevent.x + event.move.x) + "px," + (-this.oldevent.y + event.move.y) + "px)";
+	
+		
+		this.addpanevent.cx = this.addpanevent.oldcenter.x + (this.oldevent.x - event.move.x);
+		this.addpanevent.cy = this.addpanevent.oldcenter.y + (this.oldevent.y - event.move.y);
+		
+		this.addpanevent.kx =  (-this.oldevent.x + event.move.x);
+		this.addpanevent.ky =  (-this.oldevent.y + event.move.y);
+		this.addpanevent.timestamp = (Date.now()+this.addpanevent.timestamp)/2;
+},
 
+dragEnd: function(event) {	
+	//Mojo.Log.info("*** DRAGEND **** ");
+	
+	if (!this.wasflicked) {  //synthetic flick
+		var dT = Date.now() - this.addpanevent.timestamp;
+		event.velocity = [];
+		event.velocity.x = 100*this.addpanevent.kx/dT;
+		event.velocity.y = 100*this.addpanevent.ky/dT;
+		this.flick(event);
+	};
+	this.dragging = false;
+	
 },
 
 flick: function(event) {
-		this.CenterChanged = false;
-		this.wasflicked = true;
-		this.map.panBy((-event.velocity.x/20),(-event.velocity.y/20));
-
+	this.wasflicked = true;
+	var delta = [];
+	this.CenterChanged = false;	
+	delta.x = event.velocity.x/10;
+	delta.y = event.velocity.y/10;
+	this.deltaconstX = delta.x;
+	this.deltaconstY = delta.y;
+	this.kineting = true;
+	this.dragging = false;
+	this.kineticMove(delta);
+	//Mojo.Event.listen(this.controller.get("map_canvas"), 'mousedown', this.panMousedownHandler);	
+	this.timeKinetic = 50;
 },
 
 click: function(event) {
 //Mojo.Log.info("*** CLICK **** ");
 },
 
-mousedownHandler: function() {
+kineticMove: function (velocity) {
+	
+	//Mojo.Log.info("*** KINETICMOVE **** ");
+	
+	if ((Math.abs(velocity.x) > 5 || Math.abs(velocity.y) > 5) && !this.dragging) {
+		
+		this.moveContainer(this.timeKinetic, velocity);
+		this.kineting = true;
+		this.oldevent = null;
+		
+	} else if (!this.dragging){
+		
+		this.doTrick();
+	
+			var point = new google.maps.Point(this.addpanevent.cx, this.addpanevent.cy);
+			this.setCenterTime = Date.now();
+			this.map.setCenter( this.overlay.getProjection().fromContainerPixelToLatLng(point) );
+			
+			this.oldevent = null;
+			
+			this.kineting = false;
 
+	};
+	
+},
+
+moveContainer: function (time, velocity) {
+	
+	//Mojo.Log.info("*** MOVECONTAINER **** ");
+	try {
+		this.TilesContainer.style["-webkit-transform"] = "translate(" + (this.addpanevent.kx + (this.deltaconstX - velocity.x)) + "px," + (this.addpanevent.ky +  (this.deltaconstY - velocity.y)) + "px)";
+	} catch (error) {};
+	this.addpanevent.cx = this.addpanevent.oldcenter.x - (this.addpanevent.kx + (this.deltaconstX - velocity.x));
+	this.addpanevent.cy = this.addpanevent.oldcenter.y - (this.addpanevent.ky + (this.deltaconstY - velocity.y));
+	
+	this.kineticTimer = setTimeout(function(){
+		
+		velocity.x = velocity.x/1.6;
+		velocity.y = velocity.y/1.6;
+		this.kineticMove(velocity);
+	}.bind(this), time);
+
+},
+
+panMousedown: function() {
+/* unused */	
+	var velocity = [];
+	velocity.x = 0;
+	velocity.y = 0;
+	
+	Mojo.Event.stopListening(this.controller.get("map_canvas"), 'mousedown', this.panMousedownHandler);
+	clearTimeout(this.kineticTimer);
+	this.kineticMove(velocity);
+	
+},
+
+mousedownHandler: function() {
+/* unused */
 	this.controller.setMenuVisible(Mojo.Menu.commandMenu, true);
 	this.hideCommandMenu.bind(this).delay(3);
 	//shows the menu everytime when mouse down
@@ -2339,6 +2673,7 @@ PlaceDroppedPin: function (place) {
 	place.formatted_address = subtitle;
 	place.vicinity = subtitle;
 	Mojo.Log.info("** MARKER DROP ID %j ***", place.id);
+	Mojo.Log.info("** MARKER DROP REFERENCE %j ***", place.reference);
 	//place marker
     this.PlaceMarker({position: place.geometry.location, title: this.inputstring, subtitle: subtitle, place: place, action: this.holdaction, popbubble: true});
     this.inputstring = undefined;
@@ -2408,12 +2743,14 @@ PlaceMarker: function (args) {
 		/* args.position, args.title, args.subtitle, args.place-(everything from autocompleter), args.icon, args.popbubble */
 		var ratingcontainer = "";
 		if (!args.icon) {args.icon = "Map-Marker-Push-Pin-2-Right-Red-icon.png"}; //default marker icon
-		var image = new google.maps.MarkerImage('images/' + this.ImagePathAdd + args.icon,
-		new google.maps.Size(64*this.ImageRatio, 64*this.ImageRatio),
-		new google.maps.Point(0, 0), // origin
-		new google.maps.Point(31*this.ImageRatio, 62*this.ImageRatio), // anchor
-		new google.maps.Size(64*this.ImageRatio, 64*this.ImageRatio) //scaled size
-		);
+		
+		var image = {
+			url: 'images/' + this.ImagePathAdd + args.icon,
+			size: new google.maps.Size(64*this.ImageRatio, 64*this.ImageRatio),
+			origin: new google.maps.Point(0, 0), // origin
+			anchor: new google.maps.Point(24*this.ImageRatio, 48*this.ImageRatio), // anchor
+			scaledSize: new google.maps.Size(48*this.ImageRatio, 48*this.ImageRatio) //scaled size
+		};
 
 		var marker = new google.maps.Marker(
 		{
@@ -2439,8 +2776,7 @@ PlaceMarker: function (args) {
 	
 	if (place.rating) {
 		ratingcontainer = '<div class="rating-container" id="rating-container" style="padding-right: 7px; padding-left: 0px; margin-top: 5px;"><div class="rating_bar"><div id="ratingstar" style="width:' + place.rating*20 + '%"></div></div></div>';
-		};
-		
+		};	
 	args.subtitle = place.vicinity || this.getVicinityFromFormattedAddress(place.formatted_address);
 	place.vicinity = place.vicinity || place.formatted_address;
 
@@ -2457,7 +2793,7 @@ PlaceMarker: function (args) {
 		borderColor: '#2c2c2c',
 		disableAutoPan: true,
 		hideCloseButton: true,
-		arrowPosition: 30,
+		arrowPosition: 50,
 		backgroundClassName: 'phoney',
 		backgroundClassNameClicked: 'phoney-clicked',
 		arrowStyle: 2,
@@ -2476,6 +2812,8 @@ PlaceMarker: function (args) {
 	// show the bubble after 1 second
 	this.MayBubblePop = true;
 
+
+	
 	if (args.popbubble) {
 	(function(){
 				this.toggleInfoBubble(infoBubble, marker);
@@ -2763,7 +3101,7 @@ handleBackSwipe: function (event) {
 Keypress: function (event) {
 
 	// do action only if the pressed key isn`t Escape, Enter, select and meta
-	if (event.keyCode != 27 && event.keyCode != 13 && event.keyCode != 129 && event.keyCode != 231) {
+	if (event.keyCode != 27 && event.keyCode != 13 && event.keyCode != 129 && event.keyCode != 231 && !this.debug) {
 		this.controller.stopListening(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
 		this.KeyWasPressed = true;
 		this.Search();
@@ -3061,13 +3399,13 @@ PlaceDirectionMarker: function (args) {
            break;
       };
 
-
-		var image = new google.maps.MarkerImage(markerimage,
-		new google.maps.Size(size, size),
-		new google.maps.Point(0, 0), // origin
-		new google.maps.Point(anchor[0], anchor[1]), // anchor
-		new google.maps.Size(size, size) //scaled size
-		);
+		var image = {
+			url: markerimage,
+			size: new google.maps.Size(size, size),
+			origin: new google.maps.Point(0, 0), // origin
+			anchor: new google.maps.Point(anchor[0], anchor[1]), // anchor
+			scaledSize: new google.maps.Size(size, size) //scaled size
+		};
 
 		var marker = new google.maps.Marker(
 		{
@@ -3197,11 +3535,13 @@ handlemarkerBubbleTap: function (command) {
 			this.setStatusPanel($L("Launching Navit..."), 5);
         	var name=this.clickedMarker.place.name;
         	var pos =this.clickedMarker.marker.getPosition();
+        	var lat = JSON.stringify(pos.lat());
+        	var lng = JSON.stringify(pos.lng());
 			new Mojo.Service.Request('palm://ca.canucksoftware.filemgr', {
  				method: 'write',
  				parameters: {
  					file: "/media/internal/appdata/org.webosinternals.navit/destination.txt",
- 					str: 'type=former_destination label="'+ name +'"\nmg: ' + pos.lng() + " " + pos.lat() + "\n",
+ 					str: 'type=former_destination label="'+ name +'"\nmg: ' + lng.substring(0, lng.indexOf(".")+5) + " " + lat.substring(0,lng.indexOf(".")+5) + "\n",
  					append: true
  				},
  				onSuccess: function(payload) {
@@ -3274,11 +3614,12 @@ markerInfo: function (marker) {
 	
 	//stop listen to keypress
 	this.controller.stopListening(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
-				
+	
+	if (marker.place.reference)	{		
 	var request = {
 		reference: marker.place.reference
 	};
-	
+	//Mojo.Log.info("** MARKER REFERENCE %j ***", marker.place.reference);
 	this.InfoService = new google.maps.places.PlacesService(this.map);
 	this.InfoService.getDetails(request, function(place, status) {
 			//Mojo.Log.info("** INFOSERVICE STATUS %j ***", status);
@@ -3301,6 +3642,10 @@ markerInfo: function (marker) {
 				this.controller.stageController.pushScene({'name': 'marker-info', transition: Mojo.Transition.none}, marker.place);				
 			}
 		}.bind(this));
+	} else {
+		/* Place without reference is usually dropped pin */
+		this.controller.stageController.pushScene({'name': 'marker-info', transition: Mojo.Transition.none}, marker.place);
+	};
 
 },
 
@@ -3427,12 +3772,18 @@ moveOnRoute: function (command) {
 
 },
 
-MapHeadingRotate: function(heading) {
+MapHeadingRotate: function(gps) {
+	
+	var heading = -gps.heading;
+	var translateY;
 	
 	//var allowrotate = true;
 	if (this.NewTilesHere) {
-		this.ContainerToRotate = this.getGoogleTiles();
+		this.ContainerToRotate = document.getElementById('map_canvas').firstChild.firstChild;
+		this.getElementsToScale(); //gets the TilesContainer too
 		this.NewTilesHere = false;
+		//define animations
+		//this.ContainerToRotate.style["-webkit-transition"] = "-webkit-transform 1s linear";
 	};
 	 
      if (this.previousheading != undefined && heading !=0) {
@@ -3442,12 +3793,46 @@ MapHeadingRotate: function(heading) {
 	 if(heading > 360) {
 			heading = heading - 360;
 		};
+	
+	/* velocity higher than 10km/h moves the map center to more bottom, under 30km/h is near bottom */
+	if (gps.velocity > 8.3) { 
+		translateY = 100*this.ScreenRoughRatio;
+	} else if (2.8 <= gps.velocity <= 8.3) {
+		translateY = ((gps.velocity/0.083)*this.ScreenRoughRatio);
+	} else {
+		translateY = 0;
+		};
 
-	this.ContainerToRotate.style["-webkit-transform"] = "rotate3d(0,0,1," + Math.round(heading).toString() + "deg)";
+	/** ToDo: the animations freezes my Pre3 - works well in emulator only **/
+
+
+	this.ContainerToRotate.style["-webkit-transform"] = "translateY(" + translateY + "px) rotate3d(0,0,1," + heading.toString() + "deg)";
 	this.ContainerToRotate.style.overflow = "visible !important;";
 
+	
+	/* Other elements anti-rotate stuff */
+	for (var k = 0; k < this.elementsToScale.length; k++) {
+		//this.elementsToScale[k].style["-webkit-transition"] = "-webkit-transform 1s linear";
+		this.elementsToScale[k].style["-webkit-transform"] = "rotate3d(0,0,1," + (-heading).toString() + "deg) ";
+		
+	};
+	
+	this.compassRotate(heading);
+	
 	this.previousheading = heading;
 
+},
+
+compassRotate: function (deg) {
+	
+	/* rotate the compass rose */
+	
+	//var scale = this.compassactive ? 1 : 0.5;
+	//var translate = this.compassactive ? 0 : 80;
+	//var translate = 40;
+	
+	$("compass_rotate").style["-webkit-transform"] = "rotate3d(0,0,1," + deg.toString() + "deg) ";
+	
 },
 
 SetTopMenuText: function (text) {
@@ -3476,10 +3861,10 @@ GetHeadingFromLatLng: function (location1, location2) {
 
 	//Mojo.Log.info("** LOCATION *** %j", location1);
 
-	var lat1 = location1.Xa;
-	var lon1 = location1.Ya;
-	var lat2 = location2.Xa;
-	var lon2 = location2.Ya;
+	var lat1 = location1.lat();
+	var lon1 = location1.lng();
+	var lat2 = location2.lat();
+	var lon2 = location2.lng();
 	
 	var dLat = (lat2-lat1).toRad();
 	var dLon = (lon2-lon1).toRad();
@@ -3563,13 +3948,14 @@ this.NearbyService.textSearch(request, function(results, status) {
 
 PlaceNearbyMarker: function(place) {
 	
-        var placeLoc = place.geometry.location;       
-        var image = new google.maps.MarkerImage('images/' + this.ImagePathAdd + 'MapMarker_Ball__Red.png',
-		new google.maps.Size(48*this.ImageRatio, 48*this.ImageRatio),
-		new google.maps.Point(0, 0), // origin
-		new google.maps.Point(23*this.ImageRatio, 47*this.ImageRatio), // anchor
-		new google.maps.Size(48*this.ImageRatio, 48*this.ImageRatio) //scaled size
-		);
+        var placeLoc = place.geometry.location;
+		var image = {
+			url: 'images/' + this.ImagePathAdd + 'MapMarker_Ball__Red.png',
+			size: new google.maps.Size(48*this.ImageRatio, 48*this.ImageRatio),
+			origin: new google.maps.Point(0, 0), // origin
+			anchor: new google.maps.Point(23*this.ImageRatio, 47*this.ImageRatio), // anchor
+			scaledSize: new google.maps.Size(48*this.ImageRatio, 48*this.ImageRatio) //scaled size
+		};
 		
         var marker = new google.maps.Marker({
           map: this.map,
@@ -3934,6 +4320,7 @@ dbAddFail: function(transaction,result) {
 
 setViewPortWidth: function(width) {
 
+
 	// do this only for Pre3 device
 	if(this.isPre3()){
 	if (width == 480) {this.ImageRatio = 1.5} else {this.ImageRatio = 1};
@@ -3944,10 +4331,10 @@ setViewPortWidth: function(width) {
 		if(element.getAttribute('name') == 'viewport') {
 
 		element.setAttribute('content','width='+width+'px; initial-scale=2.0, minimum-scale=1.0, maximum-scale=3.0, user-scalable=yes, height=device-height');
-		//document.body.style['max-width'] = width+'px';
    }
   }
 	};
+	
 },
 
 activateWindow: function(event) {
@@ -3978,7 +4365,7 @@ firstGPSfix: function () {
 },
 
 startTracking: function() {
-	
+
 	if (!this.trackingHandle) {	//Fixed mem. leaks, start only when not started before
 		this.trackingHandle = this.controller.serviceRequest('palm://com.palm.location', {
 			method: 'startTracking',
@@ -3991,9 +4378,11 @@ startTracking: function() {
 },
 
 stopTracking: function() {
-		
-	this.trackingHandle.cancel();
-	this.trackingHandle = null;
+	
+	if (this.trackingHandle) {
+		this.trackingHandle.cancel();
+		this.trackingHandle = null;
+	};
 },
 
 compassTap: function(event) {
@@ -4001,11 +4390,9 @@ compassTap: function(event) {
 	switch ($("compass").className) {
 		 case '':
 			this.activeCompass();
-            //$("compass").addClassName("active");
             break;
          case 'active':
 			this.inactiveCompass();
-            //$("compass").removeClassName("active");
             this.setDefaultMyLocMarker();
             break;	  
          
@@ -4053,12 +4440,11 @@ compassHandler: function(event) {
 		if(currHeading > 360) {
 			currHeading = currHeading - 360;
 		};
-		$("needle").style["-webkit-transform"] = "rotate3d(0,0,1,-" + currHeading + "deg)";
+		$("needle").style["-webkit-transform"] = "rotate3d(0,0,1,-" + (currHeading + this.idleNeedleDeg) + "deg)";
 		if (this.compassactive) {
 			this.setScoutMarker(currHeading);
 			};
-		previousheading = currHeading;
-		
+		previousheading = currHeading;		
 	};
 	
 },
@@ -4067,6 +4453,7 @@ initiateCompass: function () {
 	Mojo.Log.info(" ** Compass capable device detected ** ");
 
 	$("compass").show();
+	$("compass_rotate").show();
 	this.controller.stopListening(document, "compass", this.compassHandler);
 },
 
@@ -4075,6 +4462,7 @@ activeCompass: function () {
 	this.blockScreenTimeout(true);
 	this.controller.listen(document, "compass", this.compassHandler);
 	$("compass").addClassName("active");
+	$("compass").style["-webkit-transform"] = "scale(1)";
 	$("needle").show();
 	this.compassactive = true;
 
@@ -4084,6 +4472,7 @@ inactiveCompass: function () {
 	
 	this.controller.stopListening(document, "compass", this.compassHandler);
 	$("compass").removeClassName("active");	
+	$("compass").style["-webkit-transform"] = "scale(0.5)";
 	$("needle").hide();
 	this.blockScreenTimeout(false);
 	this.compassactive = false;	
@@ -4118,13 +4507,13 @@ setScoutMarker: function (heading) {
 	originX = String("0" + originX).slice(-2);
 	var anchor = Math.round(21*this.ImageRatio);
 	var scaledsize = Math.round(42*this.ImageRatio);
-	var scoutMarker = new google.maps.MarkerImage('images/1.5/blue_arrow/sprite_rotation' + originX + '.png',
-				new google.maps.Size(65, 65),
-				new google.maps.Point(0, 0), // origin
-				new google.maps.Point(anchor, anchor), // anchor
-				new google.maps.Size(scaledsize, scaledsize) //Scale to - kdyz neni aktivovano, dela to hranate kolecko na Pre3
-				//null
-	);
+	var scoutMarker = {
+				url: 'images/1.5/blue_arrow/sprite_rotation' + originX + '.png',
+				size: new google.maps.Size(65, 65),
+				origin: new google.maps.Point(0, 0), // origin
+				anchor: new google.maps.Point(anchor, anchor), // anchor
+				scaledSize: new google.maps.Size(scaledsize, scaledsize) //Scale to - kdyz neni aktivovano, dela to hranate kolecko na Pre3
+	};
 	
 	this.MyLocMarker.setIcon(scoutMarker);
 	
@@ -4133,18 +4522,20 @@ setScoutMarker: function (heading) {
 setDefaultMyLocMarker: function () {
 	
 if(this.isPre3()){
-				var image = new google.maps.MarkerImage('images/1.5/blue_dot_on.png',
-				new google.maps.Size(64, 64),
-				new google.maps.Point(0, 0), // origin
-				new google.maps.Point(32, 32), // anchor
-				new google.maps.Point(64, 64) //Scale to - kdyz neni aktivovano, dela to hranate kolecko na Pre3
-				);
+				var image = {
+					url: 'images/1.5/blue_dot_on.png',
+					size: new google.maps.Size(64, 64),
+					origin: new google.maps.Point(0, 0), // origin
+					anchor: new google.maps.Point(32, 32), // anchor
+					scaledSize: new google.maps.Point(64, 64) //Scale to - kdyz neni aktivovano, dela to hranate kolecko na Pre3
+				};
 				} else {
-				var image = new google.maps.MarkerImage('images/blue_dot_on.png',
-				new google.maps.Size(42, 42),
-				new google.maps.Point(0, 0), // origin
-				new google.maps.Point(21, 21) // anchor
-				);
+				var image = {
+					url: 'images/blue_dot_on.png',
+					size: new google.maps.Size(42, 42),
+					origin: new google.maps.Point(0, 0), // origin
+					anchor: new google.maps.Point(21, 21) // anchor
+				};
 };
 
 this.MyLocMarker.setIcon(image);
@@ -4279,6 +4670,7 @@ MapTap: function (event) {
 
 	 switch (event.count) {
         case 1:
+			//this.fireTouchOnMap(event);
             break;
         case 2:
 			this.setStatusPanel($L("Zooming in..."));
@@ -4330,19 +4722,6 @@ getVelocityFromGPS: function (gpsVelocity) {
 handleForwardSwipe: function (event) {
 	/** ToDo **/
 	Mojo.Log.info("** Forward ***");
-},
-
-getApiVersion: function () {
-	
-	  var scripts = document.getElementsByTagName("SCRIPT");
-	  var api = "unknown";
-      for (var n = 0 ; n < scripts.length ; n++ ){ 
-        var a=scripts[n].src; 
-        if (a.indexOf("api-3")>-1) {
-			api = a.substring(a.indexOf("api-3")+4,a.indexOf("api-3")+10);
-        }; 
-      };
-   return api;
 },
 
 ShowInfoDialog: function (title, message, label) {
@@ -4569,7 +4948,107 @@ parseTargetOrQuery: function (params) {
       return parsedParams;
 },
 
+getElementsToScale: function () {
+	
+	/** This function gets all desired and visible elements in TilesContainer who will be rotated or scaled **/
+
+	/* get the TilesContainer */
+	this.TilesContainer = document.getElementById('map_canvas').firstChild.firstChild;
+	
+	/* Infobubble size stuff */
+	this.elementsToScale = [];
+	this.allInfoBubblesToScale = document.getElementsByClassName("infobubble"); //get all infobubbles elements
+	for (var k = 0; k < this.allInfoBubblesToScale.length; k++) {
+		if (this.allInfoBubblesToScale[k].style.display != "none") {
+			this.allInfoBubblesToScale[k].style["-webkit-transform-origin"]="50% " + (this.allInfoBubblesToScale[k].offsetHeight + (48*this.ImageRatio)) +  "px";
+			this.elementsToScale.push(this.allInfoBubblesToScale[k]);
+		};
+	};
+	
+	/* No affect the other images size stuff - like markers, points, etc */
+	var child = this.TilesContainer.getElementsByTagName('IMG');
+	for (var i = 0; i < child.length; i++)
+		{		
+				if ((child[i].src.indexOf("googleapis") == -1) && (child[i].src.indexOf("maps.") == -1) && (child[i].src.indexOf("openstreetmap.org") == -1) && (child[i].src.indexOf("sprite") == -1) && (child[i].id.indexOf("NoTrans") == -1) && (child[i].src.indexOf("m@155076273,transit") == -1) && (child[i].src.indexOf("blue_dot") == -1))
+				{
+				  child[i].parentNode.style["overflow"] = "visible !important;";
+				  //child[i].style["-webkit-transition"] = "";
+				  if ((child[i].src.indexOf("Marker") != -1) || (child[i].src.indexOf("flag") != -1)) { 
+					  child[i].style["-webkit-transform-origin"]="50% 100%";
+					  };	  
+				  this.elementsToScale.push(child[i]);
+				};
+		};
+},
+
+removeTransforms: function () {
+	
+	/* Remove all transforms from elements array */
+	for (var k = 0; k < this.elementsToScale.length; k++) {
+		this.elementsToScale[k].style["-webkit-transform"] = "";
+		this.elementsToScale[k].style["-webkit-transition"] = "";
+	};
+	
+},
+
+checkNavit: function (path) {
+
+    var xhr = new XMLHttpRequest();
+
+	  xhr.onreadystatechange = 
+		function(){
+		  if (xhr.readyState == 4){
+			if (xhr.status == 200){
+				this.isNavit = true;
+ 				Mojo.Log.info("**** Navit installed ****");
+			  return true;
+			}
+			else {
+			  this.isNavit = false;
+			  Mojo.Log.info("**** Navit is not installed ****");
+			}
+		  }
+		}.bind(this);
+
+	  /* This sane and allowed way how to check the app availability - if exist the navit.xml, probably Navit is installed */
+	  xhr.open("HEAD", "/media/internal/appdata/org.webosinternals.navit/navit.xml", true);
+	  xhr.send();	  
+},
+
 /** HIDDEN EXPERIMENTAL STUFF FROM HERE - ONLY FOR MY DEV. PURPOSES **/
+
+/*****Library – directly change css rule *****/
+//Example:changecss('.ClassName','width','280px'); changecss('#IDname','color','red');
+changecss: function (theClass,element,value) {
+ var cssRules;
+ for (var S = 0; S < document.styleSheets.length; S++){
+  try{
+   document.styleSheets[S].insertRule(theClass+' { '+element+': '+value+'; }',document.styleSheets[S][cssRules].length);
+  } catch(err){
+   try{document.styleSheets[S].addRule(theClass,element+': '+value+';');
+   }catch(err){
+    try{
+     if (document.styleSheets[S]['rules']) {
+      cssRules = 'rules';
+     } else if (document.styleSheets[S]['cssRules']) {
+      cssRules = 'cssRules';
+     } else {
+      //no rules found… browser unknown
+     }
+     for (var R = 0; R < document.styleSheets[S][cssRules].length; R++) {
+      if (document.styleSheets[S][cssRules][R].selectorText == theClass) {
+       if(document.styleSheets[S][cssRules][R].style[element]){
+        document.styleSheets[S][cssRules][R].style[element] = value;
+        break;
+       }
+      }
+     }
+    } catch (err){}
+    }
+   }
+  }
+},
+ 
 fireEnterOnElement: function (element) {
 	
 	// Create new event
@@ -4580,9 +5059,60 @@ fireEnterOnElement: function (element) {
 	element.dispatchEvent(e);
 },
 
+fireTouchOnMap: function (event) {
+	
+	try {
+		var targetElement = document.elementFromPoint(event.down.x, event.down.y);
+		Mojo.Log.info(targetElement);
+		var evt = document.createEvent('UIEvent');
+		evt.initUIEvent('touchstart', true, true);
+
+		evt.view = window;
+		evt.altKey = false;
+		evt.ctrlKey = false;
+		evt.shiftKey = false;
+		evt.metaKey = false;
+
+		targetElement.dispatchEvent(evt);
+	} catch (except){
+		Mojo.Log.info(except);
+	}
+},
+
 Debug: function() {
+	
+	
+	//var markerInDOM = 
+	
+	//google.maps.event.trigger(this.map, "OSM");
+	
+	/*
+var child = this.TilesContainer.getElementsByTagName('IMG');
+
+for (var i = 0, l = child.length; i < l; i++)
+		{
+			
+				if ((child[i].nodeName == 'IMG') && (child[i].src.indexOf("vt") == -1) && (child[i].src.indexOf("maps.") == -1))
+				{
+				  Mojo.Log.info("IMG: %j", child[i].src);
+				  //child[i].style["-webkit-transform"] = "scale(" + i + ",2)";
+				  this.elementsToScale.push(child[i]);
+				};
+		};
+
+	*/
+	
+	//var xyz = document.getElementsByClassName("infobubble");
+	//var c = $('img[src*="blue_dot_on.png"]');
+	 //$('img[src="http://www.google.com"]')
+	//$('div[title^="mtg_"]')
+	//Mojo.Log.info("CCC %j", c);
+	//c.style["-webkit-transform"] = "scale(2,2)"; // make the first one red
+	
+	//this.MyLocMarker.getDOMElement().style["-webkit-transform"] = "scale(2,2)";
+	
     
-    this.fireEnterOnElement($('MainSearchField'));
+    //this.fireEnterOnElement($('MainSearchField'));
     //this.controller.get('MainSearchField').submit();
     
     /*
