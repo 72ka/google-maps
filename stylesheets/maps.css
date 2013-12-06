@@ -2,6 +2,13 @@ html, body {
 	width:100%;
  	height:100%;
 }
+
+/* Some google maps visual refresh overrides  */
+.gm-style div, .gm-style span, .gm-style label, .gm-style a {
+    font-size: 14px;
+    font-weight: 400;
+}
+
 /* Disable shadow of infowindow - issues on Touchpad */
 #map_canvas img[src*="iws3.png"] {
     display: none;
@@ -24,7 +31,7 @@ html, body {
  	//-webkit-transform-origin: top left !important;
  	//-webkit-transform: scale(0.75, 0.75) !important;
  	//-webkit-device-pixel-ratio: 2 !important;
- 	//-webkit-transform: translateZ(0px);
+ 	-webkit-transform: translateZ(0px);
  	//-webkit-transition: all 2s ease-in-out !important;
  	//-webkit-transform-style: preserve-3d;
  	// -webkit-user-drag: element;
@@ -244,6 +251,7 @@ html, body {
 	text-shadow: #ffffff 0px 1px 0px;
 }
 
+/** All around autocompleter styling **/
 .pac-container {
 
 		margin: -10px 0px 0px 0px !important;
@@ -259,18 +267,36 @@ html, body {
 		left: 17px !important;
 		top: 0px;
 		background: none;
-		overflow: visible;
-		
+		overflow: visible;		
 }
 
 .pac-container .pac-item {
 
 	font: 16px 'Prelude', sans-serif !important;
+	font-size: 16px !important;
 	padding: 8px 0px 8px 0px;
 	margin: 0px -86px 0px 0px;
 	line-height: 1.5em !important;
 	color: #555;
 	overflow: hidden;
+}
+
+.pac-icon {
+	display: none;
+	background-image: none;
+}
+
+.pac-icon-marker {
+	display: none;
+	background-image: none;
+}
+
+.pac-container .pac-item .pac-matched{
+	font-size: 16px;
+}
+
+.pac-item-query {
+	font-size: 16px;
 }
 
 .palm-menu.command-menu.bottom-menu {
@@ -754,13 +780,17 @@ div#urlbar-title {
 }
 
 .phoney {
-
 }
 .phoney-clicked {
 
 }
 .phoneytext {
-	text-shadow: 0 -1px 0 #000; color: #fff; font-family: Helvetica Neue, Helvetica, arial; font-size: 18px; padding: 4px 45px 4px 15px; font-weight: bold;
+	text-shadow: 0 -1px 0 #000;
+	color: #fff;
+	//font-family: Helvetica Neue, Helvetica, arial;
+	font-size: 18px !important;
+	padding: 4px 45px 4px 15px; 
+	font-weight: bold;
 	background: url(../images/map-bubble-arrow-blue.png) 95% 50% no-repeat;
 }
 .phoneytextwithoutbutton {

@@ -1881,6 +1881,11 @@ Transit: function() {
   		var transitOptions = {
 			getTileUrl: function(coord, zoom) {
 			return "http://mt1.google.com/vt/lyrs=m@155076273,transit:comp|vm:&" + "hl=en&opts=r&s=Galil&z=" + zoom + "&x=" + coord.x + "&y=" + coord.y;
+			//return "http://mts0.google.com/vt?hl=cs&src=app&lyrs=m@216000000,traffic|seconds_into_week:-1&x=" + coord.x + "&y=" + coord.y + "&z=" + zoom + "&style=2";
+			//https://mts0.google.com/vt?hl=cs&src=app&lyrs=m@216000000,traffic|seconds_into_week:-1&x=4422&y=2777&z=13&style=15
+			/* style 15 - normalni styl
+			 * traffic|seconds.... doprava pro cr
+			 * style 2 - velke texty pro vyssi DPI */
 			},
 			tileSize: new google.maps.Size(256, 256),
 			isPng: true
@@ -2779,7 +2784,7 @@ PlaceMarker: function (args) {
 		};	
 	args.subtitle = place.vicinity || this.getVicinityFromFormattedAddress(place.formatted_address);
 	place.vicinity = place.vicinity || place.formatted_address;
-
+	
  	//--> Define the infoBubble
 	var infoBubble = new InfoBubble({
 		map: this.map,

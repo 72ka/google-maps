@@ -1,3 +1,9 @@
+/* Some google maps visual refresh overrides  */
+.gm-style div, .gm-style span, .gm-style label, .gm-style a {
+    font-size: 19px;
+    font-weight: 400;
+}
+
 .palm-menu.command-menu.bottom-menu {
 		
 		-webkit-transform: scale(1.5, 1.5);
