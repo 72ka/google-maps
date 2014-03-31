@@ -3462,8 +3462,8 @@ markerBubbleTap: function(marker) {
 
 	// pops the popupmenu
 	var near = event.originalEvent && event.originalEvent.target;
-	Mojo.Log.info("**** Navit installed pop ****", this.isNavit);
-	if (this.isNavit) {
+	Mojo.Log.info("**** Navit installed ****", this.isNavit);
+	if (this.isNavit || this.debug) {
     this.controller.popupSubmenu({
 		onChoose:  this.handlemarkerBubbleTap,
 		popupClass: "pre3markerpopup",
@@ -3537,31 +3537,7 @@ handlemarkerBubbleTap: function (command) {
             this.Directions();
          	break;
          case 'do-navit':
-			this.setStatusPanel($L("Launching Navit..."), 5);
-        	var name=this.clickedMarker.place.name;
-        	var pos =this.clickedMarker.marker.getPosition();
-        	var lat = JSON.stringify(pos.lat());
-        	var lng = JSON.stringify(pos.lng());
-			new Mojo.Service.Request('palm://ca.canucksoftware.filemgr', {
- 				method: 'write',
- 				parameters: {
- 					file: "/media/internal/appdata/org.webosinternals.navit/destination.txt",
- 					str: 'type=former_destination label="'+ name +'"\nmg: ' + lng.substring(0, lng.indexOf(".")+5) + " " + lat.substring(0,lng.indexOf(".")+5) + "\n",
- 					append: true
- 				},
- 				onSuccess: function(payload) {
- 					new Mojo.Service.Request('palm://com.palm.applicationManager', {
- 						method: 'open',
- 						parameters: {
- 							id: 'org.webosinternals.navit',
- 							params: {}
- 						}
- 					});
- 				},
- 				onFailure: function(err) {
- 					Mojo.Controller.errorDialog($L('Set destination to Navit failed'));
- 				}
- 			}); 
+			this.openNavit(this.clickedMarker);
          	break;
          case 'do-marker-remove':
 			this.markerRemove(this.clickedMarker);
@@ -3569,12 +3545,62 @@ handlemarkerBubbleTap: function (command) {
       }
 },
 
+openNavit: function(marker){
+		
+			this.setStatusPanel($L("Launching Navit..."), 5);
+        	var name = marker.place.name;
+        	var route = 1;
+        	var pos = marker.marker.getPosition();
+
+        	var lat = JSON.stringify(pos.lat());
+        	var lng = JSON.stringify(pos.lng());
+      	
+        	lat = lat.substring(0, lat.indexOf(".")+5);
+        	lng = lng.substring(0, lng.indexOf(".")+5);
+        	
+        	//Route to or show position?
+			if (route=="0"){ //show on map
+				stFile='/media/internal/appdata/org.webosinternals.navit/command.txt';
+				stText='navit.pitch=0;navit.tracking=0;navit.follow_cursor=0;navit.set_center("' + lng + " " + lat + '");';
+				writeMode=false;
+			} else { //route to target
+				stFile='/media/internal/appdata/org.webosinternals.navit/command.txt';
+				stText='navit.set_destination(\"' + lng + " " + lat + '\",\"' + name + '\");';
+				writeMode=false;
+			};
+			
+ 			Mojo.Log.info("Opening Navit adr:%s lng:%s lat:%s type:%s", name, lng, lat, route);
+ 			
+ 			this.request = new Mojo.Service.Request('palm://ca.canucksoftware.filemgr', {
+			method: 'write',
+			parameters: {
+			file: stFile,
+			str: stText,
+			append: writeMode
+				},
+				onSuccess:	function(payload) {
+							new Mojo.Service.Request('palm://com.palm.applicationManager', {
+								method: 'open',
+								parameters: {
+									id: 'org.webosinternals.navit',
+									params: {}
+								}
+							});
+							delete this.request;
+						}.bind(this),
+				onFailure:	function(err) {
+							delete this.request;
+							Mojo.Log.info('Set destination failed');
+							Mojo.Controller.errorDialog('Set destination failed');
+						}.bind(this)
+			});
+},
+
 markerRemove: function (markertoremove) {
 	
 	//hide them on map
 	markertoremove.marker.setMap(null);
-	
-	
+		
 	//remove from markers array
 	for (e=0; e<markers.length; e++){
 		if (markertoremove.marker.place.id == markers[e].place.id) {
