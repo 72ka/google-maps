@@ -22,7 +22,7 @@ MainAssistant.prototype = {
 
 //Check internet connectivity at first
 this.checkConnectivity();
-//Mojo.Log.info("**** ZAPNOUT INTERNET CHECK ******");  
+//this.Log("**** ZAPNOUT INTERNET CHECK ******");  
 
 /* DEBUG FUNCTION */
 this.cevent = [];
@@ -73,7 +73,7 @@ else {
   this.touch = false;
 };
 
-Mojo.Log.info("**** Touch enable webkit: %j", this.touch);
+this.Log("**** Touch enable webkit: %j", this.touch);
 
 //setup radio button directions type
 
@@ -366,7 +366,7 @@ if (this.devversion) {
          'touchcancel'];
       for (var g in gestures) {
          document.addEventListener(gestures[g], function(event) {
-             Mojo.Log.info("*** EVENT TEST ***", event.type);
+             this.Log("*** EVENT TEST ***", event.type);
          }.bind(this), true);
       };
 
@@ -386,7 +386,7 @@ if (this.devversion) {
 	this.ScreenRoughRatio = this.controller.window.devicePixelRatio;
 	
 	if(this.isPre3()){
-		Mojo.Log.info("*** Detected device is Pre3 ***");
+		this.Log("*** Detected device is Pre3 ***");
 		this.widthadd = (330-60+2); //the +2 fixes the horizontal and vertical lines in top menu
 		this.heightadd = (440-60);
 		this.ImageRatio = 1.5;
@@ -503,9 +503,9 @@ this.mapStyleNight = [
 ]
 ];
 
-Mojo.Log.info("*************************************");
-Mojo.Log.info("* GOOGLE MAPS API VERSION: ", google.maps.version);
-Mojo.Log.info("*************************************");
+this.Log("*************************************");
+this.Log("* GOOGLE MAPS API VERSION: ", google.maps.version);
+this.Log("*************************************");
 
     var myOptions = {
         zoom: 2,
@@ -528,14 +528,14 @@ Mojo.Log.info("*************************************");
 	
 	if (this.MapType == undefined)  {
 		this.ActualMapType = [true, false, false, false];
-		Mojo.Log.info("DEFAULT:" , this.MapType);
+		this.Log("DEFAULT:" , this.MapType);
 		} else {
-			Mojo.Log.info("Cookie MapType:" , this.MapType);
+			this.Log("Cookie MapType:" , this.MapType);
 			try {
 				this.handlePopMapType(this.MapType);
 				}
 			catch (error) {
-				Mojo.Log.info("Layers cookie not properly defined, revert to default", error);
+				this.Log("Layers cookie not properly defined, revert to default", error);
 				this.MapCookie.remove();
 				this.MapType = "Roadmap";
 				this.MapCookie.put(this.MapType);
@@ -551,7 +551,7 @@ Mojo.Log.info("*************************************");
 	/** Setup the Preferences variables */
 	
 	this.Preferences = this.PrefsCookie.get();
-	Mojo.Log.info("PREFERENCES: %j" , this.Preferences);
+	this.Log("PREFERENCES: %j" , this.Preferences);
 	
 	if (this.Preferences == undefined)  {
 		this.Preferences = DefaultPreferences;
@@ -562,7 +562,7 @@ Mojo.Log.info("*************************************");
 				//this.setPrefsWidgets(this.Preferences);
 				}
 			catch (error) {
-				Mojo.Log.info("Preferences not properly defined, revert to default", error);
+				this.Log("Preferences not properly defined, revert to default", error);
 				this.PrefsCookie.remove();
 				this.Preferences = DefaultPreferences;
 				this.PrefsCookie.put(this.Preferences);
@@ -691,7 +691,7 @@ Mojo.Log.info("*************************************");
 
 	// load cookie for traffic layer
 	this.TrafficVisibile = this.TrafficCookie.get();
-	Mojo.Log.info("TRAFFIC:" , this.TrafficVisibile);
+	this.Log("TRAFFIC:" , this.TrafficVisibile);
 	if (this.TrafficVisibile == undefined)  {
 		this.TrafficVisibile = false;
 		this.TrafficCookie.put(true);
@@ -700,7 +700,7 @@ Mojo.Log.info("*************************************");
 					this.Traffic();					
 				}
 			catch (error) {				
-					Mojo.Log.info("Cookie not properly defined, revert to default", error);
+					this.Log("Cookie not properly defined, revert to default", error);
 					this.TrafficCookie.remove();
 					this.TrafficCookie.put(false);
 					this.TrafficVisibile = false;
@@ -1049,12 +1049,12 @@ firstFixSuccess: function(gps) {
 	// tady je to nutne, aby GPS nedavala nedefinovane souradnice
 	if (gps.latitude != undefined) {
 		
-		Mojo.Log.info("** FIRST GPS FIX ***");
+		this.Log("** FIRST GPS FIX ***");
 		this.gps = gps;
 		this.MyLocation = Mylatlng;
 
 
-	//Mojo.Log.info("** MyLocation ***", this.MyLocation);
+	//this.Log("** MyLocation ***", this.MyLocation);
 	this.accuracy = gps.horizAccuracy;
 
 	if (this.accuracy < 0) {
@@ -1127,7 +1127,7 @@ gpsUpdate: function(gps) {
 /** FAKE GPS HEADING and VELOCITY FOR EMULATOR **/
 
 if (this.devfakegps) {
-		//Mojo.Log.info("gps update");
+		//this.Log("gps update");
 		gps.heading = this.devpreviousheading;
 		if (this.MyLocation != undefined) {
 			this.Heading = this.GetHeadingFromLatLng(this.MyLocation, Mylatlng);
@@ -1171,7 +1171,7 @@ if (this.devfakegps) {
 	try {
 			this.MyLocMarker.setPosition(this.MyLocation); //update markeru
 		} catch (error) {
-			Mojo.Log.info("Warning: MyLocMarker not defined");
+			this.Log("Warning: MyLocMarker not defined");
 		};
 
 			if (this.accuracy != this.oldaccuracy) {
@@ -1309,7 +1309,7 @@ mylocation: function() {
 									//start the mousedown listener
 									//Mojo.Event.listen(this.controller.get("map_canvas"), 'mousedown', this.mousedownInterruptsFollowHandler);
 									
-									//Mojo.Log.info("** MyLocation BUTTON ***", this.MyLocation);
+									//this.Log("** MyLocation BUTTON ***", this.MyLocation);
 								} else {Mojo.Controller.errorDialog($L("Wait for GPS fix!"));}
 },
 
@@ -1498,7 +1498,7 @@ handlePopMenu: function(Case) {
 
 activate: function(args) {
 	
-	//Mojo.Log.info("*** ACTIVATE *** %j", args);
+	//this.Log("*** ACTIVATE *** %j", args);
 
 	this.setViewPortWidth(480);
 	
@@ -1513,7 +1513,7 @@ activate: function(args) {
 				this.Preferences = this.PrefsCookie.get();	
 				}
 			catch (error) {
-				Mojo.Log.info("Preferences cookie not properly defined", error);
+				this.Log("Preferences cookie not properly defined", error);
 				};
 		
 				//resize the map after each focus back
@@ -1529,7 +1529,7 @@ activate: function(args) {
 
 		// navrat na stred markeru
 		if (args != undefined) {
-			//Mojo.Log.info("*** ACTION IN ACTIVATE ***", args.action);
+			//this.Log("*** ACTION IN ACTIVATE ***", args.action);
 				switch (args.action) {
 	
 					case "info":
@@ -1780,7 +1780,7 @@ MapIdle: function() {
 MapTilesLoaded: function () {
 	
 	this.NewTilesHere = true;
-	//Mojo.Log.info("TILES LOADED: ");
+	//this.Log("TILES LOADED: ");
 	
 	/* refresh the offline cache tiles*/
 	//if (this.refreshCache) {
@@ -1799,7 +1799,7 @@ MapCenterChanged: function () {
 		/* IMPORTANT: it needs to be ste the container to 0,0 here for invisible transition after translate */
 		//this.TilesContainer.style["-webkit-transform"] = "translate(0px,0px)";
 		//this.delta = Date.now() - this.setCenterTime;
-		//Mojo.Log.info("DELTA: %j", (Date.now() - this.setCenterTime) );
+		//this.Log("DELTA: %j", (Date.now() - this.setCenterTime) );
 		if (!this.touch) {
 			var Timer = setTimeout(function () {
 				//this.TilesContainer.style["-webkit-transform"] = "";
@@ -1812,7 +1812,7 @@ MapCenterChanged: function () {
 		};
 	
 		this.TilesContainer.style["-webkit-transform"] = "";
-		
+				
 		/* Elements size stuff */
 		if (this.elementsToScale) {
 			for (var k = 0; k < this.elementsToScale.length; k++) {
@@ -1835,7 +1835,7 @@ hideCommandMenu: function() {
 Resize: function(event) {
 
   if (this.isTouchPad() && (this.controller.window.innerWidth != this.actualTPwidth)) {
-	  //Mojo.Log.info("** ORIENT CHANGE ***");
+	  //this.Log("** ORIENT CHANGE ***");
 	   switch (this.controller.window.innerWidth) {
          case 1024:
 			this.orientationChanged("left");
@@ -1847,7 +1847,7 @@ Resize: function(event) {
 
 		this.actualTPwidth = this.controller.window.innerWidth;
 	} else if ((this.controller.window.innerWidth == this.actualTPwidth) && (!this.searching) && (!this.directing) && (!this.blockTPPan)) {
-		Mojo.Log.info("** OTHER CHANGE ***");
+		this.Log("** OTHER CHANGE ***");
 		this.blockTPPan = false;
 		(function(){
 				this.map.setCenter(this.ActualCenter);
@@ -2107,10 +2107,10 @@ orientationChanged: function (orientation) {
 
 		if( orientation == "left" ) {
 		  this.restmenuwidth = Mojo.Environment.DeviceInfo.screenWidth - this.widthadd;
-		  //Mojo.Log.info("restmenuwidth left ",  this.restmenuwidth);
+		  //this.Log("restmenuwidth left ",  this.restmenuwidth);
 	   } else {
 		  this.restmenuwidth = Mojo.Environment.DeviceInfo.screenHeight - this.heightadd;
-		  //Mojo.Log.info("restmenuwidth up ",  this.restmenuwidth);
+		  //this.Log("restmenuwidth up ",  this.restmenuwidth);
 	   };
 
 	    (function(){
@@ -2123,7 +2123,7 @@ orientationChanged: function (orientation) {
 
    		google.maps.event.trigger(this.map, "resize");
 
-	Mojo.Log.info("Orientation changed to: ", orientation);
+	this.Log("Orientation changed to: ", orientation);
 	   if( orientation === "right" || orientation === "left" ) {
 		  this.restmenuwidth = Mojo.Environment.DeviceInfo.screenHeight - this.heightadd;
 	   } else {
@@ -2219,7 +2219,7 @@ hideElementsByClass: function(nameOfClass) {
 	var elements = this.getElementsByClass(nameOfClass);
 	
 	for(var a=0;a<elements.length;a++) {
-		//Mojo.Log.info("HIDING: ", elements[a].parentNode.parentNode.innerHTML);
+		//this.Log("HIDING: ", elements[a].parentNode.parentNode.innerHTML);
 		elements[a].parentNode.parentNode.hide();
 	};
 },
@@ -2229,14 +2229,14 @@ showElementsByClass: function(nameOfClass) {
 	var elements = this.getElementsByClass(nameOfClass);
 	
 	for(var a=0;a<elements.length;a++) {
-		//Mojo.Log.info("SHOWING: ", elements[a].parentNode.parentNode.innerHTML);
+		//this.Log("SHOWING: ", elements[a].parentNode.parentNode.innerHTML);
 		elements[a].parentNode.parentNode.show();
 	};
 },
 
 dragStart: function(event) {
 	
-	//Mojo.Log.info("*** DRAGSTART **** ");
+	//this.Log("*** DRAGSTART **** ");
 	event.preventDefault();
 	
 	this.kineting = false;
@@ -2290,19 +2290,20 @@ dragging: function(event) {
 		if (!this.TilesContainer) {
 			this.TilesContainer = document.getElementById('map_canvas').firstChild.firstChild;
 		};
-		this.TilesContainer.style["-webkit-transform"] = "translate(" + (-this.oldevent.x + event.move.x) + "px," + (-this.oldevent.y + event.move.y) + "px)";
+		
+		this.addpanevent.cx = this.addpanevent.oldcenter.x + this.oldevent.x - event.move.x;
+		this.addpanevent.cy = this.addpanevent.oldcenter.y + this.oldevent.y - event.move.y;
+		
+		this.addpanevent.kx = -this.oldevent.x + event.move.x;
+		this.addpanevent.ky = -this.oldevent.y + event.move.y;
+		
+		this.TilesContainer.style["-webkit-transform"] = "translate(" + this.addpanevent.kx + "px," + this.addpanevent.ky + "px)";
 	
-		
-		this.addpanevent.cx = this.addpanevent.oldcenter.x + (this.oldevent.x - event.move.x);
-		this.addpanevent.cy = this.addpanevent.oldcenter.y + (this.oldevent.y - event.move.y);
-		
-		this.addpanevent.kx =  (-this.oldevent.x + event.move.x);
-		this.addpanevent.ky =  (-this.oldevent.y + event.move.y);
 		this.addpanevent.timestamp = (Date.now()+this.addpanevent.timestamp)/2;
 },
 
 dragEnd: function(event) {	
-	//Mojo.Log.info("*** DRAGEND **** ");
+	//this.Log("*** DRAGEND **** ");
 	
 	if (!this.wasflicked) {  //synthetic flick
 		var dT = Date.now() - this.addpanevent.timestamp;
@@ -2331,12 +2332,12 @@ flick: function(event) {
 },
 
 click: function(event) {
-//Mojo.Log.info("*** CLICK **** ");
+//this.Log("*** CLICK **** ");
 },
 
 kineticMove: function (velocity) {
 	
-	//Mojo.Log.info("*** KINETICMOVE **** ");
+	//this.Log("*** KINETICMOVE **** ");
 	
 	if ((Math.abs(velocity.x) > 5 || Math.abs(velocity.y) > 5) && !this.dragging) {
 		
@@ -2362,7 +2363,7 @@ kineticMove: function (velocity) {
 
 moveContainer: function (time, velocity) {
 	
-	//Mojo.Log.info("*** MOVECONTAINER **** ");
+	//this.Log("*** MOVECONTAINER **** ");
 	try {
 		this.TilesContainer.style["-webkit-transform"] = "translate(" + (this.addpanevent.kx + (this.deltaconstX - velocity.x)) + "px," + (this.addpanevent.ky +  (this.deltaconstY - velocity.y)) + "px)";
 	} catch (error) {};
@@ -2535,7 +2536,7 @@ SearchKeypress: function (event) {
 	/* DEPRECATED - new textSearch supports the coordinations directly
 	 * 
 	if (event.keyCode == Mojo.Char.enter) {
-		//Mojo.Log.info("** ENTER ***");
+		//this.Log("** ENTER ***");
 		event.stop();
 		var coordlatlng = this.isThereCoordinates(inp.value);
 		if (coordlatlng != undefined) {
@@ -2588,12 +2589,12 @@ isThereCoordinates: function(input) {
 	var partscomp = input.split(/[^\d\w-.]+/);
 	
 	
-	//Mojo.Log.info("** PARTS *** %j", parts);
+	//this.Log("** PARTS *** %j", parts);
 
 	try {
 		//Recoginze Type 1	
 		if (parts[0].indexOf(":")>-1 && parts[1].indexOf(":")>-1 && parts[0].indexOf(".") == -1 && parts[1].indexOf(".") == -1 && parts[0].split(/[NWES]/).length > 1 && parts[1].split(/[NWES]/).length > 1 && parts.length == 2) {
-			//Mojo.Log.info("** TYPE 1 ***");
+			//this.Log("** TYPE 1 ***");
 			lat = this.ConvertDMSToDD(partscomp[0], partscomp[1], partscomp[2].substring(0, partscomp[2].length-1), partscomp[2].substring(partscomp[2].length-1, partscomp[2].length));
 			lng = this.ConvertDMSToDD(partscomp[3], partscomp[4], partscomp[5].substring(0, partscomp[5].length-1), partscomp[5].substring(partscomp[5].length-1, partscomp[5].length));		
 			latlng = new google.maps.LatLng(lat, lng);
@@ -2601,7 +2602,7 @@ isThereCoordinates: function(input) {
 		
 		//Recoginze Type 2	
 		if (parts[0].indexOf(":")>-1 && parts[1].indexOf(":")>-1 && parts[0].indexOf(".") > -1 && parts[1].indexOf(".") > -1 && parts[0].split(/[NWES]/).length > 1 && parts[1].split(/[NWES]/).length > 1 && parts.length == 2) {
-			//Mojo.Log.info("** TYPE 2 ***");
+			//this.Log("** TYPE 2 ***");
 			lat = this.ConvertDMSToDD(partscomp[0], partscomp[1], partscomp[2].substring(0, partscomp[2].length-1), partscomp[2].substring(partscomp[2].length-1, partscomp[2].length));
 			lng = this.ConvertDMSToDD(partscomp[3], partscomp[4], partscomp[5].substring(0, partscomp[5].length-1), partscomp[5].substring(partscomp[5].length-1, partscomp[5].length));		
 			latlng = new google.maps.LatLng(lat, lng);
@@ -2609,7 +2610,7 @@ isThereCoordinates: function(input) {
 		
 		//Recoginze Type 3	
 		if (parts[0].indexOf("°")>-1 && parts[1].indexOf("°")>-1 && parts[0].indexOf("'") > -1 && parts[1].indexOf("'") > -1 && parts[0].indexOf('"') > -1 && parts[1].indexOf('"') > -1 && parts[0].split(/[NWES]/).length > 1 && parts[1].split(/[NWES]/).length > 1 && parts.length == 2) {
-			//Mojo.Log.info("** TYPE 3 ***");
+			//this.Log("** TYPE 3 ***");
 			lat = this.ConvertDMSToDD(partscomp[0], partscomp[1], partscomp[2], partscomp[3]);
 			lng = this.ConvertDMSToDD(partscomp[4], partscomp[5], partscomp[6], partscomp[7]);		
 			latlng = new google.maps.LatLng(lat, lng);
@@ -2617,7 +2618,7 @@ isThereCoordinates: function(input) {
 		
 		//Recoginze Type 4	
 		if (parts[0].indexOf("d") > -1 && parts[1].indexOf("d") > -1 && parts[0].indexOf("°") == -1 && parts[1].indexOf("°") == -1 && parts[0].indexOf("'") > -1 && parts[1].indexOf("'") > -1 && parts[0].indexOf('"') > -1 && parts[1].indexOf('"') > -1 && parts[0].split(/[NWES]/).length > 1 && parts[1].split(/[NWES]/).length > 1 && parts.length == 2) {
-			//Mojo.Log.info("** TYPE 4 ***");
+			//this.Log("** TYPE 4 ***");
 			lat = this.ConvertDMSToDD(partscomp[0].substring(0, partscomp[0].indexOf("d")), partscomp[0].substring(partscomp[0].indexOf("d")+1, partscomp[0].substring(partscomp[0].length-1) ), partscomp[1], partscomp[2]);
 			lng = this.ConvertDMSToDD(partscomp[3].substring(0, partscomp[3].indexOf("d")), partscomp[3].substring(partscomp[3].indexOf("d")+1, partscomp[3].substring(partscomp[3].length-1) ), partscomp[4], partscomp[5]);
 			latlng = new google.maps.LatLng(lat, lng);
@@ -2625,7 +2626,7 @@ isThereCoordinates: function(input) {
 				
 		//Recoginze Type 5
 		if (parts[0].indexOf(":") == -1 && parts[1].indexOf(":") == -1 && parts[0].indexOf(".")>-1 && parts[1].indexOf(".")>-1 && parts[0].split(/[NWES]/).length > 1 && parts[1].split(/[NWES]/).length > 1 && parts.length == 2) {
-			//Mojo.Log.info("** TYPE 5 ***");
+			//this.Log("** TYPE 5 ***");
 			if (parts[0].indexOf("N") > -1) {lat = parts[0].substring(0, parts[0].length-1);} else {lat = -parts[0].substring(0, parts[0].length-1);};
 			if (parts[1].indexOf("E") > -1) {lng = parts[1].substring(0, parts[1].length-1);} else {lng = -parts[1].substring(0, parts[1].length-1);};
 			latlng = new google.maps.LatLng(lat, lng);		
@@ -2633,13 +2634,13 @@ isThereCoordinates: function(input) {
 		
 		//Recoginze Type 6	
 		if (parts[0].indexOf("°") == -1 && parts[1].indexOf("°") == -1 && parts[0].indexOf(":") == -1 && parts[1].indexOf(":") == -1 && parts[0].indexOf(".")>-1 && parts[1].indexOf(".")>-1 && parts[0].split(/[NWES]/).length == 1 && parts[1].split(/[NWES]/).length == 1 && parts.length == 2) {
-			//Mojo.Log.info("** TYPE 6 ***");
+			//this.Log("** TYPE 6 ***");
 			latlng = new google.maps.LatLng(parts[0], parts[1]);
 		};
 		
 		//Recoginze Type 7	
 		if (parts[0].indexOf("°")>-1 && parts[1].indexOf("°")>-1 && parts[0].indexOf("'") == -1 && parts[1].indexOf("'") == -1 && parts[0].indexOf('"') == -1 && parts[1].indexOf('"') == -1 && parts[0].split(/[NWES]/).length == 1 && parts[1].split(/[NWES]/).length == 1 && parts.length == 2) {
-			//Mojo.Log.info("** TYPE 7 ***");
+			//this.Log("** TYPE 7 ***");
 			if (partscomp[0].indexOf("-")>-1) {lat = this.ConvertDMSToDD(partscomp[0], -partscomp[1], 0, "");} else {lat = this.ConvertDMSToDD(partscomp[0], partscomp[1], 0, "");};
 			if (partscomp[2].indexOf("-")>-1) {lng = this.ConvertDMSToDD(partscomp[2], -partscomp[3], 0, "");} else {lng = this.ConvertDMSToDD(partscomp[2], partscomp[3], 0, "");};		
 			latlng = new google.maps.LatLng(lat, lng);
@@ -2677,8 +2678,8 @@ PlaceDroppedPin: function (place) {
 	place.icon = "images/menu-icon-mylocation.png";
 	place.formatted_address = subtitle;
 	place.vicinity = subtitle;
-	Mojo.Log.info("** MARKER DROP ID %j ***", place.id);
-	Mojo.Log.info("** MARKER DROP REFERENCE %j ***", place.reference);
+	this.Log("** MARKER DROP ID %j ***", place.id);
+	this.Log("** MARKER DROP REFERENCE %j ***", place.reference);
 	//place marker
     this.PlaceMarker({position: place.geometry.location, title: this.inputstring, subtitle: subtitle, place: place, action: this.holdaction, popbubble: true});
     this.inputstring = undefined;
@@ -2843,11 +2844,11 @@ toggleInfoBubble: function(infoBubble, marker){
 
 		(function(){
 				this.MayBubblePop = true;
-				//Mojo.Log.info("Delay****");
+				//this.Log("Delay****");
 			}).bind(this).delay(0.5);
 
 
-		Mojo.Log.info("You clicked the marker.");
+		this.Log("You clicked the marker.");
 		//--> Now open the bubble
 		if (!infoBubble.isOpen() && this.MayBubblePop){
 			//--> Clear all info bubbles...
@@ -2937,7 +2938,7 @@ showAllVisibileBubbles: function(bubbles) {
 },
 
 mapClear: function() {
-	Mojo.Log.info("CLEARMAP ");
+	this.Log("CLEARMAP ");
 	//--> Deletes ALL Markers, not favorites
 	for (e=0; e<markers.length; e++){
 		if (!markers[e].place.favorite) { 
@@ -3001,6 +3002,11 @@ clearDirectPoints: function () {
 },
 
 clearNearbyMarkers: function () {
+	
+	// Clear the cluster
+	if (this.markerCluster) {
+		this.markerCluster.clearMarkers();
+	};
 
 	//--> Deletes ALL Markers
 	for (e=0; e<this.Nearbymarkers.length; e++){
@@ -3048,7 +3054,7 @@ getRegion: function() {
 
 handleBackSwipe: function (event) {
 
-	//Mojo.Log.info("** BACK ***");
+	//this.Log("** BACK ***");
 	if(this.searching) {
 
 			this.setViewPortWidth(480);
@@ -3080,7 +3086,7 @@ handleBackSwipe: function (event) {
 			try {
 				//update directions in infobubbles for alternative routes
 				this.updateDirectionsResponse(this.directionsResponse);
-			} catch (error) {Mojo.Log.info(error)};
+			} catch (error) {this.Log(error)};
 
 			$('directionsScrim').toggle();
 
@@ -3282,7 +3288,7 @@ CalcRoute: function() {
 
           if (status == google.maps.DirectionsStatus.OK) {
 			  this.IsRouted(true);
-			  //Mojo.Log.info("** RESPONSE1 ***");
+			  //this.Log("** RESPONSE1 ***");
 			  this.clearDirectPoints();
 			  
 			  if (this.WebOSVersion1()) {
@@ -3462,7 +3468,7 @@ markerBubbleTap: function(marker) {
 
 	// pops the popupmenu
 	var near = event.originalEvent && event.originalEvent.target;
-	Mojo.Log.info("**** Navit installed ****", this.isNavit);
+	this.Log("**** Navit installed ****", this.isNavit);
 	if (this.isNavit || this.debug) {
     this.controller.popupSubmenu({
 		onChoose:  this.handlemarkerBubbleTap,
@@ -3590,7 +3596,7 @@ openNavit: function(marker){
 						}.bind(this),
 				onFailure:	function(err) {
 							delete this.request;
-							Mojo.Log.info('Set destination failed');
+							this.Log('Set destination failed');
 							Mojo.Controller.errorDialog('Set destination failed');
 						}.bind(this)
 			});
@@ -3604,7 +3610,7 @@ markerRemove: function (markertoremove) {
 	//remove from markers array
 	for (e=0; e<markers.length; e++){
 		if (markertoremove.marker.place.id == markers[e].place.id) {
-					//Mojo.Log.info("Removing marker from array: ", e);
+					//this.Log("Removing marker from array: ", e);
 					markers.remove(e);	
 				};
 	};
@@ -3612,7 +3618,7 @@ markerRemove: function (markertoremove) {
 	//remove from nearbymarkers array
 	for (e=0; e<this.Nearbymarkers.length; e++){
 		if (markertoremove.marker.place.id == this.Nearbymarkers[e].place.id) {
-					//Mojo.Log.info("Removing marker from array: ", e);
+					//this.Log("Removing marker from array: ", e);
 					this.Nearbymarkers.remove(e);	
 				};
 	};
@@ -3623,7 +3629,7 @@ markerRemove: function (markertoremove) {
 		
 		for (e=0; e<infoBubbles.length; e++){
 				if (markertoremove.marker.place.id == infoBubbles[e].id) {
-						//Mojo.Log.info("Removing infoBubble from array: ", e);
+						//this.Log("Removing infoBubble from array: ", e);
 						infoBubbles.remove(e);	
 					};
 		};
@@ -3633,7 +3639,7 @@ markerRemove: function (markertoremove) {
 	if (markertoremove.marker.place.favorite) {
 		for (var i = 0; i < Favorites.length; i++) {
 			if (markertoremove.marker.place.id == Favorites[i].id) {
-					//Mojo.Log.info("Removing marker from favorites: ", i);
+					//this.Log("Removing marker from favorites: ", i);
 					Favorites.remove(i);
 					this.addToFavorites(Favorites);				
 				};
@@ -3650,10 +3656,10 @@ markerInfo: function (marker) {
 	var request = {
 		reference: marker.place.reference
 	};
-	//Mojo.Log.info("** MARKER REFERENCE %j ***", marker.place.reference);
+	//this.Log("** MARKER REFERENCE %j ***", marker.place.reference);
 	this.InfoService = new google.maps.places.PlacesService(this.map);
 	this.InfoService.getDetails(request, function(place, status) {
-			//Mojo.Log.info("** INFOSERVICE STATUS %j ***", status);
+			//this.Log("** INFOSERVICE STATUS %j ***", status);
 			if (status == google.maps.places.PlacesServiceStatus.OK) {
 				//save favorite mark to result if is favorite
 				if (marker.place.favorite) place.favorite = marker.place.favorite;
@@ -3667,7 +3673,7 @@ markerInfo: function (marker) {
 						};
 				} catch (error) {};
 				this.controller.stageController.pushScene({'name': 'marker-info', transition: Mojo.Transition.none}, place);
-				//Mojo.Log.info("** ADRESA RESULT ***", place.favorite);
+				//this.Log("** ADRESA RESULT ***", place.favorite);
 			} else if (marker.place.geometry.location) {
 				//if getDetails failed (usually due to missing reference for dropped pins)
 				this.controller.stageController.pushScene({'name': 'marker-info', transition: Mojo.Transition.none}, marker.place);				
@@ -3890,7 +3896,7 @@ GetHeadingFromLatLng: function (location1, location2) {
 	  }
 	};
 
-	//Mojo.Log.info("** LOCATION *** %j", location1);
+	//this.Log("** LOCATION *** %j", location1);
 
 	var lat1 = location1.lat();
 	var lon1 = location1.lng();
@@ -3959,6 +3965,9 @@ this.NearbyService.textSearch(request, function(results, status) {
 					};
 					//fit the map to the all nearby markers bounds
 					this.MarkersFitBounds(this.Nearbymarkers);
+					
+					//Add markers to the cluster
+					this.markerCluster = new MarkerClusterer(this.map, this.Nearbymarkers);
 				  
 				} else if (results.length == 1){ //Only one marker to place
 				
@@ -4079,8 +4088,8 @@ if (place.infoBubble == undefined) {
 			}else {
 				place.infoBubble.close();
 				place.infoBubble.setMap(null);
-				Mojo.Log.info("ID:", place.id);
-				//Mojo.Log.info("INDEX bubble:", this.NearbyinfoBubbles.indexOf(place.id));
+				this.Log("ID:", place.id);
+				//this.Log("INDEX bubble:", this.NearbyinfoBubbles.indexOf(place.id));
 				
 				this.MayNearbyBubblePop = false;
 			};
@@ -4162,7 +4171,7 @@ GeocodeFromLatLng: function(latlng) {
     geocoder.geocode({'latLng': latlng}, function(results, status) {
       if (status == google.maps.GeocoderStatus.OK) {
         if (results[0]) {
-		  Mojo.Log.info("** ADRESA *** %j", results[0].formatted_address);
+		  this.Log("** ADRESA *** %j", results[0].formatted_address);
 		  //force the result to have original coordinates
 		  results[0].geometry.location = latlng;
 		  //generate random number as ID for dropped markers
@@ -4173,7 +4182,7 @@ GeocodeFromLatLng: function(latlng) {
           
         }
       } else {
-        Mojo.Log.info("Geocoder failed due to: " + status);
+        this.Log("Geocoder failed due to: ", status);
       }
     }.bind(this));
 	
@@ -4236,10 +4245,10 @@ checkAllPreferences: function(Preferences) {
 	
 	for (i in DefaultPreferences) {
 		if (Preferences[i] == undefined) {
-			//Mojo.Log.info("** UNDEFINED PREFERENCE *** %j", Preferences[i]);
+			//this.Log("** UNDEFINED PREFERENCE *** %j", Preferences[i]);
 			// set undefined prefs to default value
 			Preferences[i] = DefaultPreferences[i];
-			Mojo.Log.info("** SET NON EXIST PREFERENCE TO THEIR DEAFULT VALUE *** %j", Preferences[i]);
+			this.Log("** SET NON EXIST PREFERENCE TO THEIR DEAFULT VALUE *** %j", Preferences[i]);
 			// and put all to the Cookies
 			this.PrefsCookie.put(Preferences);
 		};
@@ -4287,7 +4296,7 @@ hideStatusPanel: function (delay) {
 },
 
 OverlayComplete: function () {
-	Mojo.Log.info("** overlay *** %j");
+	this.Log("** overlay *** %j");
 },
 
 getFavorites: function() {
@@ -4313,20 +4322,20 @@ setFavorites: function(favorites) {
 
 dbGetOK: function (favorites) {
 
-	//Mojo.Log.info("Favorites from db %j ", favorites);
+	//this.Log("Favorites from db %j ", favorites);
 	
 	//Hide the status panel only if is it showed because of db
 	if ($("status-panel-text").innerHTML == "Loading Favorites from database...") {
 		this.hideStatusPanel();
 	};
-	//Mojo.Log.info("Favorite database size: " , Object.values(favorites).size());
+	//this.Log("Favorite database size: " , Object.values(favorites).size());
         if (Object.favorites == "{}" || favorites === null) { 
             Mojo.Log.warn("Retrieved empty or null list from Favorites DB");
         } else {
-            Mojo.Log.info("Retrieved favorites from DB");
+            this.Log("Retrieved favorites from DB");
             this.setFavorites(favorites);
         };
-    //Mojo.Log.info("Favorites from FAVORITES %j ", Favorites);
+    //this.Log("Favorites from FAVORITES %j ", Favorites);
 },
 
 dbGetFail: function(transaction,result) { 
@@ -4335,13 +4344,13 @@ dbGetFail: function(transaction,result) {
 },
 
 addToFavorites: function() {
-	//Mojo.Log.info("Favorites %j ", Favorites);
+	//this.Log("Favorites %j ", Favorites);
     db.add("Favorites", Favorites, this.dbAddOK.bind(this), this.dbAddFail.bind(this));
 	
 },
 
 dbAddOK: function () {
-	Mojo.Log.info("Favorite saved OK");
+	this.Log("Favorite saved OK");
 },
 
 dbAddFail: function(transaction,result) { 
@@ -4369,19 +4378,19 @@ setViewPortWidth: function(width) {
 },
 
 activateWindow: function(event) {
-  Mojo.Log.info("..................Maximized State");
+  this.Log("..................Maximized State");
   this.blockGPSFix = false;
   this.startTracking();
 },
 deactivateWindow: function(event) {
-  Mojo.Log.info("..................Minimized State");
+  this.Log("..................Minimized State");
   this.blockGPSFix = true;
   this.stopTracking();
 },
 
 firstGPSfix: function () {
 	
-		 Mojo.Log.info("Getting location...");
+		 this.Log("Getting location...");
 		 this.firstFixHandle = this.controller.serviceRequest('palm://com.palm.location', {
 	     method: 'getCurrentPosition',
 	  	 parameters: {
@@ -4390,7 +4399,7 @@ firstGPSfix: function () {
 			      responseTime: 1
 	         },
 	 	 onSuccess: this.firstFixSuccess.bind(this),
-		 onFailure: function (e){ Mojo.Log.info("startTracking failure, results="+JSON.stringify(e)); }
+		 onFailure: function (e){ this.Log("getCurrentPosition failure, results=", JSON.stringify(e)); }
 	   });
 	
 },
@@ -4402,7 +4411,7 @@ startTracking: function() {
 			method: 'startTracking',
 			parameters: {"subscribe":true},
 			onSuccess : this.gpsUpdate.bind(this),
-			onFailure : function (e){ Mojo.Log.info("startTracking failure, results="+JSON.stringify(e)); }
+			onFailure : function (e){ this.Log("startTracking failure, results=", JSON.stringify(e)); }
 		});
 	};
 
@@ -4481,7 +4490,7 @@ compassHandler: function(event) {
 },
 
 initiateCompass: function () {
-	Mojo.Log.info(" ** Compass capable device detected ** ");
+	this.Log(" ** Compass capable device detected ** ");
 
 	$("compass").show();
 	$("compass_rotate").show();
@@ -4591,7 +4600,7 @@ pulseDot: function (latlng) {
 	
 	coord.x = Math.round(coord.x-25);
 	coord.y = Math.round(coord.y-25);
-	//Mojo.Log.info("COODR: %j", coord);
+	//this.Log("COODR: %j", coord);
 
 	//webOS 1.x needs this obsolete syntax
 	document.getElementById("pulse").setAttribute("style", "margin: " + coord.y.toString() + "px 0 0 " + coord.x.toString() + "px;");
@@ -4616,7 +4625,7 @@ TransitPicker: function (event) {
 	this.transitTime.setHours(time.getHours());
 	this.transitTime.setMinutes(time.getMinutes());
 	this.transitTime.setSeconds(time.getSeconds());
-	Mojo.Log.info(this.transitTime);
+	this.Log(this.transitTime);
 },
 
 pickDateKalendae: function(event) {
@@ -4630,7 +4639,7 @@ handleKalendaeDate: function () {
 
 	var pickedDate = this.kalendae.getSelected();
 	var pickedDateAsDates = this.kalendae.getSelectedAsDates();
-	Mojo.Log.info(pickedDate);
+	this.Log(pickedDate);
 
 	pickedDateAsDates = new Date (pickedDateAsDates);
 	this.transitTime.setDate(pickedDateAsDates.getDate());
@@ -4692,7 +4701,7 @@ updateDirectListHeight: function () {
 	document.getElementById("DirectionsOptionsScroller").style.maxHeight = listheight;
 	// Older WebOS devices doesn't support optimized markers in newest gAPI v3
 	this.optimizedmarkers = false;
-	Mojo.Log.info("INNER HEIGHT ", this.controller.window.innerHeight);
+	this.Log("INNER HEIGHT ", this.controller.window.innerHeight);
 	};
 	
 },
@@ -4715,7 +4724,7 @@ MapTap: function (event) {
 },
 
 handleCmdMenuHold: function () {
-	//Mojo.Log.info("CMD MENU HOLD ");
+	//this.Log("CMD MENU HOLD ");
 },
 
 getGoogleUnitSystem: function (units) {
@@ -4752,7 +4761,7 @@ getVelocityFromGPS: function (gpsVelocity) {
 
 handleForwardSwipe: function (event) {
 	/** ToDo **/
-	Mojo.Log.info("** Forward ***");
+	this.Log("** Forward ***");
 },
 
 ShowInfoDialog: function (title, message, label) {
@@ -4821,7 +4830,7 @@ var markertoremove = [];
 	for (var type = 0; type < MarkersArray.length; type++) {
 			for (var k = 0; k < MarkersArray[type].length; k++) {
 				if (MarkersArray[type][k].tobedeleted == true) {	
-					Mojo.Log.info("REMOVING: %j", MarkersArray[type][k].place.id);
+					this.Log("REMOVING: %j", MarkersArray[type][k].place.id);
 					markertoremove.marker = MarkersArray[type][k];
 					markertoremove.infoBubble = MarkersArray[type][k].infoBubble;
 					this.markerRemove(markertoremove);
@@ -4860,43 +4869,43 @@ ImageryRotate: function () {
  */
  
 handleLaunch: function (launchParams) {
-	//Mojo.Log.info("handleLAUNCH: %j", launchParams);
+	//this.Log("handleLAUNCH: %j", launchParams);
 	var parsedParams = {};
 	
 	try {
 		if (launchParams.target) {
 			parsedParams = this.parseTargetOrQuery(launchParams);
-			Mojo.Log.info("TARGET: Parsed params: %j", parsedParams);
+			this.Log("TARGET: Parsed params: %j", parsedParams);
 		};
 		
 		if (launchParams.query) {
 			parsedParams.query = launchParams.query;
-			Mojo.Log.info("QUERY: Parsed params: %j", parsedParams);
+			this.Log("QUERY: Parsed params: %j", parsedParams);
 		};
 		
 		if (launchParams.address) {
 			parsedParams.address = launchParams.address;
-			Mojo.Log.info("ADDRESS: Parsed params: %j", parsedParams);
+			this.Log("ADDRESS: Parsed params: %j", parsedParams);
 		};
 		
 		if (launchParams.zoom) {
 			parsedParams.zoom = launchParams.zoom;
-			Mojo.Log.info("ZOOM: Parsed params: %j", parsedParams);
+			this.Log("ZOOM: Parsed params: %j", parsedParams);
 		};
 		
 		if (launchParams.mapType) {
 			parsedParams.mapType = launchParams.mapType;
-			Mojo.Log.info("MAPTYPE: Parsed params: %j", parsedParams);
+			this.Log("MAPTYPE: Parsed params: %j", parsedParams);
 		};
 		
 		if (launchParams.location) {
 			parsedParams.location = launchParams.location;
-			Mojo.Log.info("LOCATION: Parsed params: %j", parsedParams);
+			this.Log("LOCATION: Parsed params: %j", parsedParams);
 		};
 		
 		if (launchParams.route) {
 			parsedParams.route = launchParams.route;
-			Mojo.Log.info("ROUTE: Parsed params: %j", parsedParams);
+			this.Log("ROUTE: Parsed params: %j", parsedParams);
 		};
 		
 		/* If the app is running (spinner is not spinning), go to the launchParamsAction() immediatelly, otherwise wait for mapidle */
@@ -4908,7 +4917,7 @@ handleLaunch: function (launchParams) {
 		
 	} catch (error) {
 		Mojo.Controller.errorDialog($L("Wrong cross app parameters"));
-		Mojo.Log.info(error);
+		this.Log(error);
 	};
 },
 
@@ -5031,12 +5040,12 @@ checkNavit: function (path) {
 		  if (xhr.readyState == 4){
 			if (xhr.status == 200){
 				this.isNavit = true;
- 				Mojo.Log.info("**** Navit installed ****");
+ 				this.Log("**** Navit installed ****");
 			  return true;
 			}
 			else {
 			  this.isNavit = false;
-			  Mojo.Log.info("**** Navit is not installed ****");
+			  this.Log("**** Navit is not installed ****");
 			}
 		  }
 		}.bind(this);
@@ -5094,7 +5103,7 @@ fireTouchOnMap: function (event) {
 	
 	try {
 		var targetElement = document.elementFromPoint(event.down.x, event.down.y);
-		Mojo.Log.info(targetElement);
+		this.Log(targetElement);
 		var evt = document.createEvent('UIEvent');
 		evt.initUIEvent('touchstart', true, true);
 
@@ -5106,99 +5115,18 @@ fireTouchOnMap: function (event) {
 
 		targetElement.dispatchEvent(evt);
 	} catch (except){
-		Mojo.Log.info(except);
+		this.Log(except);
 	}
 },
 
+Log: function (logtext, v) {
+	
+	if (this.debug) Mojo.Log.info(logtext, v);
+	
+},
+
 Debug: function() {
-	
-	
-	//var markerInDOM = 
-	
-	//google.maps.event.trigger(this.map, "OSM");
-	
-	/*
-var child = this.TilesContainer.getElementsByTagName('IMG');
-
-for (var i = 0, l = child.length; i < l; i++)
-		{
-			
-				if ((child[i].nodeName == 'IMG') && (child[i].src.indexOf("vt") == -1) && (child[i].src.indexOf("maps.") == -1))
-				{
-				  Mojo.Log.info("IMG: %j", child[i].src);
-				  //child[i].style["-webkit-transform"] = "scale(" + i + ",2)";
-				  this.elementsToScale.push(child[i]);
-				};
-		};
-
-	*/
-	
-	//var xyz = document.getElementsByClassName("infobubble");
-	//var c = $('img[src*="blue_dot_on.png"]');
-	 //$('img[src="http://www.google.com"]')
-	//$('div[title^="mtg_"]')
-	//Mojo.Log.info("CCC %j", c);
-	//c.style["-webkit-transform"] = "scale(2,2)"; // make the first one red
-	
-	//this.MyLocMarker.getDOMElement().style["-webkit-transform"] = "scale(2,2)";
-	
-    
-    //this.fireEnterOnElement($('MainSearchField'));
-    //this.controller.get('MainSearchField').submit();
-    
-    /*
-    
-
-    try {
-    //var targetElement = document.elementFromPoint(55, 155);
-    //Mojo.Log.info(targetElement);
-    var targetElement = document;
-    var evt = document.createEvent('UIEvent');
-    evt.initUIEvent('touchstart', true, true);
-
-    evt.view = window;
-    evt.altKey = false;
-    evt.ctrlKey = false;
-    evt.shiftKey = false;
-    evt.metaKey = false;
-    
-    evt.screenX = 160;
-	evt.screenY = 230;
-	evt.pageX = 160;
-	evt.pageY = 230;
-	evt.clientX = 160;
-	evt.clientY = 230;
-
-    targetElement.dispatchEvent(evt);
-	} catch (except){
-		Mojo.Log.info(except);
-	};
-	
-	try {
-    //var targetElement = document.elementFromPoint(55, 155);
-    //Mojo.Log.info(targetElement);
-    var targetElement = document;
-    var evt = document.createEvent('UIEvent');
-    evt.initUIEvent('touchend', true, true);
-
-    evt.view = window;
-    evt.altKey = false;
-    evt.ctrlKey = false;
-    evt.shiftKey = false;
-    evt.metaKey = false;
-    
-    evt.screenX = 160;
-	evt.screenY = 230;
-	evt.pageX = 160;
-	evt.pageY = 230;
-	evt.clientX = 160;
-	evt.clientY = 230;
-
-    targetElement.dispatchEvent(evt);
-	} catch (except){
-		Mojo.Log.info(except);
-	};
-*/
+	//reserved
 }
 
 };

@@ -256,9 +256,7 @@ html, body {
 
 		margin: -10px 0px 0px 0px !important;
 		padding: 0px 80px 0px 0px !important;
-		//border-width: 10px 118px 30px 22px;
 		border-width: 24px 24px 24px 24px;
-		//-webkit-border-image: url(../images/search-background-google.png) 10 118 30 22 stretch stretch;
 		-webkit-border-image: url(../images/search-results-background.png) 24 24 24 24 stretch stretch;
 		-webkit-box-sizing: border-box  !important;
 		position: absolute; 
@@ -268,6 +266,10 @@ html, body {
 		top: 0px;
 		background: none;
 		overflow: visible;		
+}
+
+.pac-container:after {
+    background-image: url("../images/powered-by-google-on-white2.png") !important;
 }
 
 .pac-container .pac-item {
@@ -282,20 +284,14 @@ html, body {
 }
 
 .pac-icon {
-	display: none;
-	background-image: none;
+	background-image: url("../images/autocomplete-icons.png") !important;
 }
 
-.pac-icon-marker {
-	display: none;
-	background-image: none;
-}
-
-.pac-container .pac-item .pac-matched{
+.pac-container .pac-item .pac-item-query .pac-matched {
 	font-size: 16px;
 }
 
-.pac-item-query {
+.pac-container .pac-item .pac-item-query {
 	font-size: 16px;
 }
 

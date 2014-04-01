@@ -3,7 +3,7 @@
         "source": "app/assistants/stage-assistant.js"
     }, 
     {
-        "source": "app/assistants/main-assistant.js", 
+        "source": "app/assistants/main-assistant-min.js", 
         "scenes": "main"
     },  
     {
@@ -42,5 +42,8 @@
     },
     {
     	"source": "javascript/kalendae/kalendae-compiled.js"
+    },
+    {
+    	"source": "javascript/markerclusterer/markerclusterer_compiled.js"
     }
 ]
