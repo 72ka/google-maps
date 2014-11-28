@@ -20,16 +20,16 @@ var db = new Mojo.Depot({name:"MainDB", version:1, replace:false},
 MainAssistant.prototype = {
 	setup: function() {
 
-//Check internet connectivity at first
-this.checkConnectivity();
-//this.Log("**** ZAPNOUT INTERNET CHECK ******");  
-
-/* DEBUG FUNCTION */
+/* DEBUG FUNCTION - check them before release! */
 this.cevent = [];
 this.cevent.magHeading = 0;
 this.devversion = false;
 this.debug = false;
 this.devfakegps = false;
+
+
+/* Check internet connectivity at first */
+if (!this.debug) this.checkConnectivity();
 
 /* SETUP UI WIDGETS */
 
@@ -546,8 +546,8 @@ this.Log("*************************************");
 	// Setup the overlay to use for projections (pixels to latlng and vice versa, etc...)
 	this.overlay = new google.maps.OverlayView();
 	this.overlay.draw = function() {};
-	this.overlay.setMap(this.map); 
-
+	this.overlay.setMap(this.map);
+	
 	/** Setup the Preferences variables */
 	
 	this.Preferences = this.PrefsCookie.get();
@@ -603,28 +603,45 @@ this.Log("*************************************");
 				maxZoom: 17,
 				name: "NOKIA"
         }));
+        
+        /* HighDPI basemap custom map type set */
+        this.map.mapTypes.set("ROADMAP_HDPI", new google.maps.ImageMapType({
+                getTileUrl: function(coord, zoom) {
+					//Mojo.Log.info("GET: %j", "http://mts0.google.com/vt?hl=cs&src=app&lyrs=m@216000000,seconds_into_week:-1&x=" + coord.x + "&y=" + coord.y + "&z=" + zoom + "&style=2");
+                    return "http://mts0.google.com/vt?lyrs=m@216000000,seconds_into_week:-1&x=" + coord.x + "&y=" + coord.y + "&z=" + zoom + "&style=2";
+                    //return "http://mts0.google.com/vt?hl=cs&src=app&lyrs=m@216000000,traffic|seconds_into_week:-1&x=" + coord.x + "&y=" + coord.y + "&z=" + zoom + "&style=2";
+                },
+                tileSize: new google.maps.Size(256, 256),
+				isPng: true,
+				maxZoom: 17,
+				name: "ROADMAP_HDPI"
+        }));
+        
+        /** 
+		My research of map servers - to get special tiles:
+		* https://mts0.googleapis.com/vt?lyrs=a,traffic|seconds_into_week:-1&x=8848&y=5551&z=14&style=2   - gets only traffic lines
+         **/
 
-    	// setup autocompleter for main search
+
+    	// setup google SearchBox for main search
 		this.MainInput = "";
 		this.MainInput = document.getElementById("MainSearchField");	
-        this.MainAutocomplete = new google.maps.places.Autocomplete(this.MainInput);
+        this.MainAutocomplete = new google.maps.places.SearchBox(this.MainInput);
         this.MainAutocomplete.bindTo('bounds', this.map);
-        new google.maps.event.addListener(this.MainAutocomplete, 'place_changed', this.SelectedAutocomplete.bind(this));
+        new google.maps.event.addListener(this.MainAutocomplete, 'places_changed', this.SelectedAutocomplete.bind(this));
         
-        // setup autocompleter for origin search
+        // setup google Autocomplete for origin search
 		this.OriginInput = "";
 		this.OriginInput = document.getElementById("OriginSearchField");
         this.Originautocomplete = new google.maps.places.Autocomplete(this.OriginInput);
         this.Originautocomplete.bindTo('bounds', this.map);
-
         new google.maps.event.addListener(this.Originautocomplete, 'place_changed', this.SelectedOriginPlace.bind(this));
 
-        // setup autocompleter for destination search
+        // setup google Autocomplete for destination search
 		this.DestinationInput = "";
 		this.DestinationInput = document.getElementById("DestinationSearchField");
         this.Destinationautocomplete = new google.maps.places.Autocomplete(this.DestinationInput);
         this.Destinationautocomplete.bindTo('bounds', this.map);
-
         new google.maps.event.addListener(this.Destinationautocomplete, 'place_changed', this.SelectedDestinationPlace.bind(this));
 
     //Setup arrays to hold our markers and infoBubbles and other variables
@@ -879,6 +896,7 @@ handleCommand: function(event) {
 																				  popupClass: "pre3menu",
 																				  placeNear: near,
 																				  items: [
+																					  {iconPath:'images/exit-fullscreen.png', label: $L('Go Fullscreen'), command: 'do-fullscreenon'},
 																					  {iconPath:'images/markers-icon.png', label: $L('Markers'), command: 'do-markers'},
 																					  {iconPath:'images/direction-icon.png', label: $L('Directions'), command: 'do-direct'},
 																				      {iconPath:'images/street.png', label: $L('Street View'), command: 'do-street'},																				    
@@ -1431,7 +1449,7 @@ handlePopMapType: function(MapType) {
         	break;
         case 'do-osm':
             this.setStatusPanel($L("Setting map type: ") + $L('Openstreetmaps'));
-            this.map.setMapTypeId("OSM");
+            this.map.setMapTypeId("OSM");       
             this.maxZoom = 18;
             this.ClearMapType();
             this.ActualMapType[4] = true;
@@ -1477,7 +1495,10 @@ handlePopMenu: function(Case) {
 
       switch (Case) {
 		 case 'do-fullscreenoff':
-            this.FullscreenOff();
+            this.FullscreenOff(true);
+            break;
+         case 'do-fullscreenon':
+            this.FullscreenOff(false);
             break;
          case 'do-markers':
             this.getMarkerFromList("info");
@@ -1518,7 +1539,10 @@ activate: function(args) {
 		
 				//resize the map after each focus back
 				google.maps.event.trigger(this.map, "resize");
-
+				
+		//Go Fullscreen or Window
+		window.PalmSystem.enableFullScreenMode(this.Preferences.Fullscreen);
+		
 		//start handle launch parameters for standard new launch
 		if (this.launchParams) {
 			this.handleLaunch(this.launchParams);
@@ -1880,7 +1904,10 @@ Transit: function() {
   		
   		var transitOptions = {
 			getTileUrl: function(coord, zoom) {
-			return "http://mt1.google.com/vt/lyrs=m@155076273,transit:comp|vm:&" + "hl=en&opts=r&s=Galil&z=" + zoom + "&x=" + coord.x + "&y=" + coord.y;
+				
+			/* This URL gets just transit lines on the transparent background */			 
+			return "http://mts0.googleapis.com/vt?lyrs=a,transit|seconds_into_week:-1&x=" + coord.x + "&y=" + coord.y + "&z=" + zoom + "&style=1";
+			
 			//return "http://mts0.google.com/vt?hl=cs&src=app&lyrs=m@216000000,traffic|seconds_into_week:-1&x=" + coord.x + "&y=" + coord.y + "&z=" + zoom + "&style=2";
 			//https://mts0.google.com/vt?hl=cs&src=app&lyrs=m@216000000,traffic|seconds_into_week:-1&x=4422&y=2777&z=13&style=15
 			/* style 15 - normalni styl
@@ -2431,14 +2458,13 @@ Search: function(address) {
 		this.controller.get('MainSearchField').select();
 
 		};
+	/* Bias the SearchBox results towards places that are within the bounds of the current map's viewport. */	
+	var bounds = this.map.getBounds();
+    this.MainAutocomplete.setBounds(bounds);
 
 },
 
 SelectedAutocomplete: function (event) {
-
-	//get actual map bounds
-	var NorthEast = this.map.getBounds().getNorthEast();
-	var SouthWest = this.map.getBounds().getSouthWest();
 
 	this.WebOS2Events('start');
 
@@ -2455,58 +2481,57 @@ SelectedAutocomplete: function (event) {
 
 	// loose focus
 	this.controller.get('MainSearchField').blur();
-
-	 var place = this.MainAutocomplete.getPlace();
-
-          try {
+	
+	var place;
+	
+	var places = this.MainAutocomplete.getPlaces();
+	
+	this.Log("PLACES LENGTH " + places.length);
+	if (places.length == 1) {
+		place = places[0];
+	} else if (places.length < 1){
+		this.ShowInfoDialog('"' + this.controller.get('MainSearchField').value + '"' + " " + $L("not found") + "!", $L("ZERO_RESULTS_NEARBY"), $L("OK"));
+		return	
+	} else {
+		this.PlaceSearchBoxPlaces(places);
+		return	
+		};
+	
+    try {
             this.map.fitBounds(place.geometry.viewport);
           } catch (error) {
             this.map.setZoom(17);
           };
 
-          var address = '';
-          if (place.address_components) {
-            address = [(place.address_components[0] &&
-                        place.address_components[0].short_name || ''),
-                       (place.address_components[1] &&
-                        place.address_components[1].short_name || ''),
-                       (place.address_components[2] &&
-                        place.address_components[2].short_name || '')
-                      ].join(' ');
-          }
+		  try {
+			  var address = '';
+			  if (place.address_components) {
+				address = [(place.address_components[0] &&
+							place.address_components[0].short_name || ''),
+						   (place.address_components[1] &&
+							place.address_components[1].short_name || ''),
+						   (place.address_components[2] &&
+							place.address_components[2].short_name || '')
+						  ].join(' ');
+			  }
 
-		 try {
-			 if (this.isTouchPad()) {
-				// specify actual center (for TP is this needed)
-				this.ActualCenter = place.geometry.location;
-				};
-				
-			  //place marker
-			  this.PlaceMarker({position: place.geometry.location, title: place.name, subtitle: address, place: place, popbubble: true});
-
-			  //update the view menu text
-			  this.feedMenuModel.items[1].items[1].label = place.name;
-			  this.controller.modelChanged(this.feedMenuModel);
-			  
-			  //start the listener for keypress
-			  this.controller.listen(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
-			  
-		  } catch (error) { /** Start the nearby text search if the one place search failed **/
-			  
-				//default radius in meters from actual map bounds
-				var radius = Math.round(google.maps.geometry.spherical.computeDistanceBetween(NorthEast, SouthWest)/2);
-				var input = place.name;
-
-				if (radius > 50000) {radius = 50000};
+			
+				 if (this.isTouchPad()) {
+					// specify actual center (for TP is this needed)
+					this.ActualCenter = place.geometry.location;
+					};
 					
-				//if user write the @, do split to input and radius
-				if (place.name.indexOf("@")>-1) {
-					var request = place.name.split("@");
+				  //place marker
+				  this.PlaceMarker({position: place.geometry.location, title: place.name, subtitle: address, place: place, popbubble: true});
 
-					radius = request[1];
-					input = request[0];
-				}; 
-			  this.SearchNearbyPlaces(input, radius);
+				  //update the view menu text
+				  this.feedMenuModel.items[1].items[1].label = place.name;
+				  this.controller.modelChanged(this.feedMenuModel);
+				  
+				  //start the listener for keypress
+				  this.controller.listen(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
+			  
+		  } catch (error) {
 			};
 },
 
@@ -2526,32 +2551,12 @@ SearchPaste: function(event) {
 },
 
 SearchKeypress: function (event) {
-	
+		
 	this.ns = [];
 	var dropdown = document.getElementsByClassName('pac-container')[0];
 	this.ns.checktimes = 0;
 	var inp = document.getElementById('MainSearchField');
 
-	
-	/* DEPRECATED - new textSearch supports the coordinations directly
-	 * 
-	if (event.keyCode == Mojo.Char.enter) {
-		//this.Log("** ENTER ***");
-		event.stop();
-		var coordlatlng = this.isThereCoordinates(inp.value);
-		if (coordlatlng != undefined) {
-			this.setTopBarText(inp.value);
-			this.DropPin(coordlatlng);
-			} else {
-			this.EnterSubmittedPlace(inp.value);
-		};
-		
-		  //start the listener for keypress
-          this.controller.listen(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
-          
-	};
-	*/
-	
 	 if (this.ns.checkTimer) {
                     clearTimeout(this.ns.checkTimer);
 				};
@@ -2559,111 +2564,6 @@ SearchKeypress: function (event) {
 	this.CheckSearchInput(dropdown, inp);
 	
 	
-},
-
-isThereCoordinates: function(input) {
-	
-		/** DEPRECATED - No more needed, new textSearch service supports the coordinates **/
-		
-		/* This function recognize type of coordinates format and return latlng
-		 * Don't ask me how I can regonzie it... it was horrible to make this function :)
-		 * It could be recognized by more elegant way... ToDo*/
-	 
-	 		/* On the world is used 7 format of coordinates, for example:
-		* All of the following are valid and acceptable ways to write geographic coordinates:
-		*	40:26:46N,79:56:55W 			- type 1
-		*	40:26:46.302N 79:56:55.903W		- type 2
-		*	40°26′47″N 79°58′36″W			- type 3
-		*	40d26′47″N 79d58′36″W			- type 4
-		*	40.446195N 79.948862W			- type 5
-		*	40.446195, -79.948862			- type 6 (this is the decimal format of Google API)
-		*	40°26.7717, -79°56.93172		- type 7
-		* I named it as type 1 to type 7 just for use here
-		* Source: Wikipedia.com
-		*/
-	 
-	var direction, lat, lng;
-	var latlng = undefined;
-	this.inputstring = input;
-	var parts = input.split(/[^\d\w-.:°'"d]+/);
-	var partscomp = input.split(/[^\d\w-.]+/);
-	
-	
-	//this.Log("** PARTS *** %j", parts);
-
-	try {
-		//Recoginze Type 1	
-		if (parts[0].indexOf(":")>-1 && parts[1].indexOf(":")>-1 && parts[0].indexOf(".") == -1 && parts[1].indexOf(".") == -1 && parts[0].split(/[NWES]/).length > 1 && parts[1].split(/[NWES]/).length > 1 && parts.length == 2) {
-			//this.Log("** TYPE 1 ***");
-			lat = this.ConvertDMSToDD(partscomp[0], partscomp[1], partscomp[2].substring(0, partscomp[2].length-1), partscomp[2].substring(partscomp[2].length-1, partscomp[2].length));
-			lng = this.ConvertDMSToDD(partscomp[3], partscomp[4], partscomp[5].substring(0, partscomp[5].length-1), partscomp[5].substring(partscomp[5].length-1, partscomp[5].length));		
-			latlng = new google.maps.LatLng(lat, lng);
-		};
-		
-		//Recoginze Type 2	
-		if (parts[0].indexOf(":")>-1 && parts[1].indexOf(":")>-1 && parts[0].indexOf(".") > -1 && parts[1].indexOf(".") > -1 && parts[0].split(/[NWES]/).length > 1 && parts[1].split(/[NWES]/).length > 1 && parts.length == 2) {
-			//this.Log("** TYPE 2 ***");
-			lat = this.ConvertDMSToDD(partscomp[0], partscomp[1], partscomp[2].substring(0, partscomp[2].length-1), partscomp[2].substring(partscomp[2].length-1, partscomp[2].length));
-			lng = this.ConvertDMSToDD(partscomp[3], partscomp[4], partscomp[5].substring(0, partscomp[5].length-1), partscomp[5].substring(partscomp[5].length-1, partscomp[5].length));		
-			latlng = new google.maps.LatLng(lat, lng);
-		};
-		
-		//Recoginze Type 3	
-		if (parts[0].indexOf("°")>-1 && parts[1].indexOf("°")>-1 && parts[0].indexOf("'") > -1 && parts[1].indexOf("'") > -1 && parts[0].indexOf('"') > -1 && parts[1].indexOf('"') > -1 && parts[0].split(/[NWES]/).length > 1 && parts[1].split(/[NWES]/).length > 1 && parts.length == 2) {
-			//this.Log("** TYPE 3 ***");
-			lat = this.ConvertDMSToDD(partscomp[0], partscomp[1], partscomp[2], partscomp[3]);
-			lng = this.ConvertDMSToDD(partscomp[4], partscomp[5], partscomp[6], partscomp[7]);		
-			latlng = new google.maps.LatLng(lat, lng);
-		};
-		
-		//Recoginze Type 4	
-		if (parts[0].indexOf("d") > -1 && parts[1].indexOf("d") > -1 && parts[0].indexOf("°") == -1 && parts[1].indexOf("°") == -1 && parts[0].indexOf("'") > -1 && parts[1].indexOf("'") > -1 && parts[0].indexOf('"') > -1 && parts[1].indexOf('"') > -1 && parts[0].split(/[NWES]/).length > 1 && parts[1].split(/[NWES]/).length > 1 && parts.length == 2) {
-			//this.Log("** TYPE 4 ***");
-			lat = this.ConvertDMSToDD(partscomp[0].substring(0, partscomp[0].indexOf("d")), partscomp[0].substring(partscomp[0].indexOf("d")+1, partscomp[0].substring(partscomp[0].length-1) ), partscomp[1], partscomp[2]);
-			lng = this.ConvertDMSToDD(partscomp[3].substring(0, partscomp[3].indexOf("d")), partscomp[3].substring(partscomp[3].indexOf("d")+1, partscomp[3].substring(partscomp[3].length-1) ), partscomp[4], partscomp[5]);
-			latlng = new google.maps.LatLng(lat, lng);
-		};
-				
-		//Recoginze Type 5
-		if (parts[0].indexOf(":") == -1 && parts[1].indexOf(":") == -1 && parts[0].indexOf(".")>-1 && parts[1].indexOf(".")>-1 && parts[0].split(/[NWES]/).length > 1 && parts[1].split(/[NWES]/).length > 1 && parts.length == 2) {
-			//this.Log("** TYPE 5 ***");
-			if (parts[0].indexOf("N") > -1) {lat = parts[0].substring(0, parts[0].length-1);} else {lat = -parts[0].substring(0, parts[0].length-1);};
-			if (parts[1].indexOf("E") > -1) {lng = parts[1].substring(0, parts[1].length-1);} else {lng = -parts[1].substring(0, parts[1].length-1);};
-			latlng = new google.maps.LatLng(lat, lng);		
-		};
-		
-		//Recoginze Type 6	
-		if (parts[0].indexOf("°") == -1 && parts[1].indexOf("°") == -1 && parts[0].indexOf(":") == -1 && parts[1].indexOf(":") == -1 && parts[0].indexOf(".")>-1 && parts[1].indexOf(".")>-1 && parts[0].split(/[NWES]/).length == 1 && parts[1].split(/[NWES]/).length == 1 && parts.length == 2) {
-			//this.Log("** TYPE 6 ***");
-			latlng = new google.maps.LatLng(parts[0], parts[1]);
-		};
-		
-		//Recoginze Type 7	
-		if (parts[0].indexOf("°")>-1 && parts[1].indexOf("°")>-1 && parts[0].indexOf("'") == -1 && parts[1].indexOf("'") == -1 && parts[0].indexOf('"') == -1 && parts[1].indexOf('"') == -1 && parts[0].split(/[NWES]/).length == 1 && parts[1].split(/[NWES]/).length == 1 && parts.length == 2) {
-			//this.Log("** TYPE 7 ***");
-			if (partscomp[0].indexOf("-")>-1) {lat = this.ConvertDMSToDD(partscomp[0], -partscomp[1], 0, "");} else {lat = this.ConvertDMSToDD(partscomp[0], partscomp[1], 0, "");};
-			if (partscomp[2].indexOf("-")>-1) {lng = this.ConvertDMSToDD(partscomp[2], -partscomp[3], 0, "");} else {lng = this.ConvertDMSToDD(partscomp[2], partscomp[3], 0, "");};		
-			latlng = new google.maps.LatLng(lat, lng);
-		};
-	} catch (error) {
-		latlng = undefined;
-	};
-	return latlng;
-},
-
-ConvertDMSToDD: function(days, minutes, seconds, direction) {
-
-	days = parseFloat(days);
-    minutes = parseFloat(minutes);
-    seconds = parseFloat(seconds);
-    
-    var dd = days + minutes/60 + seconds/(60*60);
-
-
-    if (direction == "S" || direction == "W") {
-        dd = dd * -1;
-    } // Don't do anything for N or E
-    return dd;
 },
 
 DropPin: function (latlng) {
@@ -3056,7 +2956,7 @@ handleBackSwipe: function (event) {
 
 	//this.Log("** BACK ***");
 	if(this.searching) {
-
+		
 			this.setViewPortWidth(480);
 			
 			// toggle back the scrim
@@ -3127,20 +3027,26 @@ Keypress: function (event) {
 Directions: function (route) {
 
 	this.setViewPortWidth(320);
-	this.WebOS2Events('stop');
+	
+	/* Touchpad big gui */
+	if (!this.isTouchPad()) {
+		this.WebOS2Events('stop');
+	}
 	
 	this.KeyWasPressed = true;
 	//stop listen to keypress
 	this.controller.stopListening(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
     
-    //get actual time for transit options       
+    //get current time for transit options       
     this.transitTime = new Date();
     this.setTransitDatePickers(this.transitTime);
        
 	this.directing = true;
 	this.IsSet = false;
 	this.controller.toggleMenuVisible(Mojo.Menu.viewMenu);
-	this.controller.toggleMenuVisible(Mojo.Menu.commandMenu);
+	if (!this.isTouchPad()) {
+		this.controller.toggleMenuVisible(Mojo.Menu.commandMenu);
+	}	
 	$('directionsScrim').toggle();
 	
 	if (this.TravelMode == undefined) {
@@ -3263,12 +3169,12 @@ CalcRoute: function() {
       switch (this.TransitWhichTime) {
          case 'departure':
            this.transitOptions = {
-				departureTime: new Date(this.transitTime.getTime())
+				departureTime: this.transitTime
 		   };
            break;
          case 'arrival':
           this.transitOptions = {
-				arrivalTime: new Date(this.transitTime.getTime())
+				arrivalTime: this.transitTime
 		   };
           break;
       };
@@ -3916,25 +3822,51 @@ GetHeadingFromLatLng: function (location1, location2) {
 
 },
 
-FullscreenOff: function() {
+FullscreenOff: function(fullscreen) {
 	
-	this.Preferences.Fullscreen = false;
+	this.Preferences.Fullscreen = !fullscreen;
 	this.PrefsCookie.put(this.Preferences);
 	
-	this.FullscreenDialog = this.controller.showAlertDialog({
-	            onChoose: function(value) {
-	            },
-	            title: $L("Information..."),
-	            message: $L("The application must be restarted to make the changes."),
-	            choices: [{
-	               label: $L("Acknowledge"),
-	               value: ""
-	            }]
-	         });
+	window.PalmSystem.enableFullScreenMode(this.Preferences.Fullscreen);
+},
+
+PlaceSearchBoxPlaces: function (places) {
 	
+					//update the view menu text
+					this.feedMenuModel.items[1].items[1].label = this.controller.get('MainSearchField').value + $L(": found  ") + places.length + $L(" places"); 
+					this.controller.modelChanged(this.feedMenuModel);
+			  
+					// clear previous nearby markers
+					this.clearNearbyMarkers();
+					//place all new markers
+					var place;
+					
+					//var bounds = new google.maps.LatLngBounds();
+					
+					for (var i = 0; i < places.length; i++) {
+					  place = places[i];
+					  place.distance = google.maps.geometry.spherical.computeDistanceBetween(this.MyLocation, place.geometry.location);
+					  this.PlaceNearbyMarker(place);
+					  //bounds.extend(place.geometry.location);
+					};
+					
+					//Add markers to the cluster
+					this.markerCluster = new MarkerClusterer(this.map, this.Nearbymarkers);
+					
+					//fit the map to the all nearby markers bounds
+					this.MarkersFitBounds(this.Nearbymarkers);
+					//bounds.extend(place.geometry.location);
+					//this.map.fitBounds(bounds);
+					
+					
+					
+		//start the listener for keypress
+	    this.controller.listen(this.controller.stageController.document, 'keydown', this.KeypresseventHandler);
 },
 
 SearchNearbyPlaces: function (keyword, radius) {
+	
+	/* ALMOST DEPRECATED - used only for forward swipe when searching */
 	
 	var request = {
     location: this.map.getCenter(), //search from actual map center
@@ -4264,7 +4196,7 @@ setLocalizedHTML: function () {
 	/* I'm too lazy to write each localized scene as documentation writes, instead this function pulls localized strings to one common scene */
 	document.getElementById("OriginText").innerHTML = '<img src="images/bubble/flagA.png" width="24" height="24" >' + $L("Origin:");
 	document.getElementById("DestinationText").innerHTML = '<img src="images/bubble/flagB.png" width="24" height="24">' + $L("Destination:");
-	document.getElementById("HintText").innerHTML = $L("<b>Hint:</b> If you select place from suggestions, one marker will be placed.<br> If you are looking for nearby places, just type what you need and press Enter.<br>Example 1: '<i>pizza</i>' find nearest pizza from map center within actual map bounds<br>Example 2: '<i>hotel@5000</i>' find hotels within 5000m from map center");
+	document.getElementById("HintText").innerHTML = $L("<b>Hint:</b> Just type what you need and press Enter or select some suggestion. It allows you to perform a text-based geographic search.<br>Example 1: '<i>pizza</i>' find nearest pizza from map center within current map bounds<br>Example 2: '<i>hotel in Prague</i>' find hotels in the Prague city");
 	document.getElementById("RouteAlternativesText").innerHTML = $L("Provide route alternatives");
 	document.getElementById("AvoidHighwaysText").innerHTML = $L("Avoid highways");
 	document.getElementById("AvoidTollsText").innerHTML = $L("Avoid tolls");
@@ -4638,10 +4570,10 @@ pickDateKalendae: function(event) {
 handleKalendaeDate: function () {
 
 	var pickedDate = this.kalendae.getSelected();
-	var pickedDateAsDates = this.kalendae.getSelectedAsDates();
-	this.Log(pickedDate);
-
-	pickedDateAsDates = new Date (pickedDateAsDates);
+	var KalendaePickedDateAsDates = this.kalendae.getSelectedAsDates();
+	this.Log("Picked date: ", pickedDate);
+	
+	var pickedDateAsDates = new Date (KalendaePickedDateAsDates);
 	this.transitTime.setDate(pickedDateAsDates.getDate());
 	this.transitTime.setMonth(pickedDateAsDates.getMonth());
 	this.transitTime.setFullYear(pickedDateAsDates.getFullYear());
@@ -4679,7 +4611,7 @@ updateDirectionsResponse: function (response) {
 setTransitDatePickers: function (date) {
 	
 	//update text in custom date picker
-	$("TransitDateField").innerHTML = date.getDate() + "." + date.getMonth() + "." + date.getFullYear();
+	$("TransitDateField").innerHTML = date.getDate() + "." + (date.getMonth()+1) + "." + date.getFullYear();
 	
 	//update time in timepicker
 	this.TransitDateModel.time = date;
@@ -4762,6 +4694,11 @@ getVelocityFromGPS: function (gpsVelocity) {
 handleForwardSwipe: function (event) {
 	/** ToDo **/
 	this.Log("** Forward ***");
+	
+	if(this.searching) {
+	/* Use the old deprecated places search just only for forward swipe when searching */
+	this.SearchNearbyPlaces(document.getElementById("MainSearchField").value, 1000);
+	};
 },
 
 ShowInfoDialog: function (title, message, label) {
@@ -4999,10 +4936,14 @@ getElementsToScale: function () {
 	this.elementsToScale = [];
 	this.allInfoBubblesToScale = document.getElementsByClassName("infobubble"); //get all infobubbles elements
 	for (var k = 0; k < this.allInfoBubblesToScale.length; k++) {
+		/* Hide the bubbles while zooming instead of deformning them (easier and faster)*/
+		this.allInfoBubblesToScale[k].style.display = "none";
+		/*
 		if (this.allInfoBubblesToScale[k].style.display != "none") {
 			this.allInfoBubblesToScale[k].style["-webkit-transform-origin"]="50% " + (this.allInfoBubblesToScale[k].offsetHeight + (48*this.ImageRatio)) +  "px";
 			this.elementsToScale.push(this.allInfoBubblesToScale[k]);
 		};
+		*/
 	};
 	
 	/* No affect the other images size stuff - like markers, points, etc */
@@ -5127,6 +5068,7 @@ Log: function (logtext, v) {
 
 Debug: function() {
 	//reserved
+	this.handleForwardSwipe();
 }
 
 };

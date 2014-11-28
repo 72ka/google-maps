@@ -121,7 +121,7 @@
 	"General": "Général",
 	"Fullscreen Mode": "Mode plein écran",
 	"This application is trying to be a replacement of unsupported Google Maps application for WebOS devices. The application is based on the Google Maps API V3. Do you like this application? If do, you can support me in development. Thank you!": "Cette application s'efforce d'être un substitut à l'application Google Maps, qui n'est plus supportée pour les appareils sous webOS. Elle est basée sur l'API Google Maps V3.<br>Cette application vous plaît?<br>Alors vous pouvez soutenir son développement. Merci!",
-	"Change needs application restart. Remember, app menu will be available only in non-fullscreen.<br><br>": "Ce changement nécéssite un redémarrage de l'aplication.<br>Pensez-y: le menu de l'application est disponible uniquement si cette fonction est désactivée.<br><br>",
+	"Remember, app menu will be available only in non-fullscreen.<br><br>": "Pensez-y: le menu de l'application est disponible uniquement si cette fonction est désactivée.<br><br>",
 	"Google API language": "Langue pour l'API Google",
 	"Overrides Google API language, needs application restart.<br><br>": "Force la langue de l'API Google. Nécéssite un redémarrage de l'application.<br><br>",
 	"Override directions launch request": "Recherche de lieu au lancement",

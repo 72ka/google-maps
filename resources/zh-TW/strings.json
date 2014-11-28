@@ -140,7 +140,7 @@
 	"General": "一般",
 	"Fullscreen Mode": "全螢幕模式",
 	"This application is trying to be a replacement of unsupported Google Maps application for WebOS devices. The application is based on the Google Maps API V3. Do you like this application? If do, you can support me in development. Thank you!": "此程式在嘗試成為 webOS 裝置中，已不被支援的 Google 地圖的代用程式。本程式是基於 Google 地圖 API V3 編寫。如您喜歡本程式，請捐款支持此程式的開發，謝謝！",
-	"Change needs application restart. Remember, app menu will be available only in non-fullscreen.<br><br>": "需要重新啟動程式以作更新。提醒您，選單只出現在非全螢幕模式中。<br><br>",
+	"Remember, app menu will be available only in non-fullscreen.<br><br>": "需要重新啟動程式以作更新。提醒您，選單只出現在非全螢幕模式中。<br><br>",
 	"Google API language": "Google API 語言",
 	"Overrides Google API language, needs application restart.<br><br>": "覆寫 Google API 語言，程式需要重新啟動。<br><br>",
 	"Override directions launch request": "覆寫路線啟動要求",

@@ -3,12 +3,6 @@ html, body {
  	height:100%;
 }
 
-/* Some google maps visual refresh overrides  */
-.gm-style div, .gm-style span, .gm-style label, .gm-style a {
-    font-size: 14px;
-    font-weight: 400;
-}
-
 /* Disable shadow of infowindow - issues on Touchpad */
 #map_canvas img[src*="iws3.png"] {
     display: none;
@@ -171,19 +165,14 @@ html, body {
   background: url('../images/star-grey.png') 0 0 repeat-x;
 }
 
-#rating {
-	//float: left;
+.rating_bar div {
+  height: 18px;
+  background: url('../images/star-orange.png') 0 0 repeat-x;
 }
 
 .rating-container {
 	padding-left: 15px;
 	margin-top: -15px;
-	//float: left;
-}
-
-.rating_bar div {
-  height: 18px;
-  background: url('../images/star-orange.png') 0 0 repeat-x;
 }
 
 .about-icon { background: url('../icon-32x32.png') center center no-repeat !important; }
@@ -252,6 +241,8 @@ html, body {
 }
 
 /** All around autocompleter styling **/
+
+
 .pac-container {
 
 		margin: -10px 0px 0px 0px !important;
@@ -261,8 +252,8 @@ html, body {
 		-webkit-box-sizing: border-box  !important;
 		position: absolute; 
 		z-index: 100000 !important; 
-		width: 90%  !important; 
-		left: 17px !important;
+		width: 100%  !important; 
+		left: 0px !important;
 		top: 0px;
 		background: none;
 		overflow: visible;		
@@ -274,13 +265,20 @@ html, body {
 
 .pac-container .pac-item {
 
-	font: 16px 'Prelude', sans-serif !important;
-	font-size: 16px !important;
+	font: 'Prelude', sans-serif !important;
+	font-size: 13px !important;
 	padding: 8px 0px 8px 0px;
 	margin: 0px -86px 0px 0px;
 	line-height: 1.5em !important;
 	color: #555;
-	overflow: hidden;
+	overflow: visible;
+	white-space: normal !important;
+}
+
+.pac-container .pac-item::first-line {
+
+    font-size: 16px !important;
+    
 }
 
 .pac-icon {
@@ -288,11 +286,18 @@ html, body {
 }
 
 .pac-container .pac-item .pac-item-query .pac-matched {
-	font-size: 16px;
+	
 }
 
 .pac-container .pac-item .pac-item-query {
 	font-size: 16px;
+}
+
+.pac-container .pac-item .pac-item-query:after {
+
+	content: '\a';
+    white-space: pre;
+
 }
 
 .palm-menu.command-menu.bottom-menu {
@@ -320,18 +325,12 @@ html, body {
 		text-align: left;
 		height: 48px;
 		background: none;
-		//-webkit-border-image: url(../images/palm-menu-button.png) 100 25 100 25 stretch stretch;
-		//-webkit-border-image: url(../images/searchbar.png) 0 76 0 39 stretch stretch;
 		-webkit-border-image: url(../images/search-main-bar.png) 0 104 0 34 stretch stretch;
-		//-webkit-border-image: url(../images/searchbar.png) 100 25 100 25 stretch stretch;
 		-webkit-user-select: none;
 		border-width: 0 104px 0 34px;
-		//border-width: 0 25px 0 25px;
 		font-size: 16px;
 		font-weight: bold;
 		line-height: 48px;
-		//color: white;
-		//color: black;
 		width: 100%;
 		-webkit-box-sizing: border-box;
 		-webkit-box-flex: 1;
@@ -769,21 +768,9 @@ div#urlbar-title {
 
 /* INFOBUBLE */
 
-.infobubble {
-	//position: absolute;
-	//z-Index: 10002;
-	//opacity: 0.9;
-}
-
-.phoney {
-}
-.phoney-clicked {
-
-}
 .phoneytext {
 	text-shadow: 0 -1px 0 #000;
 	color: #fff;
-	//font-family: Helvetica Neue, Helvetica, arial;
 	font-size: 18px !important;
 	padding: 4px 45px 4px 15px; 
 	font-weight: bold;
@@ -1070,6 +1057,13 @@ div#urlbar-title {
 
 .bold-text {
 	font-weight: bold;
+}
+
+/* User review avatar */
+.userslistavatar {
+	-webkit-border-image: none;
+	float: left;
+	padding: 3px 3px 3px 3px;
 }
 
 @media only screen and (max-device-width:480px), 

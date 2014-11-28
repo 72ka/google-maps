@@ -1,7 +1,6 @@
 /** Base container **/
 .kalendae {
-	//display: inline-block;zoom:1.5;*display:inline;
-	display: zoom:1.5;
+	display: inline-block;zoom:1.5;*display:inline;
 	background:#eee;
 	padding:10px;
 	margin:5px;
@@ -11,9 +10,7 @@
 	font-size:11px;
 	font-family:'Helvetica Neue', 'Helvetica';
 	cursor:default;
-	//position: absolute;
-	//z-index: 100000000;
-	//-webkit-transform:  scale(2);
+	position:relative;
 }
 
 /** Popup Container for Kalendae.Input **/
@@ -164,8 +161,7 @@
 
 /** Today **/
 .kalendae .k-today {
-	//text-decoration: underline;
-	border-color: #FF0000 !important;
+	text-decoration:underline;
 }
 
 /** Days inside of the month view **/
@@ -209,9 +205,15 @@
 
 /** Selectable day, hovered **/
 .kalendae .k-days span.k-active:hover {
-	//border-color:#666;
+	border-color:#666;
 }
 
+/** Selectable week, hovered **/
+.kalendae .k-week:hover span.k-active {
+	border-color:#666;
+}
+
+.clearfix:after { visibility: hidden; display: block; font-size: 0; content: " "; clear: both; height: 0; }
 
 /*-------------------------------------IE8 ONLY CODE BELOW THIS LINE--------------------------------------------*/
 

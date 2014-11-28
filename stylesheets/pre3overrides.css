@@ -1,287 +1,83 @@
-/* Some google maps visual refresh overrides  */
-.gm-style div, .gm-style span, .gm-style label, .gm-style a {
-    font-size: 19px;
-    font-weight: 400;
-}
+@media only screen and (max-device-width:480px), 
+only screen and (-webkit-min-device-pixel-ratio: 1.5)
+{ /* Pre 3 stuff (1.5 pixel ratio) */
 
-.palm-menu.command-menu.bottom-menu {
-		
+	.infobubble {
+		-webkit-transform: scale(1.5, 1.5) translateY(-15px);
+	}
+	
+	.palm-menu.command-menu.bottom-menu {
+			
+			-webkit-transform: scale(1.5, 1.5);
+			height: 75px; //vyska commandmenu bottom
+			//left: 100px;
+			//right: 150px;
+			//width: 320px;
+			//position: absolute;
+
+	}
+
+	.palm-menu.view-menu.top-menu {
+	 -webkit-transform: scale(1.5, 1.5);
+	  width: 100%;
+	  margin-top: 15px;
+	} 
+
+	.palm-scrim {
+		//-webkit-transform: scale(1.5, 1.5);
+		//-webkit-transform: translate(0px, 0px);
+		background: url(../images/scrim.png) repeat-x;
+		position: fixed;
+	}
+
+	.status-panel {
 		-webkit-transform: scale(1.5, 1.5);
-		height: 75px; //vyska commandmenu bottom
-		//left: 100px;
-		//right: 150px;
-		//width: 320px;
-		//position: absolute;
+		top: 98px;
+		width: 56%;
+		left: 110px;
+	}
 
-}
-/*
-.palm-menu.command-menu.street-bottom-menu {		
+	.palm-popup-container.pre3maptype {
+		margin: 100px 0 0 -50px;
+		//-webkit-border-image: url(../images/palm-popup-background.png) 24 24 24 24 stretch stretch; 
 		-webkit-transform: scale(1.5, 1.5);
-		height: 75px;
-}
-*/
-.palm-menu.view-menu.top-menu {
- -webkit-transform: scale(1.5, 1.5);
-  width: 100%;
-  margin-top: 15px;
-} 
+	}
 
-.palm-scrim {
-	//-webkit-transform: scale(2.5, 2.5);
-	//-webkit-transform: translate(0px, 0px);
-	background: url(../images/scrim.png) repeat-x;
-	position: fixed;
-}
+	.palm-popup-container.pre3maptypemore {
+		margin: 0px 0 0 0px; 
+		-webkit-transform: scale(1.5, 1.5) !important;
+	}
 
-.status-panel {
-	-webkit-transform: scale(1.5, 1.5);
-	top: 98px;
-	width: 56%;
-	left: 110px;
-}
+	.palm-popup-container.pre3menu {
+		margin: -90px 0 0 -50px; 
+		-webkit-transform: scale(1.41, 1.44) !important;
+		//background-color: black;
+	}
 
-/*
-.hint {
-	-webkit-transform: scale(1.5, 1.5);
-	margin: -20px 0 5px 0;
-	width: 64%; 
-	left: 17%;
-	bottom: 45px;
-}
-*/
-/*
-.search-button {
-	-webkit-transform: scale(1.5, 1.5);
-	position: absolute;
-	top: 15px;
-	left: 17%;
-	//height: 50px;
-	width: 66%;
-}
-
-.pac-container {
-	-webkit-transform: scale(1.5, 1.5);
-	width: 62%  !important; 
-	left: 19% !important;
-	top: 15px;
-	margin: 69px 0px 0px 0px !important;
-}
-*/
-
-.palm-popup-container.pre3maptype {
-    margin: 100px 0 0 -50px;
-    //-webkit-border-image: url(../images/palm-popup-background.png) 24 24 24 24 stretch stretch; 
-	-webkit-transform: scale(1.5, 1.5);
-}
-
-.palm-popup-container.pre3maptypemore {
-    margin: 0px 0 0 0px; 
-	-webkit-transform: scale(1.5, 1.5) !important;
-}
-
-.palm-popup-container.pre3menu {
-    margin: -90px 0 0 -50px; 
-	-webkit-transform: scale(1.41, 1.44) !important;
-	//background-color: black;
-}
-
-.palm-popup-container.pre3markerpopup {
-    //margin: -90px 0 0 -50px; 
-	-webkit-transform: scale(1.5, 1.5) !important;
-}
+	.palm-popup-container.pre3markerpopup {
+		//margin: -90px 0 0 -50px; 
+		-webkit-transform: scale(1.5, 1.5) !important;
+	}
 
 
-.palm-menu-panel.pre3 {
-  -webkit-transform: scale(1.41, 1.44);
-}
+	.palm-menu-panel.pre3 {
+	  -webkit-transform: scale(1.41, 1.44);
+	}
 
+	/* Compass function in the map Pre3 overrides */
 
-/*
+	#compass_rotate {
+		background:url(../images/1.5/compass.png) center center no-repeat;
+	}
 
-.palm-popup-container.pre3menu {
-  min-width: 270px;
-  margin: 8px 0 0 0;
-  padding: 0;
-  top: 120px;
-  left: 30px;
-  border-width: 36px;
-  //-webkit-box-sizing: border-box;
-  //-webkit-border-image: url(../images/1.5/palm-popup-background.png) 36 36 36 36 stretch stretch;
-}
+	#compass {
+		top: 85px;	
+	}
 
-.palm-popup-wrapper.pre3menu {
-  margin: -36px;
-}
+	#needle {
+		width:22px;
+		background:url(../images/1.5/needle.png) center center no-repeat;
+	}
 
-.palm-popup-content.pre3menu {
-  margin: 26px 12px 27px 12px;
-  padding: 0px;
-  max-height: 552px;
-  z-index: 1;
-  overflow: hidden;
 }
-
-.palm-touch-rows-7.pre3menu .palm-popup-content.pre3menu {
-	max-height: 429px;
-}
-
-.palm-popup-content.pre3menu .palm-list.pre3menu {
-  min-width: 270px;
-  max-width: 450px;
-}
-
-#palm-app-menu .palm-popup-content.pre3menu .palm-list {
-  max-width: 495px;
-}
-
-.palm-popup-fade-top.pre3menu {
-  position: absolute;
-  width: 100%;
-  z-index: 999;
-  height: 38px;
-  top: -24px;
-  -webkit-palm-mouse-target: ignore;
-}
-.palm-popup-fade-top.pre3menu > .fade-background {
-  position: absolute;
-  width: 100%;
-  height: 38px;
-  border-width: 0 36px;
-  -webkit-border-image: url(../images/1.5/palm-popup-fade-top.png) 0 36 0 36;
-  -webkit-palm-mouse-target: ignore;
-}
-.palm-popup-fade-top.pre3menu > .fade-arrow {
-  position: absolute;
-  width: 100%;
-  margin-left: 36px;
-  height: 38px;
-  background: url(../images/1.5/palm-popup-fade-arrow-up.png) center center no-repeat;
-  -webkit-palm-mouse-target: ignore;
-}
-
-.palm-popup-fade-bottom.pre3menu {
-  position: absolute;
-  width: 100%;
-  z-index: 999;
-  height: 38px;
-  bottom: -24px;
-  -webkit-palm-mouse-target: ignore;
-}
-.palm-popup-fade-bottom.pre3menu > .fade-background {
-  position: absolute;
-  width: 100%;
-  height: 38px;
-  border-width: 0 36px;
-  -webkit-border-image: url(../images/1.5/palm-popup-fade-bottom.png) 0 36 0 36;
-  -webkit-palm-mouse-target: ignore;
-}
-.palm-popup-fade-bottom.pre3menu > .fade-arrow {
-  position: absolute;
-  width: 100%;
-  margin-left: 36px;
-  height: 38px;
-  background: url(../images/palm-popup-fade-arrow-down.png) center center no-repeat;
-  -webkit-palm-mouse-target: ignore;
-}
-
-.palm-popup-icon.palm-account-icon,
-.palm-popup-icon.pre3menu {
-  display: inline-block;
-  width: 60px;
-  height: 72px;
-  margin: 0 21px;
-  background-position: center center;
-  background-repeat: no-repeat;
-}
-.palm-popup-icon.left.pre3menu {
-  float: left;
-  margin-right: 0;
-}
-.palm-popup-icon.right.pre3menu {
-  float: right;
-  margin-left: 0;
-}
-
-.palm-popup-icon.status-available.pre3menu {
-  width: 18px;
-  height: 72px;
-  background-image: url(../images/1.5/status-available.png);
-}
-
-.palm-popup-icon.status-away.pre3menu {
-  width: 18px;
-  height: 72px;
-  background-image: url(../images/1.5/status-away.png);
-}
-
-.palm-popup-icon.status-busy.pre3menu {
-  width: 18px;
-  height: 72px;
-  background-image: url(../images/1.5/status-busy.png);
-}
-
-.palm-popup-icon.status-offline.pre3menu {
-  width: 18px;
-  height: 72px;
-  background-image: url(../images/1.5/status-offline.png);
-}
-
-.palm-popup-content.pre3menu .popup-item-checkmark.pre3menu,
-.palm-popup-content.pre3menu .chosen.pre3menu .popup-item-checkmark.pre3menu {
-  float: right;
-  width: 48px;
-  height: 45px;
-  margin: 17px 15px 0px 0px;
-  background: url(../images/1.5/checkmark.png) center center no-repeat;
-}
-
-.palm-popup-content.pre3menu .palm-divider.labeled.pre3menu {
-  margin-top: -11px;
-  margin-bottom: -9px;
-}
-
-.palm-popup-content.pre3menu .palm-divider.labeled.pre3menu .label.pre3menu {
-  font-size: 21px;
-  line-height: 42px;
-  height: 42px;
-  margin: 5px -3px 0 -3px;
-  text-transform: none;
-}
-*/
-
-/*
-.palm-scrim {
-		//position: absolute;
-	//	-webkit-transform: scale(1.5, 1.5);
-}
-*/
-
-.phoneytext {
-	font-size: 27px; padding: 6px 67px 6px 22px;
-	background: url(../images/1.5/map-bubble-arrow-blue.png) 95% 50% no-repeat;
-}
-
-.phoneytext2 {
-	font-size: 18px;
-}
-
-.phoneytextwithoutbutton {
-	font-size: 27px; padding: 6px 22px 6px 22px;
-}
-
-/* Compass function in the map Pre3 overrides */
-
-#compass_rotate {
-	background:url(../images/1.5/compass.png) center center no-repeat;
-}
-
-#compass {
-	top: 85px;	
-}
-
-#needle {
-	width:22px;
-	background:url(../images/1.5/needle.png) center center no-repeat;
-}
-
 

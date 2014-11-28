@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="javascript/kalendae/kalendae.css" type="text/css" charset="utf-8">
 <script>	
 		var MapsLocale = "en-us"; //default locale
-		var gAPI = "?v=3"; //default Google API
+		var gAPI = "?v=3.17"; //default Google API
 		if (typeof(PalmSystem) !== "undefined" && PalmSystem.localeRegion){
 				var lang = PalmSystem.localeRegion.substring(0,2);  //returns only the two first characters
 				MapsLocale = lang;
@@ -43,7 +43,6 @@
 		};
 		if(Mojo.Environment.DeviceInfo.screenWidth==1024 || Mojo.Environment.DeviceInfo.screenWidth==768 ){
 			//detcted TouchPad
-			gAPI = "?v=3"; //Touchpad has good compatible browser, can use nightly build of api
 			var TPoverridestag = '<link href="stylesheets/TPoverrides.css" media="screen" rel="stylesheet" type="text/css" />';
 			document.write(TPoverridestag);
 		};
@@ -60,8 +59,8 @@
 		//var ScaleScriptTag = "<meta name='viewport' content='initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, height=device-height'>";
 		document.write(MetaTag);
 		
-		var MapsURL = "http://maps.google.com/maps/api/js" + gAPI + "&sensor=true&libraries=places,weather,geometry&language=" + MapsLocale;
-		//var MapsURL = "http://maps.google.com/maps/api/js?v=3&sensor=true&libraries=places,weather,panoramio,geometry&language=cs";
+		var MapsURL = "http://maps.google.com/maps/api/js" + gAPI + "&libraries=places,weather,geometry&language=" + MapsLocale;
+		//var MapsURL = "http://maps.google.com/maps/api/js?v=3.exp&signed_in=true&libraries=places,weather,panoramio,geometry&language=cs";
 		Mojo.Log.info("*** Start loading Google Maps API *** ");
 		var scriptTag = "<script type='text/javascript' src='" + MapsURL + "'\><\/script>";
 		document.write(scriptTag);

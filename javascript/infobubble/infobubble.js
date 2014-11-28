@@ -291,13 +291,18 @@ InfoBubble.prototype.buildDom_ = function() {
    * @type {string}
    */
   this.animationName_ = '_ibani_' + Math.round(Math.random() * 10000);
+  
+  /* returns scale 1.5 only for Pre3 */
+  var scale = ((Mojo.Environment.DeviceInfo.screenWidth==480 || Mojo.Environment.DeviceInfo.screenWidth==800 ) ? 1.5 : 1);
+  var offset = ((Mojo.Environment.DeviceInfo.screenWidth==480 || Mojo.Environment.DeviceInfo.screenWidth==800 ) ? 15 : 0);
 
-  var css = '.' + this.animationName_ + '{-webkit-animation-name:' +
+  var css = 
+      '.' + this.animationName_ + '{-webkit-animation-name:' +
       this.animationName_ + ';-webkit-animation-duration:0.5s;' +
       '-webkit-animation-iteration-count:1;}' +
       '@-webkit-keyframes ' + this.animationName_ + ' {from {' +
-      '-webkit-transform: scale(0)}50% {-webkit-transform: scale(1.2)}90% ' +
-      '{-webkit-transform: scale(0.95)}to {-webkit-transform: scale(1)}}';
+      '-webkit-transform: scale(0) translateY(-' + offset + 'px)}50% {-webkit-transform: scale(' + scale*1.2 + ') translateY(-' + offset + 'px)}90% ' +
+      '{-webkit-transform: scale(' + scale*0.95 + ') translateY(-' + offset + 'px)}to {-webkit-transform: scale(' + scale*1 + ') translateY(-' + offset + 'px)}}';
 
   stylesheet.textContent = css;
   document.getElementsByTagName('head')[0].appendChild(stylesheet);

@@ -9,7 +9,7 @@
   background: url(../images/palm-divider-collapse-left.png) left -1px repeat;
 } 
 
-/* ToDo - panel to the right
+/* ToDo - panel to the right 
 #directionsScrim {
 
 	position: relative;
@@ -30,4 +30,19 @@
 
  	z-Index:10000;
 }
+
+.pac-container {
+
+		width: 360px  !important; 
+		top: 0px;
+		left: auto !important;
+		right: 10px !important;	
+}
+
+#searchScrim .pac-container{
+
+	width: 860px  !important;
+
+}
+
 */

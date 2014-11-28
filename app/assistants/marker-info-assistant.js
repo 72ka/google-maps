@@ -626,17 +626,22 @@ FillUserReviewList: function(reviews) {
 	for (var i = 0; i < reviews.length; i++) {
 		
 			var author_urlElement = '';
+			var author_ratingElement = '';
 			var AgoElement = '';
 	
 			if (reviews[i].author_url) {				
-				var photourl = this.getUserPhoto(reviews[i].author_url);		
-				author_urlElement = '<a href="' + reviews[i].author_url + '"><img src="' + photourl + '"></img></a>';
+				var photourl = this.getUserPhoto(reviews[i].author_url);
+				var userID = reviews[i].author_url.slice(reviews[i].author_url.lastIndexOf("/")+1);
+				
+				author_ratingElement = '<div class="rating_bar" style="float: left;"><div id="rating_' + userID + '" style="width:' + reviews[i].rating*20 + '%" ></div></div>';
+					
+				author_urlElement = '<div><a href="' + reviews[i].author_url + '"><img width=48px height=48px src="' + photourl + '" id=' + userID + ' ></img></a></div>';
 			};
 			
 			var secondsNow = Math.round(new Date().getTime());
 			AgoElement = this.timeDifference(secondsNow, reviews[i].time*1000);
 
-			this.UserReviewModel.items[i] = {author_name: reviews[i].author_name, text: reviews[i].text, author_url: author_urlElement, rating: reviews[i].aspects[0].rating, agoElement: AgoElement, ratingText: $L("Rating") + ": "};
+			this.UserReviewModel.items[i] = {author_name: reviews[i].author_name, text: reviews[i].text, author_url: author_urlElement, rating: author_ratingElement, agoElement: AgoElement};
 			
 	};
 	
@@ -647,9 +652,36 @@ getUserPhoto: function(url) {
 	
 	/* grabs the UserID from the URL */
 	var userID = url.slice(url.lastIndexOf("/")+1);
-	var photourl = "http://profiles.google.com/s2/photos/profile/" + userID + "?sz=48";
+
+	var url = "http://picasaweb.google.com/data/entry/api/user/" + userID + "?alt=json";
+
+    var request = new Ajax.Request(url, {
+        method: 'get',
+        asynchronous: true, 
+        evalJSON: "false",
+        onSuccess: this.setUserPhoto.bind(this),
+    on0: function (ajaxResponse) {
+            Mojo.Log.error("Connection failed when getting user avatar");
+            },
+    onFailure: function(response) {
+            Mojo.Log.error("Request failed when getting user avatar");
+            },
+    onException: function(request, ex) {
+            Mojo.Log.error("Exception when getting user avatar");
+            },
+    });
 	
-	return photourl;
+	return "images/avatargoogle.jpg";
+},
+
+setUserPhoto: function(data) {
+	
+	data = JSON.parse(data.responseText);
+	
+	var avatarUrl = data.entry.gphoto$thumbnail.$t;
+	
+	$(data.entry.gphoto$user.$t).src = avatarUrl;
+
 },
 
 timeDifference: function(current, previous) {
@@ -695,7 +727,7 @@ timeDifference: function(current, previous) {
          timestring = time > 1 ? '#{ago} years ago' : '#{ago} year ago';   
     }
 
-    return " (" + new Template($L(timestring)).evaluate({ago: time}) + ")"; 
+    return new Template($L(timestring)).evaluate({ago: time}); 
 },
 
 PhotoTap: function (event) {

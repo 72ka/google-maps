@@ -34,7 +34,7 @@ this.controller.setupWidget(Mojo.Menu.commandMenu,
 document.getElementById("MainTitleText").innerHTML = $L("Preferences");
 document.getElementById("GeneralText").innerHTML = $L("General");
 document.getElementById("FullscreenModeText").innerHTML = $L("Fullscreen Mode");
-document.getElementById("FullscreenModeInfoText").innerHTML = $L("Change needs application restart. Remember, app menu will be available only in non-fullscreen.<br><br>");
+document.getElementById("FullscreenModeInfoText").innerHTML = $L("Remember, app menu will be available only in non-fullscreen.<br><br>");
 document.getElementById("APILangText").innerHTML = $L("Google API language");
 document.getElementById("LangOverrideField").innerHTML = $L("DEFAULT");
 document.getElementById("APILangInfoText").innerHTML = $L("Overrides Google API language, needs application restart.<br><br>");
@@ -346,6 +346,7 @@ handleCommand: function(event) {
 
 handleFullscreenToggle: function(event) {
 	this.Preferences.Fullscreen = event.model.value;
+	//window.PalmSystem.enableFullScreenMode(event.model.value);
 	this.PrefsCookie.put(this.Preferences);
 },
 
