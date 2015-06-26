@@ -51,13 +51,13 @@ this.controller.setupWidget("DirectionsPanelScroller",
 if (this.isTouchPad()) {
 	// set height of scroller for TP
 	var listheight = Math.round(this.controller.window.innerHeight*0.84) + "px";
-	document.getElementById("DirectionsPanelScroller").style.maxHeight = "620px";
+	$("DirectionsPanelScroller").style.maxHeight = "620px";
 	// TP as onlyone WebOS device support optimized markers in newest gAPI v3
 	this.optimizedmarkers = true;
 } else {
 	// set height of scroller depends on device resolution
 	var listheight = Math.round(this.controller.window.innerHeight*0.75) + "px";
-	document.getElementById("DirectionsPanelScroller").style.maxHeight = listheight;
+	$("DirectionsPanelScroller").style.maxHeight = listheight;
 	// Older WebOS devices doesn't support optimized markers in newest gAPI v3
 	this.optimizedmarkers = false;
 	};
@@ -235,7 +235,7 @@ this.controller.setupWidget("DirectionsOptionsScroller",
   }
 );
 
-document.getElementById("DirectionsOptionsScroller").style.maxHeight = listheight;
+$("DirectionsOptionsScroller").style.maxHeight = listheight;
 
 //setup get directions buttons
 
@@ -408,6 +408,7 @@ if (this.devversion) {
 	//setup map
 	this.MyLocation = new google.maps.LatLng(37.39281, -122.04046199999999);
 	
+	
 	//this style hides the google map
 	this.MapOffStyle =[
     {
@@ -542,11 +543,6 @@ this.Log("*************************************");
 				this.handlePopMapType(this.MapType);
 				};
 		};
-		
-	// Setup the overlay to use for projections (pixels to latlng and vice versa, etc...)
-	this.overlay = new google.maps.OverlayView();
-	this.overlay.draw = function() {};
-	this.overlay.setMap(this.map);
 	
 	/** Setup the Preferences variables */
 	
@@ -625,21 +621,21 @@ this.Log("*************************************");
 
     	// setup google SearchBox for main search
 		this.MainInput = "";
-		this.MainInput = document.getElementById("MainSearchField");	
+		this.MainInput = $("MainSearchField");	
         this.MainAutocomplete = new google.maps.places.SearchBox(this.MainInput);
         this.MainAutocomplete.bindTo('bounds', this.map);
         new google.maps.event.addListener(this.MainAutocomplete, 'places_changed', this.SelectedAutocomplete.bind(this));
         
         // setup google Autocomplete for origin search
 		this.OriginInput = "";
-		this.OriginInput = document.getElementById("OriginSearchField");
+		this.OriginInput = $("OriginSearchField");
         this.Originautocomplete = new google.maps.places.Autocomplete(this.OriginInput);
         this.Originautocomplete.bindTo('bounds', this.map);
         new google.maps.event.addListener(this.Originautocomplete, 'place_changed', this.SelectedOriginPlace.bind(this));
 
         // setup google Autocomplete for destination search
 		this.DestinationInput = "";
-		this.DestinationInput = document.getElementById("DestinationSearchField");
+		this.DestinationInput = $("DestinationSearchField");
         this.Destinationautocomplete = new google.maps.places.Autocomplete(this.DestinationInput);
         this.Destinationautocomplete.bindTo('bounds', this.map);
         new google.maps.event.addListener(this.Destinationautocomplete, 'place_changed', this.SelectedDestinationPlace.bind(this));
@@ -668,7 +664,7 @@ this.Log("*************************************");
 	this.minZoom = 0;
 	this.dontForgetToEnableZoomIn = false;
 	this.dontForgetToEnableZoomOut = false;
-	this.gps;
+	//this.gps;
 	this.parsedParams = null;
 	this.idleCompassDeg = 0; 
 	this.idleNeedleDeg = 0; //portrait orientation expected at the start
@@ -702,7 +698,7 @@ this.Log("*************************************");
 		}
     this.directionsService = new google.maps.DirectionsService();
 	this.directionsDisplay = new google.maps.DirectionsRenderer(rendererOptions);
-	this.directionsDisplay.setPanel(document.getElementById('directions-panel'));
+	this.directionsDisplay.setPanel($('directions-panel'));
 	
     this.trafficLayer = new google.maps.TrafficLayer();
 
@@ -756,7 +752,7 @@ this.Log("*************************************");
 	
 	//Set to last view
 	var lastlatlng = new google.maps.LatLng(this.Preferences.LastLoc.lat, this.Preferences.LastLoc.lng);
-	this.map.setCenter(lastlatlng);
+	this.map.panTo(lastlatlng);
 	this.map.setZoom(this.Preferences.LastLoc.zoom);
 	
 	/* ToDo: Panoramio Layer - unusable on WebOS 2.x devices, because the pictures are not touchable */
@@ -775,12 +771,11 @@ this.Log("*************************************");
  	new google.maps.event.addListener(this.map, 'tilesloaded', this.MapTilesLoaded.bind(this));
  	new google.maps.event.addListener(this.map, 'bounds_changed', this.MapCenterChanged.bind(this));
  	//new google.maps.event.addListener(this.map, 'center_changed', this.MapCenterChanged.bind(this));
- 	new google.maps.event.addListener(this.map, 'overlaycomplete', this.OverlayComplete.bind(this));
  	new google.maps.event.addListener(this.map, 'zoom_changed', this.zoomChanged.bind(this));
  
  	this.CenterChanged = true;
 
- 	new google.maps.event.addDomListener(document.getElementById('map_canvas'), 'resize', this.Resize.bind(this));
+ 	new google.maps.event.addDomListener($('map_canvas'), 'resize', this.Resize.bind(this));
  	
  	//key press listener
  	this.KeypresseventHandler = this.Keypress.bindAsEventListener(this);
@@ -792,13 +787,13 @@ this.Log("*************************************");
 	//searchfield key press listener
  	this.SearchKeypresseventHandler = this.SearchKeypress.bindAsEventListener(this);
  	if (!this.debug) {
-		this.controller.listen(document.getElementById('MainSearchField'), 'keydown', this.SearchKeypresseventHandler);
+		this.controller.listen($('MainSearchField'), 'keydown', this.SearchKeypresseventHandler);
 	};
 	this.SearchKeyWasPressed = false;
 	
 	//searchfield onpaste listener
  	this.SearchPasteeventHandler = this.SearchPaste.bindAsEventListener(this);
-	this.controller.listen(document.getElementById('MainSearchField'), 'paste', this.SearchPasteeventHandler);
+	this.controller.listen($('MainSearchField'), 'paste', this.SearchPasteeventHandler);
 
   	// Map Pinch to Zoom lisetener
 	Mojo.Event.listen(this.controller.get("map_canvas"), "gesturestart", this.handleGestureStart.bindAsEventListener(this));
@@ -835,6 +830,7 @@ this.Log("*************************************");
 	
 	//Check if Navit is installed, needs FileMgr service
 	this.checkNavit();
+
 },
 
 handleCommand: function(event) {
@@ -922,9 +918,6 @@ handleCommand: function(event) {
                         }
                         if (event.command == Mojo.Menu.prefsCmd) {
                         	this.controller.stageController.pushScene({'name': 'preferences'}, this.PrefsCookie);							
-                        }
-                        if (event.command == Mojo.Menu.helpCmd) {
-                        								
                         }
                 };
              
@@ -1166,7 +1159,6 @@ if (this.devfakegps) {
 		
 	this.MyLocation = Mylatlng;
 
-
 	// follow the map if the button in menu is active
 	if (this.followMap) {
 		this.map.panTo(this.MyLocation);		
@@ -1323,11 +1315,9 @@ mylocation: function() {
 									if ( this.map.getZoom() > 16 ) {
 											this.map.setZoom(16);
 									};
-										
-									//start the mousedown listener
-									//Mojo.Event.listen(this.controller.get("map_canvas"), 'mousedown', this.mousedownInterruptsFollowHandler);
 									
-									//this.Log("** MyLocation BUTTON ***", this.MyLocation);
+									this.Log("** MyLocation BUTTON ***", this.MyLocation);
+									
 								} else {Mojo.Controller.errorDialog($L("Wait for GPS fix!"));}
 },
 
@@ -1343,11 +1333,15 @@ mousedownInterruptsFollow: function () {
 	this.MapHeadingRotate(gps);
 	
 	//remove the animations
-	(function(){
-		this.TilesContainer.style["-webkit-transition"] = "";
-		this.TilesContainer.style["-webkit-transform"] = "";
-		this.removeTransforms();
-	}).bind(this).delay(1);
+	
+		(function(){
+			try {
+				this.TilesContainer.style["-webkit-transition"] = "";
+				this.TilesContainer.style["-webkit-transform"] = "";
+				this.removeTransforms();
+			} catch (e) {this.Log("Warning: Cannot remove animations")};
+		}).bind(this).delay(1);
+	
 	
 	
 	// rotate back all the other elements
@@ -1477,7 +1471,8 @@ moreMapLayers: function (event) {
 			      {secondaryIconPath:'images/night.png', label: $L('Night'), command: 'do-night', chosen: this.NightVisibile},
 			      {secondaryIconPath:'images/transit.png', label: $L('Transit'), command: 'do-transit', chosen: this.TransitVisibile},
 			      {secondaryIconPath:'images/bike.png', label: $L('Bike'), command: 'do-bike', chosen: this.BikeVisibile},
-			      {secondaryIconPath:'images/weather.png', label: $L('Weather'), command: 'do-weather', chosen: this.WeatherVisibile},
+			      /* DEPRECATED SINCE API v3.17 - TO BE REMOVED SOON */
+			      {secondaryIconPath:'images/weather.png', label: $L('Weather'), command: 'do-weather', chosen: this.WeatherVisibile},			      
 			      {secondaryIconPath:'images/cloud.png', label: $L('Clouds'), command: 'do-cloud', chosen: this.CloudVisibile}
 			      
 			  ]
@@ -1553,7 +1548,7 @@ activate: function(args) {
 
 		// navrat na stred markeru
 		if (args != undefined) {
-			//this.Log("*** ACTION IN ACTIVATE ***", args.action);
+			this.Log("*** ACTION IN ACTIVATE ***", args.action);
 				switch (args.action) {
 	
 					case "info":
@@ -1610,6 +1605,7 @@ activate: function(args) {
 	
 	// hide status panel after activate
 	this.hideStatusPanel();
+
 },
 
 deactivate: function () {
@@ -1804,13 +1800,14 @@ MapIdle: function() {
 MapTilesLoaded: function () {
 	
 	this.NewTilesHere = true;
-	//this.Log("TILES LOADED: ");
+	this.Log("TILES LOADED: ");
 	
 	/* refresh the offline cache tiles*/
 	//if (this.refreshCache) {
 	//	this.refreshTiles();
 	//	this.refreshCache = false;
 	//};
+	
 	//hides the status panel when idle
 	this.hideStatusPanel();
 	
@@ -1819,7 +1816,7 @@ MapTilesLoaded: function () {
 MapCenterChanged: function () {
 	
 	if (this.TilesContainer) {
-	//if (false) {
+	//if (true) {
 		/* IMPORTANT: it needs to be ste the container to 0,0 here for invisible transition after translate */
 		//this.TilesContainer.style["-webkit-transform"] = "translate(0px,0px)";
 		//this.delta = Date.now() - this.setCenterTime;
@@ -2041,7 +2038,7 @@ handleGestureStart: function(e){
 	
 	this.oldeventg = e;
 	
-	this.TilesContainer = document.getElementById('map_canvas').firstChild.firstChild;
+	this.TilesContainer = $('map_canvas').firstChild.firstChild;
 	this.TilesContainer.style.overflow = "visible !important;";
 	this.TilesContainer.style["position"] = "absolute;"
 	//this.TilesContainer.style["-webkit-transition"] = "all 0.3s linear";
@@ -2049,7 +2046,7 @@ handleGestureStart: function(e){
 	this.addpaneventg = [];
 	this.addpaneventg.cx = 0;
 	this.addpaneventg.cy = 0;
-	this.addpaneventg.oldcenter = this.overlay.getProjection().fromLatLngToContainerPixel(this.map.getCenter());
+	this.addpaneventg.oldcenter = this.fromLatLngToPixel(this.map.getCenter());
 	
 	/* get all elements to be not scaled to this.elementsToScale array */
 	this.getElementsToScale();
@@ -2112,14 +2109,14 @@ handleGestureEnd: function(e){
 	this.map.setZoom(this.z);	
 	var point = new google.maps.Point(this.addpaneventg.cx, this.addpaneventg.cy);
 	/** Important, the setCenter here and container to 0,0 at bounds_changed event **/
-	this.map.setCenter(this.overlay.getProjection().fromContainerPixelToLatLng(point));
+	this.map.setCenter(this.fromPixelToLatLng(point));
 },
 
 doTrick: function() {
 	if (!this.touch) { //do the more complicated trick only for non-touch API	
 		
-			this.TrickContainer = document.getElementById('map_trick_canvas');
-			this.MapScrimContainer = document.getElementById('map_scrim');
+			this.TrickContainer = $('map_trick_canvas');
+			this.MapScrimContainer = $('map_scrim');
 			this.TrickContainer.innerHTML = this.TilesContainer.innerHTML;
 		
 			this.TrickContainer.style["-webkit-transform"] = this.TilesContainer.style["-webkit-transform"];
@@ -2188,7 +2185,7 @@ getGoogleTiles: function () {
 	
 /** Commented obsolete code, but still usable if I need to find some elements **/
 /*	
-this.child = document.getElementById('map_canvas').getElementsByTagName('*');
+this.child = $('map_canvas').getElementsByTagName('*');
 
 
 this.imgcount = 0;
@@ -2208,7 +2205,7 @@ for (var i = 0, l = this.child.length; i < l; i++)
 
 this.ScreenSizeBackTile = this.imgchild[0].parentNode; //static image of actual map view after loading tiles
 */
-this.TilesContainer = document.getElementById('map_canvas').firstChild.firstChild; //experimental
+this.TilesContainer = $('map_canvas').firstChild.firstChild; //experimental
 		
 return this.TilesContainer;
 },
@@ -2286,7 +2283,7 @@ dragStart: function(event) {
 			};
 		this.CenterChanged = true;
 
-	this.TilesContainer = document.getElementById('map_canvas').firstChild.firstChild;
+	this.TilesContainer = $('map_canvas').firstChild.firstChild;
 	this.TilesContainer.style.overflow = "visible !important;";
 
 	this.addpanevent = [];
@@ -2304,7 +2301,7 @@ dragStart: function(event) {
 	this.addpanevent.timestamp = Date.now();
 	this.addpanevent.velocity.x = 0;
 	this.addpanevent.velocity.y = 0;
-	this.addpanevent.oldcenter = this.overlay.getProjection().fromLatLngToContainerPixel(this.map.getCenter());
+	this.addpanevent.oldcenter = this.fromLatLngToPixel(this.map.getCenter());
 	
 	this.wasflicked = false;
 	
@@ -2315,7 +2312,7 @@ dragging: function(event) {
 		event.preventDefault();
 		
 		if (!this.TilesContainer) {
-			this.TilesContainer = document.getElementById('map_canvas').firstChild.firstChild;
+			this.TilesContainer = $('map_canvas').firstChild.firstChild;
 		};
 		
 		this.addpanevent.cx = this.addpanevent.oldcenter.x + this.oldevent.x - event.move.x;
@@ -2326,11 +2323,13 @@ dragging: function(event) {
 		
 		this.TilesContainer.style["-webkit-transform"] = "translate(" + this.addpanevent.kx + "px," + this.addpanevent.ky + "px)";
 	
-		this.addpanevent.timestamp = (Date.now()+this.addpanevent.timestamp)/2;
+		//ToDo: co to bylo tady sakra?
+		//this.addpanevent.timestamp = (Date.now()+this.addpanevent.timestamp)/2;
+		this.addpanevent.timestamp = (Date.now());
 },
 
 dragEnd: function(event) {	
-	//this.Log("*** DRAGEND **** ");
+	this.Log("*** DRAGEND **** ");
 	
 	if (!this.wasflicked) {  //synthetic flick
 		var dT = Date.now() - this.addpanevent.timestamp;
@@ -2374,14 +2373,12 @@ kineticMove: function (velocity) {
 		
 	} else if (!this.dragging){
 		
-		this.doTrick();
+			this.doTrick();
 	
 			var point = new google.maps.Point(this.addpanevent.cx, this.addpanevent.cy);
 			this.setCenterTime = Date.now();
-			this.map.setCenter( this.overlay.getProjection().fromContainerPixelToLatLng(point) );
-			
-			this.oldevent = null;
-			
+			this.map.setCenter( this.fromPixelToLatLng(point) );		
+			this.oldevent = null;			
 			this.kineting = false;
 
 	};
@@ -2393,7 +2390,7 @@ moveContainer: function (time, velocity) {
 	//this.Log("*** MOVECONTAINER **** ");
 	try {
 		this.TilesContainer.style["-webkit-transform"] = "translate(" + (this.addpanevent.kx + (this.deltaconstX - velocity.x)) + "px," + (this.addpanevent.ky +  (this.deltaconstY - velocity.y)) + "px)";
-	} catch (error) {};
+	} catch (error) {this.Log("Cannot set style to TilesContainer");};
 	this.addpanevent.cx = this.addpanevent.oldcenter.x - (this.addpanevent.kx + (this.deltaconstX - velocity.x));
 	this.addpanevent.cy = this.addpanevent.oldcenter.y - (this.addpanevent.ky + (this.deltaconstY - velocity.y));
 	
@@ -2555,7 +2552,7 @@ SearchKeypress: function (event) {
 	this.ns = [];
 	var dropdown = document.getElementsByClassName('pac-container')[0];
 	this.ns.checktimes = 0;
-	var inp = document.getElementById('MainSearchField');
+	var inp = $('MainSearchField');
 
 	 if (this.ns.checkTimer) {
                     clearTimeout(this.ns.checkTimer);
@@ -2588,7 +2585,7 @@ PlaceDroppedPin: function (place) {
 
 CheckSearchInput: function (dropdown, inp) {
 	
-             	if (document.getElementById('MainSearchField').value == "") {
+             	if ($('MainSearchField').value == "") {
 					dropdown.style.display = 'none';
 				};
            
@@ -3722,7 +3719,7 @@ MapHeadingRotate: function(gps) {
 	
 	//var allowrotate = true;
 	if (this.NewTilesHere) {
-		this.ContainerToRotate = document.getElementById('map_canvas').firstChild.firstChild;
+		this.ContainerToRotate = $('map_canvas').firstChild.firstChild;
 		this.getElementsToScale(); //gets the TilesContainer too
 		this.NewTilesHere = false;
 		//define animations
@@ -4155,7 +4152,7 @@ MapHold: function (event) {
 	this.setStatusPanel($L("Dropping a pin..."));
 
 	var point = new google.maps.Point(event.down.x, event.down.y);
-	var taplatlng = this.overlay.getProjection().fromContainerPixelToLatLng(point);
+	var taplatlng = this.fromPixelToLatLng(point);
 	this.inputstring = taplatlng.toUrlValue(4);
 	this.setTopBarText(this.inputstring);
 	this.holdaction = "droppin";
@@ -4194,13 +4191,13 @@ closeApp: function () {
 setLocalizedHTML: function () {
 	
 	/* I'm too lazy to write each localized scene as documentation writes, instead this function pulls localized strings to one common scene */
-	document.getElementById("OriginText").innerHTML = '<img src="images/bubble/flagA.png" width="24" height="24" >' + $L("Origin:");
-	document.getElementById("DestinationText").innerHTML = '<img src="images/bubble/flagB.png" width="24" height="24">' + $L("Destination:");
-	document.getElementById("HintText").innerHTML = $L("<b>Hint:</b> Just type what you need and press Enter or select some suggestion. It allows you to perform a text-based geographic search.<br>Example 1: '<i>pizza</i>' find nearest pizza from map center within current map bounds<br>Example 2: '<i>hotel in Prague</i>' find hotels in the Prague city");
-	document.getElementById("RouteAlternativesText").innerHTML = $L("Provide route alternatives");
-	document.getElementById("AvoidHighwaysText").innerHTML = $L("Avoid highways");
-	document.getElementById("AvoidTollsText").innerHTML = $L("Avoid tolls");
-	document.getElementById("TransitDateLabel").innerHTML = $L("Date");
+	$("OriginText").innerHTML = '<img src="images/bubble/flagA.png" width="24" height="24" >' + $L("Origin:");
+	$("DestinationText").innerHTML = '<img src="images/bubble/flagB.png" width="24" height="24">' + $L("Destination:");
+	$("HintText").innerHTML = $L("<b>Hint:</b> Just type what you need and press Enter or select some suggestion. It allows you to perform a text-based geographic search.<br>Example 1: '<i>pizza</i>' find nearest pizza from map center within current map bounds<br>Example 2: '<i>hotel in Prague</i>' find hotels in the Prague city");
+	$("RouteAlternativesText").innerHTML = $L("Provide route alternatives");
+	$("AvoidHighwaysText").innerHTML = $L("Avoid highways");
+	$("AvoidTollsText").innerHTML = $L("Avoid tolls");
+	$("TransitDateLabel").innerHTML = $L("Date");
 },
 
 setStatusPanel: function (text, delay) {
@@ -4225,10 +4222,6 @@ hideStatusPanel: function (delay) {
 		this.controller.get('StatusPanelSpinner').mojo.stop();
 		$("status-panel").style['-webkit-transition-duration'] = "1s";
 		$("status-panel").removeClassName("active");		
-},
-
-OverlayComplete: function () {
-	this.Log("** overlay *** %j");
 },
 
 getFavorites: function() {
@@ -4331,7 +4324,7 @@ firstGPSfix: function () {
 			      responseTime: 1
 	         },
 	 	 onSuccess: this.firstFixSuccess.bind(this),
-		 onFailure: function (e){ this.Log("getCurrentPosition failure, results=", JSON.stringify(e)); }
+		 onFailure: function (e){ this.Log("getCurrentPosition failure, results=", JSON.stringify(e)); }.bind(this)
 	   });
 	
 },
@@ -4343,7 +4336,7 @@ startTracking: function() {
 			method: 'startTracking',
 			parameters: {"subscribe":true},
 			onSuccess : this.gpsUpdate.bind(this),
-			onFailure : function (e){ this.Log("startTracking failure, results=", JSON.stringify(e)); }
+			onFailure : function (e){ this.Log("startTracking failure, results=", JSON.stringify(e)); }.bind(this)
 		});
 	};
 
@@ -4498,8 +4491,8 @@ if(this.isPre3()){
 					url: 'images/1.5/blue_dot_on.png',
 					size: new google.maps.Size(64, 64),
 					origin: new google.maps.Point(0, 0), // origin
-					anchor: new google.maps.Point(32, 32), // anchor
-					scaledSize: new google.maps.Point(64, 64) //Scale to - kdyz neni aktivovano, dela to hranate kolecko na Pre3
+					anchor: new google.maps.Point(32, 32) // anchor
+					//scaledSize: new google.maps.Point(64, 64) //Scale to - kdyz neni aktivovano, dela to hranate kolecko na Pre3
 				};
 				} else {
 				var image = {
@@ -4528,14 +4521,14 @@ pulseDot: function (latlng) {
 	
 	if (!this.blockpulse) {
 	
-	var coord = this.overlay.getProjection().fromLatLngToContainerPixel(latlng);
+	var coord = this.fromLatLngToPixel(latlng);
 	
 	coord.x = Math.round(coord.x-25);
 	coord.y = Math.round(coord.y-25);
-	//this.Log("COODR: %j", coord);
+	//this.Log("COORD Pulsing dot: %j", coord);
 
 	//webOS 1.x needs this obsolete syntax
-	document.getElementById("pulse").setAttribute("style", "margin: " + coord.y.toString() + "px 0 0 " + coord.x.toString() + "px;");
+	$("pulse").setAttribute("style", "margin: " + coord.y.toString() + "px 0 0 " + coord.x.toString() + "px;");
 		
 	$("pulse").show();
 	
@@ -4623,14 +4616,14 @@ updateDirectListHeight: function () {
 	if (this.isTouchPad()) {
 	// set height of scroller for TP
 	var listheight = Math.round(this.controller.window.innerHeight*0.84) + "px";
-	document.getElementById("DirectionsPanelScroller").style.maxHeight = "620px";
+	$("DirectionsPanelScroller").style.maxHeight = "620px";
 	// TP as onlyone WebOS device support optimized markers in newest gAPI v3
 	this.optimizedmarkers = true;
 } else {
 	// set height of scroller depends on device resolution
 	var listheight = Math.round(this.controller.window.innerHeight*0.74) + "px";
-	document.getElementById("DirectionsPanelScroller").style.maxHeight = listheight;
-	document.getElementById("DirectionsOptionsScroller").style.maxHeight = listheight;
+	$("DirectionsPanelScroller").style.maxHeight = listheight;
+	$("DirectionsOptionsScroller").style.maxHeight = listheight;
 	// Older WebOS devices doesn't support optimized markers in newest gAPI v3
 	this.optimizedmarkers = false;
 	this.Log("INNER HEIGHT ", this.controller.window.innerHeight);
@@ -4648,7 +4641,7 @@ MapTap: function (event) {
 			this.setStatusPanel($L("Zooming in..."));
 			this.blockGPSFix = true;
 			var point = new google.maps.Point(event.down.x, event.down.y);
-			var taplatlng = this.overlay.getProjection().fromContainerPixelToLatLng(point);
+			var taplatlng = this.fromPixelToLatLng(point);
 			this.map.panTo(taplatlng);
 			this.map.setZoom(this.map.getZoom() + 1);
             break;
@@ -4697,7 +4690,7 @@ handleForwardSwipe: function (event) {
 	
 	if(this.searching) {
 	/* Use the old deprecated places search just only for forward swipe when searching */
-	this.SearchNearbyPlaces(document.getElementById("MainSearchField").value, 1000);
+	this.SearchNearbyPlaces($("MainSearchField").value, 1000);
 	};
 },
 
@@ -4749,7 +4742,7 @@ streetSelect: function () {
 
 StreetMapTap: function (event) {	 
 			var point = new google.maps.Point(event.down.x, event.down.y);
-			var taplatlng = this.overlay.getProjection().fromContainerPixelToLatLng(point);
+			var taplatlng = this.fromPixelToLatLng(point);
 			/* Do the streetview only if the finger not moved more than 5px*/
 			if (Math.abs(event.down.x - event.up.x) < 5 && Math.abs(event.down.y - event.up.y) < 5) {
 				Mojo.Event.stopListening(this.MapTap, Mojo.Event.tap, this.StreetMapTapEventHandler);
@@ -4930,7 +4923,7 @@ getElementsToScale: function () {
 	/** This function gets all desired and visible elements in TilesContainer who will be rotated or scaled **/
 
 	/* get the TilesContainer */
-	this.TilesContainer = document.getElementById('map_canvas').firstChild.firstChild;
+	this.TilesContainer = $('map_canvas').firstChild.firstChild;
 	
 	/* Infobubble size stuff */
 	this.elementsToScale = [];
@@ -5058,6 +5051,41 @@ fireTouchOnMap: function (event) {
 	} catch (except){
 		this.Log(except);
 	}
+},
+
+fromLatLngToPixel: function (position) {
+  var scale = Math.pow(2, this.map.getZoom());
+  var proj = this.map.getProjection();
+  var bounds = this.map.getBounds();
+
+  var nw = proj.fromLatLngToPoint(
+    new google.maps.LatLng(
+      bounds.getNorthEast().lat(),
+      bounds.getSouthWest().lng()
+    ));
+  var point = proj.fromLatLngToPoint(position);
+
+  return new google.maps.Point(
+    Math.floor((point.x - nw.x) * scale),
+    Math.floor((point.y - nw.y) * scale));
+},
+
+fromPixelToLatLng: function (pixel) {
+  var scale = Math.pow(2, this.map.getZoom());
+  var proj = this.map.getProjection();
+  var bounds = this.map.getBounds();
+
+  var nw = proj.fromLatLngToPoint(
+    new google.maps.LatLng(
+      bounds.getNorthEast().lat(),
+      bounds.getSouthWest().lng()
+    ));
+  var point = new google.maps.Point();
+
+  point.x = pixel.x / scale + nw.x;
+  point.y = pixel.y / scale + nw.y;
+
+  return proj.fromPointToLatLng(point);
 },
 
 Log: function (logtext, v) {

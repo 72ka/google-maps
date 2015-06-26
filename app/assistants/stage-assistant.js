@@ -36,7 +36,7 @@ function AppAssistant(appController) {
 }
     
 AppAssistant.prototype.setup = function() {
-	
+
 	try {
 	var Preferences = Cookies.PrefsCookie.get();
 	
@@ -57,7 +57,7 @@ AppAssistant.prototype.handleLaunch = function(launchParams){
    Mojo.Log.info("********* APP LAUNCH *************");
    var cardStageController = Mojo.Controller.stageController;
    Mojo.Log.info("Controller is: " + cardStageController);
- 
+   Mojo.Log.info("Prototype library", Prototype.Version);
    appLaunchParams = launchParams;
    if (!launchParams) {
       // FIRST LAUNCH or TAP on Icon when minimized
@@ -86,6 +86,7 @@ function StageAssistant(stageController) {
 }
 
 StageAssistant.prototype.setup = function() {
+	
 // push the main scene
 this.stageController.pushScene({name: "main", disableSceneScroller: true}, { Action: LaunchAction, maploc: maploc, mapto: mapto, Cookies: Cookies, launchParams: appLaunchParams});
 this.stageController.setWindowOrientation("free");

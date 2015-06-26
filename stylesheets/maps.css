@@ -18,29 +18,9 @@ html, body {
 	position: absolute;
 	width:100%;
  	height:100%;
- 	//width:320px;
- 	//height:440px;
- 	//-webkit-transform-origin-x: 0px !important;
- 	//-webkit-transform-origin-y: 0px !important;
- 	//-webkit-transform-origin: top left !important;
- 	//-webkit-transform: scale(0.75, 0.75) !important;
- 	//-webkit-device-pixel-ratio: 2 !important;
- 	-webkit-transform: translateZ(0px);
- 	//-webkit-transition: all 2s ease-in-out !important;
- 	//-webkit-transform-style: preserve-3d;
- 	// -webkit-user-drag: element;
- 	//-webkit-transform: rotate(-30deg) skewX(30deg) skewY(0deg) scaleY(0.87);
  	cursor: none;
- 	font-size: 14px; //InfoWindow font size
- 	//-webkit-user-select: none;
- 	z-Index:10000;
- 	//overflow: visible !important;
- 	//background: none;
- 	//background-color: white;
- 	//border-width: 2px;
- 	// -webkit-transform: matrix(1, -0.2, -0.2, 1, 0, 0);
- 	-webkit-backface-visibility: hidden;
-	//-webkit-perspective: 1000;
+ 	font-size: 14px;
+ 	z-Index: 10000;
 }
 
 #map_trick_canvas {
@@ -48,10 +28,7 @@ html, body {
 	width:100%;
  	height:100%;
  	-webkit-user-select: none;
- 	//z-Index: 10001;
  	z-Index: 9999;
- 	//display: none;
- 	//background: none;
 }
 
 #map_scrim {
